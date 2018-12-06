@@ -66,7 +66,7 @@ from pytorch_toolbox.vision.utils import normalize, denormalize, tensor2img
 from pytorch_toolbox.fastai_extensions.loss import LossWrapper, FocalLoss, SoftF1Loss
 from pytorch_toolbox.fastai_extensions.basic_data import DataBunch
 
-CONFIG_FILE = Path("../configs/iafoss_resnet50.yml")
+CONFIG_FILE = Path("../configs/iafoss_resnet34.yml")
 ROOT_SAVE_PATH = Path("/media/hd1/data/Kaggle/human-protein-image-classification/results")
 SAVE_FOLDER_NAME = f"{CONFIG_FILE.stem}_{time.strftime('%H%M%S-%Y%m%d')}"
 RESULTS_SAVE_PATH = ROOT_SAVE_PATH / SAVE_FOLDER_NAME
@@ -208,13 +208,12 @@ data = create_data_bunch(train_paths=train_paths,
 # 5. Initialize the model
 import pytorch_toolbox.fastai.fastai as fastai
 from pytorch_toolbox.fastai_extensions.basic_train import Learner
-from src.models import (cbam_resnet34_four_channel_input, cbam_resnet50_four_channel_input, resnet34_four_channel_input,
-                        resnet50_four_channel_input, resnet18_four_channel_input
-                        )
+from src.models import *
 
 model_lookup = {
     "resnet18_four_channel_input": resnet18_four_channel_input,
     "resnet34_four_channel_input": resnet34_four_channel_input,
+    "resnet34_four_channel_input_one_fc": resnet34_four_channel_input_one_fc,
     "resnet50_four_channel_input": resnet50_four_channel_input,
     "cbam_resnet34_four_channel_input": cbam_resnet34_four_channel_input,
     "cbam_resnet50_four_channel_input": cbam_resnet50_four_channel_input

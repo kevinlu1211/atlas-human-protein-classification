@@ -8,17 +8,34 @@ import numpy as np
 class DataPaths:
     ROOT_DATA_PATH = Path("../data")
     TRAIN_IMAGES = Path(ROOT_DATA_PATH, "train")
+    TRAIN_COMBINED_IMAGES = Path(ROOT_DATA_PATH, "train_combined")
     TRAIN_LABELS = Path(ROOT_DATA_PATH, "train.csv")
     TEST_IMAGES = Path(ROOT_DATA_PATH, "test")
 
 
-def open_rgby(path): #a function that reads RGBY image
+def open_rgby(path, with_image_wrapper=True): #a function that reads RGBY image
     colors = ['red','green','blue','yellow']
     flags = cv2.IMREAD_GRAYSCALE
     img_id = path.name[:36]
     img = [cv2.imread(f"{str(path)}_{color}.png", flags).astype(np.uint8) for color in colors]
-    return Image(px=np.stack(img, axis=-1), name=img_id)
+    if with_image_wrapper:
+        return Image(px=np.stack(img, axis=-1), name=img_id)
+    else:
+        return {
+            "image": np.stack(img, axis=-1),
+            "name": img_id
+        }
 
+def open_numpy(path, with_image_wrapper=True):
+    img = np.load(path, allow_pickle=True).transpose(1, 2, 0)
+    img_id = path.stem
+    if with_image_wrapper:
+        return Image(px=img, name=img_id)
+    else:
+        return {
+            "image": Image(px=img, name=img_id),
+            "name": path.stem
+        }
 
 class Image:
     def __init__(self, px, name=None):

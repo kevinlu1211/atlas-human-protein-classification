@@ -29,7 +29,7 @@ data_bunch:
     test_bs: 32
 
 model:
-  name: resnet34_four_channel_input_one_fc
+  name: resnet50_four_channel_input
   parameters:
     pretrained: true
 
