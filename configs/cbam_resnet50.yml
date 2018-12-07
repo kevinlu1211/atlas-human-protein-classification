@@ -6,7 +6,7 @@ split_method:
     random_state: 42
 
 augment_fn:
-  name: simple_aug
+  name: very_simple_aug
   parameters:
     p: 1
     height: null
@@ -29,7 +29,7 @@ data_bunch:
     test_bs: 32
 
 model:
-  name: resnet34_four_channel_input
+  name: cbam_resnet50_four_channel_input_one_fc
   parameters:
     pretrained: true
 
@@ -52,7 +52,9 @@ learner:
   name: Learner
 
 training_scheme:
-  name: training_scheme_1
+  name: training_scheme_3
+  parameters:
+    lr: 2e-3
 
 
 

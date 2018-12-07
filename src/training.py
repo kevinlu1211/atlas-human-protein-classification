@@ -30,6 +30,7 @@ def training_scheme_2(learner):
 
 
 def training_scheme_3(learner, lr=2e-3, epochs=50):
+    lr = float(lr)
     lrs = np.array([lr / 10, lr / 3, lr])
     learner.unfreeze()
     learner.fit_one_cycle(cyc_len=epochs, max_lr=lrs / 4)

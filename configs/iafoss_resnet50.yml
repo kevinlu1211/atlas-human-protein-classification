@@ -6,7 +6,7 @@ split_method:
     random_state: 42
 
 augment_fn:
-  name: simple_aug
+  name: very_simple_aug
   parameters:
     p: 1
     height: null

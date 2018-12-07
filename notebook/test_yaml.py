@@ -66,7 +66,9 @@ from pytorch_toolbox.vision.utils import normalize, denormalize, tensor2img
 from pytorch_toolbox.fastai_extensions.loss import LossWrapper, FocalLoss, SoftF1Loss
 from pytorch_toolbox.fastai_extensions.basic_data import DataBunch
 
-CONFIG_FILE = Path("../configs/iafoss_resnet34.yml")
+# CONFIG_FILE = Path("../configs/iafoss_resnet34.yml")
+# CONFIG_FILE = Path("../configs/iafoss_resnet50.yml")
+CONFIG_FILE = Path("../configs/cbam_resnet50.yml")
 ROOT_SAVE_PATH = Path("/media/hd1/data/Kaggle/human-protein-image-classification/results")
 SAVE_FOLDER_NAME = f"{CONFIG_FILE.stem}_{time.strftime('%H%M%S-%Y%m%d')}"
 RESULTS_SAVE_PATH = ROOT_SAVE_PATH / SAVE_FOLDER_NAME
@@ -91,10 +93,8 @@ def extract_name_and_parameters(config, key):
 # 1. Generate the training data
 
 # Get paths for training
-train_paths = [Path(DataPaths.TRAIN_IMAGES, img_id) for img_id in
-               np.unique([p.name[:36] for p in DataPaths.TRAIN_IMAGES.glob("*")])]
-test_paths = [Path(DataPaths.TEST_IMAGES, img_id) for img_id in
-              np.unique([p.name[:36] for p in DataPaths.TEST_IMAGES.glob("*")])]
+train_paths = sorted(list(DataPaths.TRAIN_COMBINED_IMAGES.glob("*")), key=lambda p: p.stem)
+test_paths = sorted(list(DataPaths.TEST_COMBINED_IMAGES.glob("*")), key=lambda p: p.stem)
 
 # Generate training data
 labels_df = pd.read_csv(DataPaths.TRAIN_LABELS)
@@ -108,10 +108,9 @@ for labels in tqdm_notebook(train_labels):
         one_hot[label] = 1
     train_labels_one_hot.append(one_hot.astype(np.float32))
 
-train_paths = sorted([Path(DataPaths.TRAIN_IMAGES, img_id) for img_id in
-                      np.unique([p.name[:36] for p in DataPaths.TRAIN_IMAGES.glob("*")])], key=lambda p: p.name)
+
 labels_df = labels_df.sort_values(["Id"], ascending=[True])
-assert np.all(np.array([p.name for p in train_paths]) == labels_df["Id"])
+assert np.all(np.array([p.stem for p in train_paths]) == labels_df["Id"])
 train_labels = labels_df["Target"].values
 assert len(train_paths) == len(train_labels)
 
@@ -126,7 +125,7 @@ split_method_name, split_method_parameters = extract_name_and_parameters(config,
 split_method = partial(split_method_lookup[split_method_name](**split_method_parameters).split, X=train_paths)
 
 # 3. Transformation / normalization of images
-from pytorch_toolbox.vision.transforms import simple_aug, resize_aug
+from pytorch_toolbox.vision.transforms import *
 
 
 def albumentations_transform_wrapper(image, augment_fn):
@@ -135,7 +134,9 @@ def albumentations_transform_wrapper(image, augment_fn):
 
 
 augment_fn_lookup = {
+    "very_simple_aug": very_simple_aug,
     "simple_aug": simple_aug,
+    "simple_aug_lower_prob": simple_aug_lower_prob,
     "resize_aug": resize_aug
 }
 
@@ -165,23 +166,26 @@ denormalize_fn_name, denormalize_fn_parameters = extract_name_and_parameters(con
 denormalize_fn = partial(denormalize_fn_lookup[denormalize_fn_name], **denormalize_fn_parameters)
 
 # 4. Create the data bunch which wraps our dataset
-from src.data import ProteinClassificationDataset
+from src.data import ProteinClassificationDataset, open_numpy
 
 
 def create_data_bunch(train_paths, train_labels_one_hot, dataset,
-                      split_method, augment_fn, normalize_fn,
+                      split_method, open_image_fn, augment_fn, normalize_fn,
                       **data_bunch_parameters):
 
     train_idx, val_idx = next(iter(split_method()))
 
     train_ds = dataset(inputs=np.array(train_paths)[train_idx],
+                       open_image_fn=open_image_fn,
                        labels=np.array(train_labels_one_hot)[train_idx],
                        augment_fn=augment_fn,
                        normalize_fn=normalize_fn)
     val_ds = dataset(inputs=np.array(train_paths)[val_idx],
+                     open_image_fn=open_image_fn,
                      labels=np.array(train_labels_one_hot)[val_idx],
                      normalize_fn=normalize_fn)
     test_ds = dataset(inputs=np.array(test_paths),
+                      open_image_fn=open_image_fn,
                       normalize_fn=normalize_fn)
     data = DataBunch.create(train_ds, val_ds, test_ds,
                             collate_fn=train_ds.collate_fn,
@@ -201,6 +205,7 @@ data = create_data_bunch(train_paths=train_paths,
                          train_labels_one_hot=train_labels_one_hot,
                          dataset=dataset,
                          split_method=split_method,
+                         open_image_fn=open_numpy,
                          augment_fn=augment_fn,
                          normalize_fn=normalize_fn,
                          **config["data_bunch"].get("parameters", dict()))
@@ -216,12 +221,14 @@ model_lookup = {
     "resnet34_four_channel_input_one_fc": resnet34_four_channel_input_one_fc,
     "resnet50_four_channel_input": resnet50_four_channel_input,
     "cbam_resnet34_four_channel_input": cbam_resnet34_four_channel_input,
-    "cbam_resnet50_four_channel_input": cbam_resnet50_four_channel_input
+    "cbam_resnet50_four_channel_input": cbam_resnet50_four_channel_input,
+    "cbam_resnet50_four_channel_input_one_fc": cbam_resnet50_four_channel_input_one_fc
 }
 
 model_name, model_parameters = extract_name_and_parameters(config, "model")
 
 model = model_lookup[model_name](**model_parameters)
+print(model)
 
 # TODO: figure out how create the layer groups
 n_starting_layers = len(fastai.flatten_model(model[:6]))
@@ -289,10 +296,11 @@ learner = Learner(data,
                   metrics=metrics)
 
 # Now for the training scheme
-from src.training import iafoss_training_scheme, training_scheme_3
+from src.training import *
 
 training_scheme_lookup = {
     "iafoss_training_scheme": iafoss_training_scheme,
+    "training_scheme_1": training_scheme_1,
     "training_scheme_3": training_scheme_3
 }
 

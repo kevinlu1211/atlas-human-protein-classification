@@ -11,6 +11,7 @@ class DataPaths:
     TRAIN_COMBINED_IMAGES = Path(ROOT_DATA_PATH, "train_combined")
     TRAIN_LABELS = Path(ROOT_DATA_PATH, "train.csv")
     TEST_IMAGES = Path(ROOT_DATA_PATH, "test")
+    TEST_COMBINED_IMAGES = Path(ROOT_DATA_PATH, "test_combined")
 
 
 def open_rgby(path, with_image_wrapper=True): #a function that reads RGBY image
@@ -75,8 +76,9 @@ class ProteinClassificationDataset(torch.utils.data.Dataset):
             y['label'] = default_collate_batch['label']
         return x, y
 
-    def __init__(self, inputs, image_cached=False, augment_fn=None, normalize_fn=None, labels=None):
+    def __init__(self, inputs, open_image_fn, image_cached=False, augment_fn=None, normalize_fn=None, labels=None):
         self.inputs = inputs
+        self.open_image_fn = open_image_fn
         self.image_cached = image_cached
         self.augment_fn = augment_fn
         self.normalize_fn = normalize_fn
@@ -91,7 +93,7 @@ class ProteinClassificationDataset(torch.utils.data.Dataset):
         if self.image_cached:
             img = self.inputs[i]
         else:
-            img = open_rgby(self.inputs[i])
+            img = self.open_image_fn(self.inputs[i])
 
         if self.augment_fn is not None:
             img.px = self.augment_fn(img)
