@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
+import pytorch_toolbox.fastai.fastai as fastai
 
 
 class GapNet(nn.Module):
@@ -53,4 +54,46 @@ class GapNet(nn.Module):
         return out
 
 
+class TransparentGAP(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, x):
+        self.feature_maps = F.adaptive_avg_pool2d(x, 1)
+        return x
+
+class DynamicGapNet(nn.Module):
+    def __init__(self, encoder, n_classes, gap_layer_idxs=None, dropout_prob=0.25):
+        """
+        encoder: nn.Sequential object
+        gap_feature_start_idx: these are the layers after which a GAP layer will be placed
+        """
+        super().__init__()
+        sizes, *_ = fastai.callbacks.model_sizes(encoder)
+        if gap_layer_idxs is None:
+            gap_layer_idxs = range(len(encoder))
+        layers = []
+        total_n_features = 0
+        self.gaps = []
+        for i, (size, module) in enumerate(zip(sizes, encoder)):
+            layers.append(module)
+            if i in gap_layer_idxs:
+                total_n_features += size[1]
+                gap = TransparentGAP()
+                self.gaps.append(gap)
+                layers.append(gap)
+        self.model = nn.Sequential(*layers)
+        self.fc = nn.Linear(total_n_features, n_classes)
+        self.dropout_prob = dropout_prob
+
+    def forward(self, x):
+        _ = self.model(x)
+        features = torch.cat([gap.feature_maps for gap in self.gaps], dim=1)
+        bs = features.size()[0]
+        features = features.squeeze()
+        if bs == 1:
+            features = features.unsqueeze(0)
+        features = F.dropout(features, p=self.dropout_prob)
+        logits = self.fc(features)
+        return logits
 

@@ -28,10 +28,8 @@ data_bunch:
     val_bs: 64
     test_bs: 64
 
-sampler:
-  name: WeightedRandomSampler
-  parameters:
-    replacement: true
+sample_weight_fn:
+  name: mean_proportion_class_weight
 
 model:
   name: resnet34_four_channel_input_one_fc
@@ -42,7 +40,7 @@ loss_func:
   - name: FocalLoss
     parameters:
         gamma: 0
-  - name: SoftF1Loss
+#  - name: SoftF1Loss
 
 callbacks:
   - name: NameExtractionTrainer

@@ -41,8 +41,9 @@ CONFIG_FILE = Path("configs/iafoss_resnet34.yml")
 # CONFIG_FILE = Path("configs/cbam_resnet50.yml")
 # CONFIG_FILE = Path("configs/cbam_resnet101.yml")
 
+DEBUG = False
 ROOT_SAVE_PATH = Path("/media/hd1/data/Kaggle/human-protein-image-classification/results")
-SAVE_FOLDER_NAME = f"{CONFIG_FILE.stem}_{time.strftime('%Y%m%d-%H%M%S')}"
+SAVE_FOLDER_NAME = f"{'DEBUG-' if DEBUG else ''}{CONFIG_FILE.stem}_{time.strftime('%Y%m%d-%H%M%S')}"
 RESULTS_SAVE_PATH = ROOT_SAVE_PATH / SAVE_FOLDER_NAME
 RESULTS_SAVE_PATH.mkdir(exist_ok=True, parents=True)
 
@@ -58,12 +59,11 @@ pprint(config)
 
 
 def extract_name_and_parameters(config, key):
-    name = config[key].get('name')
-    parameters = config[key].get('parameters', dict())
+    name = config.get(key, dict()).get('name')
+    parameters = config.get(key, dict()).get('parameters', dict())
     return name, parameters
 
 
-DEBUG = False
 
 # 1. Generate the training data
 from pytorch_toolbox.utils import make_one_hot
@@ -91,7 +91,7 @@ if DEBUG:
     from iterstrat.ml_stratifiers import MultilabelStratifiedShuffleSplit
 
     msss = partial(MultilabelStratifiedShuffleSplit(n_splits=1, test_size=0.1, random_state=42).split, X=train_paths,
-                                                                                               y=train_labels_one_hot)
+                   y=train_labels_one_hot)
     _, idx = next(iter(msss()))
     train_paths = np.array(train_paths)[idx]
     train_labels_one_hot = np.array(train_labels_one_hot)[idx]
@@ -159,9 +159,6 @@ split_method = partial(split_method_lookup[split_method_name](**split_method_par
 
 train_idx, val_idx = next(iter(split_method()))
 
-
-
-
 print("Training distribution:")
 pprint(single_class_counter(labels_df['Target'].iloc[train_idx].values))
 
@@ -169,20 +166,20 @@ print("Validation distribution:")
 pprint(single_class_counter(labels_df['Target'].iloc[val_idx].values))
 
 # 4. Create the data bunch which wraps our dataset
-from pytorch_toolbox.fastai_extensions.basic_data import DeviceDataLoader
 from src.data import ProteinClassificationDataset, open_numpy
-import torch
 import torch.utils.data
 from torch.utils.data import WeightedRandomSampler
 
 
-def create_data_bunch(train_ds, val_ds, test_ds, sampler=None, **data_bunch_parameters):
-    data = DataBunch.create(train_ds, val_ds, test_ds,
-                            collate_fn=train_ds.collate_fn,
-                            sampler=sampler,
-                            **data_bunch_parameters)
 
-    return data
+def mean_proportion_class_weights(all_labels):
+    all_weights = []
+    label_proportions = single_class_counter(all_labels)
+    weight_lookup = {label: 1 / prop for label, prop in label_proportions}
+    for labels in all_labels:
+        weights = np.array([weight_lookup[l] for l in labels]).mean()
+        all_weights.append(weights)
+    return all_weights
 
 
 dataset_lookup = {
@@ -191,31 +188,19 @@ dataset_lookup = {
 dataset_name, dataset_parameters = extract_name_and_parameters(config, 'dataset')
 dataset = partial(dataset_lookup[dataset_name], **dataset_parameters)
 
-sampler_lookup = {
-    "WeightedRandomSampler": WeightedRandomSampler
+
+sampler_weight_lookup = {
+    "mean_proportion_class_weight": mean_proportion_class_weights
 }
 
+sampler_weight_fn_name, sampler_weight_fn_parameters = extract_name_and_parameters(config, 'sample_weight_fn')
+if sampler_weight_fn_name is not None:
+    sampler_weight_fn = partial(sampler_weight_lookup[sampler_weight_fn_name], **sampler_weight_fn_parameters)
+    weights = sampler_weight_fn(labels_df['Target'].values[train_idx])
+    sampler = WeightedRandomSampler(weights=weights, num_samples=len(weights))
+else:
+    sampler = None
 
-def generate_weight_lookup(all_labels):
-    label_proportions = single_class_counter(all_labels)
-    weight_lookup = {label: 1 / prop for label, prop in label_proportions}
-    return weight_lookup
-
-
-def create_weights(all_labels):
-    all_weights = []
-    weight_lookup = generate_weight_lookup(all_labels)
-    for labels in all_labels:
-        weights = np.array([weight_lookup[l] for l in labels]).mean()
-        all_weights.append(weights)
-    return all_weights
-
-
-weights = create_weights(labels_df['Target'].values[train_idx])
-sampler_name, sampler_parameters = extract_name_and_parameters(config, 'sampler')
-sampler = sampler_lookup.get(sampler_name)
-
-if sampler is not None: sampler = sampler(weights=weights, num_samples=len(weights), **sampler_parameters)
 train_ds = dataset(inputs=np.array(train_paths)[train_idx],
                    open_image_fn=open_numpy,
                    labels=np.array(train_labels_one_hot)[train_idx],
@@ -229,23 +214,22 @@ test_ds = dataset(inputs=np.array(test_paths),
                   open_image_fn=open_numpy,
                   normalize_fn=normalize_fn)
 
-data = create_data_bunch(train_ds=train_ds,
-                         val_ds=val_ds,
-                         test_ds=test_ds,
-                         sampler=sampler,
-                         **config["data_bunch"].get("parameters", dict()))
-from tqdm import tqdm
+data = DataBunch.create(train_ds, val_ds, test_ds,
+                        collate_fn=train_ds.collate_fn,
+                        sampler=sampler,
+                        **config["data_bunch"].get("parameters", dict()))
 
-# cnt = Counter()
-# for x, y in tqdm(data.train_dl):
-#     for l in np.where(y['label'].cpu().data.numpy() == 1)[1]:
-#         cnt[l] += 1
-# print(cnt)
+if DEBUG:
+    from tqdm import tqdm
+    cnt = Counter()
+    for x, y in tqdm(data.train_dl):
+        for l in np.where(y['label'].cpu().data.numpy() == 1)[1]:
+            cnt[l] += 1
+    print(cnt)
 
 # 5. Initialize the model
 import pytorch_toolbox.fastai.fastai as fastai
 from pytorch_toolbox.fastai_extensions.basic_train import Learner
-from pytorch_toolbox.utils import num_parameters
 from src.models import *
 
 model_lookup = {
@@ -264,15 +248,13 @@ model_lookup = {
 model_name, model_parameters = extract_name_and_parameters(config, "model")
 
 model = model_lookup[model_name](**model_parameters)
-# print(model)
-# print(f"Number of parameters: {num_parameters(model, only_trainable=False)}")
-# print(f"Number of trainable parameters: {num_parameters(model, only_trainable=True)}")
 
-# TODO: figure out how create the layer groups
-n_starting_layers = len(fastai.flatten_model(model[:6]))
-n_middle_layers = len(fastai.flatten_model(model[6:9]))
-n_head = len(fastai.flatten_model(model[9:]))
-layer_groups = fastai.split_model_idx(model, [n_starting_layers, n_starting_layers + n_middle_layers])
+if DEBUG:
+    from pytorch_toolbox.utils import num_parameters
+
+    print(model)
+    print(f"Number of parameters: {num_parameters(model, only_trainable=False)}")
+    print(f"Number of trainable parameters: {num_parameters(model, only_trainable=True)}")
 
 # 6. Initialize the callbacks
 from pytorch_toolbox.fastai_extensions.callbacks import NameExtractionTrainer, GradientClipping
@@ -327,7 +309,6 @@ for metric in config.get('metrics', list()):
 
 # 9. Initialize the learner class
 learner = Learner(data,
-                  layer_groups=layer_groups,
                   model=model,
                   loss_func=LossWrapper(loss_funcs),
                   callbacks=callbacks,
@@ -441,7 +422,18 @@ submission_df = pd.DataFrame({
     "Predicted": predicted
 })
 
-submission_df.to_csv(RESULTS_SAVE_PATH / "submission.csv", index=False)
+submission_df.to_csv(RESULTS_SAVE_PATH / "submission_optimal_threshold.csv", index=False)
 
-with open(RESULTS_SAVE_PATH / "config.yml", 'w') as yaml_file:
-    yaml.dump(config, yaml_file, default_flow_style=False)
+predicted = []
+for pred in tqdm_notebook(pred_probs):
+    classes = [str(c) for c in np.where(pred > 0.5)[0]]
+    if len(classes) == 0:
+        classes = [str(np.argmax(pred[0]))]
+    predicted.append(" ".join(classes))
+
+submission_df = pd.DataFrame({
+    "Id": names,
+    "Predicted": predicted
+})
+
+submission_df.to_csv(RESULTS_SAVE_PATH / "submission_no_threshold.csv", index=False)

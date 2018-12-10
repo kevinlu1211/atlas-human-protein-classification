@@ -49,7 +49,6 @@ class OutputRecorder(fastai.LearnerCallback):
         self.save_img_fn = save_img_fn
 
     def on_batch_begin(self, last_input, last_target, epoch, train, **kwargs):
-        # print([lr for lr in self.learn.opt.read_val('lr')])
         if train:
             self.phase = 'TRAIN'
         else:
@@ -86,7 +85,7 @@ class OutputRecorder(fastai.LearnerCallback):
         label = self.current_batch['label']
         n_classes = label.shape[-1]
         indices_to_keep = np.where((prediction == label).sum(axis=1) != n_classes)[0]
-        if True or self.phase == "VAL":
+        if self.phase =='TRAIN' or self.phase == 'VAL':
             for idx in indices_to_keep:
                 sample_to_save = dict()
                 for k, v in self.current_batch.items():
@@ -95,11 +94,18 @@ class OutputRecorder(fastai.LearnerCallback):
                 self.history[self.key].append(sample_to_save)
 
     def on_epoch_end(self, epoch, **kwargs):
-        history_save_path = self.save_path / 'training_logs' / f"epoch_{epoch}.csv"
+        history_save_path = self.save_path / 'training_logs' / f"epoch_{epoch}_train.csv"
         history_save_path.parent.mkdir(exist_ok=True, parents=True)
-        history = self.history[self.key]
+        history = self.history[('TRAIN', epoch)]
         df = pd.DataFrame(history)
         df.to_csv(history_save_path, index=False)
+
+        history_save_path = self.save_path / 'training_logs' / f"epoch_{epoch}_val.csv"
+        history_save_path.parent.mkdir(exist_ok=True, parents=True)
+        history = self.history[('VAL', epoch)]
+        df = pd.DataFrame(history)
+        df.to_csv(history_save_path, index=False)
+
         model_save_path = self.save_path / 'model_checkpoints' / f"epoch_{epoch}"
         model_save_path.parent.mkdir(exist_ok=True, parents=True)
         self.learn.save(model_save_path)

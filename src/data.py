@@ -38,7 +38,7 @@ label_to_string = {
 }
 
 class DataPaths:
-    ROOT_DATA_PATH = Path("../data")
+    ROOT_DATA_PATH = Path(__file__).parent.parent / 'data'
     TRAIN_IMAGES = Path(ROOT_DATA_PATH, "train")
     TRAIN_COMBINED_IMAGES = Path(ROOT_DATA_PATH, "train_combined")
     TRAIN_COMBINED_HPA_V18_IMAGES = Path(ROOT_DATA_PATH, "train_combined_HPAv18")
@@ -142,14 +142,14 @@ class ProteinClassificationDataset(torch.utils.data.Dataset):
             ret['label'] = self.labels[i]
         return ret
 
-def single_class_counter(labels, inv_proportions=True):
+def single_class_counter(labels, smooth=0, inv_proportions=True):
     flattened_classes = []
     for l in labels:
         flattened_classes.extend(l)
     cnt = Counter(flattened_classes)
     n_classes = sum(cnt.values())
     if inv_proportions:
-        prop_cnt = {k: v/n_classes for k, v in cnt.items()}
+        prop_cnt = {k: (v + smooth * n_classes)/n_classes for k, v in cnt.items()}
         return sorted(prop_cnt.items())
     else:
         return sorted(cnt.items())

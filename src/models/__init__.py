@@ -358,7 +358,6 @@ def resnet34_four_channel_input_one_fc(pretrained=True):
         AdaptiveConcatPool2d(),
         Flatten(),
         nn.BatchNorm1d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
-        nn.Dropout(p=0.5),
         nn.Linear(in_features=1024, out_features=28, bias=True),
     )
 
