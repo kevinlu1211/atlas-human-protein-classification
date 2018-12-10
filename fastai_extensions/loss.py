@@ -51,7 +51,7 @@ class SoftF1Loss:
         prediction = out
         target = yb[0]
 
-        # This returns B x 1
+        # This returns B x n_classes
         f1_soft_loss = calculate_f1_soft_loss(prediction, target)
         self.loss = f1_soft_loss
         return f1_soft_loss.mean()
