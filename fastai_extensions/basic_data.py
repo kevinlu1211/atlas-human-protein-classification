@@ -58,7 +58,7 @@ class DataBunch(fastai.DataBunch):
 
     @classmethod
     def create(cls, train_ds: Dataset, valid_ds: Dataset, test_ds: Dataset = None, path: PathOrStr = '.',
-               train_bs: int = 64, val_bs: int = None, test_bs: int = None,
+               train_bs: int = 64, val_bs: int = None, test_bs: int = None, sampler=None,
                num_workers: int = fastai.defaults.cpus, tfms: Optional[Collection[Callable]] = None,
                device: torch.device = None,
                collate_fn: Callable = data_collate) -> 'DataBunch':
@@ -68,6 +68,11 @@ class DataBunch(fastai.DataBunch):
 
         datasets = [train_ds, valid_ds]
         if test_ds is not None: datasets.append(test_ds)
-        dls = [DataLoader(*o, num_workers=num_workers) for o in
-               zip(datasets, (train_bs, val_bs, test_bs), (True, False, False))]
+        if sampler is None:
+            train_dl = DataLoader(train_ds, train_bs, sampler=sampler, num_workers=num_workers, drop_last=True)
+        else:
+            train_dl = DataLoader(train_ds, train_bs, sampler=sampler, num_workers=num_workers, drop_last=True)
+        val_dl = DataLoader(valid_ds, val_bs, shuffle=False, num_workers=num_workers)
+        test_dl = DataLoader(test_ds, test_bs, shuffle=False, num_workers=num_workers)
+        dls = [train_dl, val_dl, test_dl]
         return cls(*dls, path=path, device=device, tfms=tfms, collate_fn=collate_fn)
