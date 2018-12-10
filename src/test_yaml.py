@@ -34,12 +34,12 @@ from pytorch_toolbox.vision.utils import normalize, denormalize, tensor2img
 from pytorch_toolbox.fastai_extensions.loss import LossWrapper, FocalLoss, SoftF1Loss
 from pytorch_toolbox.fastai_extensions.basic_data import DataBunch
 
-# CONFIG_FILE = Path("../configs/cbam_resnet18.yml")
-CONFIG_FILE = Path("../configs/iafoss_resnet34.yml")
-# CONFIG_FILE = Path("../configs/gapnet.yml")
-# CONFIG_FILE = Path("../configs/iafoss_resnet50.yml")
-# CONFIG_FILE = Path("../configs/cbam_resnet50.yml")
-# CONFIG_FILE = Path("../configs/cbam_resnet101.yml")
+# CONFIG_FILE = Path("configs/cbam_resnet18.yml")
+CONFIG_FILE = Path("configs/iafoss_resnet34.yml")
+# CONFIG_FILE = Path("configs/gapnet.yml")
+# CONFIG_FILE = Path("configs/iafoss_resnet50.yml")
+# CONFIG_FILE = Path("configs/cbam_resnet50.yml")
+# CONFIG_FILE = Path("configs/cbam_resnet101.yml")
 
 ROOT_SAVE_PATH = Path("/media/hd1/data/Kaggle/human-protein-image-classification/results")
 SAVE_FOLDER_NAME = f"{CONFIG_FILE.stem}_{time.strftime('%Y%m%d-%H%M%S')}"
@@ -63,7 +63,7 @@ def extract_name_and_parameters(config, key):
     return name, parameters
 
 
-DEBUG = True
+DEBUG = False
 
 # 1. Generate the training data
 from pytorch_toolbox.utils import make_one_hot

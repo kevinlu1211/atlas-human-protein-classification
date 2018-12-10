@@ -285,6 +285,33 @@ def resnet50_four_channel_input(pretrained=True):
 
     return model
 
+def resnet50_four_channel_input_one_fc(pretrained=True):
+    first_layer_conv = nn.Conv2d(4, 64, kernel_size=7, stride=3, padding=3, bias=False)
+    model = torchvision.models.resnet50(num_classes=1000, pretrained=pretrained)
+
+    if pretrained:
+        pretrained_conv_weights = list(model.children())[0].weight
+        first_layer_conv.weight = torch.nn.Parameter(
+            torch.cat((pretrained_conv_weights, pretrained_conv_weights[:, :1, :, :]), dim=1))
+
+    fc_layers = nn.Sequential(
+        AdaptiveConcatPool2d(),
+        Flatten(),
+        nn.BatchNorm1d(4096, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+        nn.Dropout(p=0.5),
+        nn.Linear(in_features=4096, out_features=28, bias=True),
+    )
+
+    fc_layers.apply(kaiming_init)
+
+    model = nn.Sequential(
+        first_layer_conv,
+        *list(model.children())[1:-2],
+        *fc_layers
+    )
+
+    return model
+
 
 def resnet34_four_channel_input(pretrained=True):
     first_layer_conv = nn.Conv2d(4, 64, kernel_size=7, stride=3, padding=3, bias=False)

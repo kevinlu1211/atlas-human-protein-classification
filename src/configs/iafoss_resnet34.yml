@@ -34,7 +34,7 @@ sampler:
     replacement: true
 
 model:
-  name: resnet34_four_channel_input
+  name: resnet34_four_channel_input_one_fc
   parameters:
     pretrained: true
 
