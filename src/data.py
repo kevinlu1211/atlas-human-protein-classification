@@ -1,15 +1,51 @@
 from pathlib import Path
+from collections import Counter
 
 import torch
 import torch.utils.data
 import cv2
 import numpy as np
 
+label_to_string = {
+    0: 'Nucleoplasm',
+    1: 'Nuclear membrane',
+    2: 'Nucleoli',
+    3: 'Nucleoli fibrillar center',
+    4: 'Nuclear speckles',
+    5: 'Nuclear bodies',
+    6: 'Endoplasmic reticulum',
+    7: 'Golgi apparatus',
+    8: 'Peroxisomes',
+    9: 'Endosomes',
+    10: 'Lysosomes',
+    11: 'Intermediate filaments',
+    12: 'Actin filaments',
+    13: 'Focal adhesion sites',
+    14: 'Microtubules',
+    15: 'Microtubule ends',
+    16: 'Cytokinetic bridge',
+    17: 'Mitotic spindle',
+    18: 'Microtubule organizing center',
+    19: 'Centrosome',
+    20: 'Lipid droplets',
+    21: 'Plasma membrane',
+    22: 'Cell junctions',
+    23: 'Mitochondria',
+    24: 'Aggresome',
+    25: 'Cytosol',
+    26: 'Cytoplasmic bodies',
+    27: 'Rods & rings'
+}
+
 class DataPaths:
     ROOT_DATA_PATH = Path("../data")
     TRAIN_IMAGES = Path(ROOT_DATA_PATH, "train")
     TRAIN_COMBINED_IMAGES = Path(ROOT_DATA_PATH, "train_combined")
+    TRAIN_COMBINED_HPA_V18_IMAGES = Path(ROOT_DATA_PATH, "train_combined_HPAv18")
+    TRAIN_ALL_COMBINED_IMAGES = Path(ROOT_DATA_PATH, "train_all_combined")
     TRAIN_LABELS = Path(ROOT_DATA_PATH, "train.csv")
+    TRAIN_ALL_LABELS = Path(ROOT_DATA_PATH, "train_all.csv")
+    TRAIN_HPA_V18_LABELS = Path(ROOT_DATA_PATH, "HPAv18RBGY_wodpl.csv")
     TEST_IMAGES = Path(ROOT_DATA_PATH, "test")
     TEST_COMBINED_IMAGES = Path(ROOT_DATA_PATH, "test_combined")
 
@@ -34,7 +70,7 @@ def open_numpy(path, with_image_wrapper=True):
         return Image(px=img, name=img_id)
     else:
         return {
-            "image": Image(px=img, name=img_id),
+            "image": img,
             "name": path.stem
         }
 
@@ -76,7 +112,7 @@ class ProteinClassificationDataset(torch.utils.data.Dataset):
             y['label'] = default_collate_batch['label']
         return x, y
 
-    def __init__(self, inputs, open_image_fn, image_cached=False, augment_fn=None, normalize_fn=None, labels=None):
+    def __init__(self, inputs, open_image_fn=open_numpy, image_cached=False, augment_fn=None, normalize_fn=None, labels=None):
         self.inputs = inputs
         self.open_image_fn = open_image_fn
         self.image_cached = image_cached
@@ -105,3 +141,15 @@ class ProteinClassificationDataset(torch.utils.data.Dataset):
         if self.labels is not None:
             ret['label'] = self.labels[i]
         return ret
+
+def single_class_counter(labels, inv_proportions=True):
+    flattened_classes = []
+    for l in labels:
+        flattened_classes.extend(l)
+    cnt = Counter(flattened_classes)
+    n_classes = sum(cnt.values())
+    if inv_proportions:
+        prop_cnt = {k: v/n_classes for k, v in cnt.items()}
+        return sorted(prop_cnt.items())
+    else:
+        return sorted(cnt.items())

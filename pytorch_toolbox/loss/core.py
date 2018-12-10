@@ -9,6 +9,14 @@ import fastai
 
 
 def calculate_ce_loss(preds, targets, weight_maps=None, weight=1):
+    """
+
+    :param preds: B x C x H x W
+    :param targets: B x 1 x H x W
+    :param weight_maps: B x 1 x H x W
+    :param weight: 1 x 1
+    :return:
+    """
     ce_loss_criterion = nn.CrossEntropyLoss(reduce=False)
     if targets.shape[0] == 1:
         targets = targets.squeeze(1)
@@ -65,6 +73,13 @@ def dice_loss(inputs, one_hots):
 
 
 def calculate_focal_loss(input, target, gamma=2):
+    """
+
+    :param input: B x N_classes
+    :param target: B x N_classes
+    :param gamma: the higher the value, the greater the loss for uncertain classes
+    :return:
+    """
     if not (target.size() == input.size()):
         raise ValueError("Target size ({}) must be the same as input size ({})"
                          .format(target.size(), input.size()))
@@ -88,10 +103,12 @@ def calculate_f1_soft_loss(logits, labels):
     __small_value = 1e-6
     beta = 1
     probs = F.sigmoid(logits)
-    num_pos = torch.sum(probs, 1) + __small_value
-    num_pos_hat = torch.sum(labels, 1) + __small_value
+    soft_tp_plus_fp = torch.sum(probs, 1) + __small_value
+    # note that this is a bit of a misnomer as the labels are usually 1 hot, but for the case that they aren't this
+    # would make a bit more sense
+    soft_tp_plus_fn = torch.sum(labels, 1) + __small_value
     true_positive = torch.sum(labels * probs, 1)
-    precision = true_positive / num_pos
-    recall = true_positive / num_pos_hat
+    precision = true_positive / soft_tp_plus_fp
+    recall = true_positive /soft_tp_plus_fn
     f1_soft = (1 + beta * beta) * precision * recall / (beta * beta * precision + recall + __small_value)
     return 1 - f1_soft

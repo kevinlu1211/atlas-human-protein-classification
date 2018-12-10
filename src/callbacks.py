@@ -49,6 +49,7 @@ class OutputRecorder(fastai.LearnerCallback):
         self.save_img_fn = save_img_fn
 
     def on_batch_begin(self, last_input, last_target, epoch, train, **kwargs):
+        # print([lr for lr in self.learn.opt.read_val('lr')])
         if train:
             self.phase = 'TRAIN'
         else:
@@ -67,20 +68,25 @@ class OutputRecorder(fastai.LearnerCallback):
 
     def on_loss_begin(self, last_output, epoch, **kwargs):
         model_output = to_numpy(last_output)
-        self.current_batch['prediction_probs'] = model_output
-        prediction = model_output.copy()
+        prediction_probs = 1/(1 + np.exp(-model_output))
+        self.current_batch['prediction_probs'] = prediction_probs
+        prediction = prediction_probs.copy()
         prediction[prediction < 0.5] = 0
         prediction[prediction >= 0.5] = 1
         self.current_batch['prediction'] = prediction
 
     def on_batch_end(self, **kwargs):
-        loss = to_numpy(self.learn.loss_func.focal_loss.loss)
-        self.current_batch['loss'] = loss
+        for loss in self.learn.loss_func.losses:
+            name = loss.__class__.__name__
+            unreduced_loss = to_numpy(loss.loss)
+            # reduced_loss = to_numpy(loss.loss.mean())
+            self.current_batch[f"{name}"] = unreduced_loss
+            # self.current_batch[f"{name}_reduced"] = reduced_loss
         prediction = self.current_batch['prediction']
         label = self.current_batch['label']
         n_classes = label.shape[-1]
         indices_to_keep = np.where((prediction == label).sum(axis=1) != n_classes)[0]
-        if self.phase == "VAL":
+        if True or self.phase == "VAL":
             for idx in indices_to_keep:
                 sample_to_save = dict()
                 for k, v in self.current_batch.items():
@@ -89,9 +95,12 @@ class OutputRecorder(fastai.LearnerCallback):
                 self.history[self.key].append(sample_to_save)
 
     def on_epoch_end(self, epoch, **kwargs):
-        save_path = self.save_path / 'training_logs' / f"epoch_{epoch}.csv"
-        save_path.parent.mkdir(exist_ok=True, parents=True)
+        history_save_path = self.save_path / 'training_logs' / f"epoch_{epoch}.csv"
+        history_save_path.parent.mkdir(exist_ok=True, parents=True)
         history = self.history[self.key]
         df = pd.DataFrame(history)
-        df.to_csv(save_path, index=False)
+        df.to_csv(history_save_path, index=False)
+        model_save_path = self.save_path / 'model_checkpoints' / f"epoch_{epoch}"
+        model_save_path.parent.mkdir(exist_ok=True, parents=True)
+        self.learn.save(model_save_path)
         self.history = defaultdict(list)

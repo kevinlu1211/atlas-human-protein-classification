@@ -2,11 +2,11 @@ from collections import OrderedDict
 from pathlib import Path
 
 from pytorch_toolbox.models import cbam
+from .gap_net import GapNet
 
 import torch
 import torch.nn as nn
 import torchvision
-
 
 
 class Flatten(nn.Module):
@@ -26,11 +26,11 @@ class AdaptiveConcatPool2d(nn.Module):
     def forward(self, x):
         return torch.cat([self.avg_pool(x), self.max_pool(x)], dim=1)
 
+
 def kaiming_init(m):
     if type(m) == nn.Linear:
         torch.nn.init.kaiming_normal(m.weight)
         m.bias.data.fill_(0.01)
-
 
 
 def cbam_resnet101_four_channel_input(pretrained=True, checkpoint_path="../model_checkpoints/RESNET50_CBAM.pth"):
@@ -70,6 +70,7 @@ def cbam_resnet101_four_channel_input(pretrained=True, checkpoint_path="../model
     )
 
     return model
+
 
 def cbam_resnet101_four_channel_input(pretrained=True, checkpoint_path="../model_checkpoints/RESNET50_CBAM.pth"):
     first_layer_conv = nn.Conv2d(4, 64, kernel_size=7, stride=3, padding=3, bias=False)
@@ -109,6 +110,7 @@ def cbam_resnet101_four_channel_input(pretrained=True, checkpoint_path="../model
 
     return model
 
+
 def cbam_resnet34_four_channel_input():
     first_layer_conv = nn.Conv2d(4, 64, kernel_size=7, stride=3, padding=3, bias=False)
     model = cbam.cbam_resnet34(num_classes=1000)
@@ -134,6 +136,7 @@ def cbam_resnet34_four_channel_input():
 
     return model
 
+
 def cbam_resnet18_four_channel_input_one_fc():
     first_layer_conv = nn.Conv2d(4, 64, kernel_size=7, stride=3, padding=3, bias=False)
     model = cbam.cbam_resnet34(num_classes=1000)
@@ -153,6 +156,7 @@ def cbam_resnet18_four_channel_input_one_fc():
     )
 
     return model
+
 
 def cbam_resnet50_four_channel_input(pretrained=True, checkpoint_path="../model_checkpoints/RESNET50_CBAM.pth"):
     first_layer_conv = nn.Conv2d(4, 64, kernel_size=7, stride=3, padding=3, bias=False)
@@ -186,6 +190,7 @@ def cbam_resnet50_four_channel_input(pretrained=True, checkpoint_path="../model_
     )
 
     return model
+
 
 def cbam_resnet50_four_channel_input_one_fc(pretrained=True, checkpoint_path="../model_checkpoints/RESNET50_CBAM.pth"):
     first_layer_conv = nn.Conv2d(4, 64, kernel_size=7, stride=3, padding=3, bias=False)
@@ -223,7 +228,6 @@ def cbam_resnet50_four_channel_input_one_fc(pretrained=True, checkpoint_path="..
     return model
 
 
-
 def resnet152_four_channel_input(pretrained=True):
     first_layer_conv = nn.Conv2d(4, 64, kernel_size=7, stride=3, padding=3, bias=False)
     model = torchvision.models.resnet152(num_classes=1000, pretrained=True)
@@ -248,6 +252,7 @@ def resnet152_four_channel_input(pretrained=True):
     )
 
     return model
+
 
 def resnet50_four_channel_input(pretrained=True):
     first_layer_conv = nn.Conv2d(4, 64, kernel_size=7, stride=3, padding=3, bias=False)
@@ -280,6 +285,7 @@ def resnet50_four_channel_input(pretrained=True):
 
     return model
 
+
 def resnet34_four_channel_input(pretrained=True):
     first_layer_conv = nn.Conv2d(4, 64, kernel_size=7, stride=3, padding=3, bias=False)
     model = torchvision.models.resnet34(num_classes=1000, pretrained=True)
@@ -311,6 +317,7 @@ def resnet34_four_channel_input(pretrained=True):
 
     return model
 
+
 def resnet34_four_channel_input_one_fc(pretrained=True):
     first_layer_conv = nn.Conv2d(4, 64, kernel_size=7, stride=3, padding=3, bias=False)
     model = torchvision.models.resnet34(num_classes=1000, pretrained=True)
@@ -337,6 +344,7 @@ def resnet34_four_channel_input_one_fc(pretrained=True):
     )
 
     return model
+
 
 def resnet18_four_channel_input(pretrained=True):
     first_layer_conv = nn.Conv2d(4, 64, kernel_size=7, stride=3, padding=3, bias=False)

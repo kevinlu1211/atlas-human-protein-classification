@@ -1,1 +1,1 @@
-from .core import to_numpy
+from .core import *

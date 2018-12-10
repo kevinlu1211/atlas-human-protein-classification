@@ -11,6 +11,7 @@ def very_simple_aug(p=1, height=None, width=None):
     augs = [
         RandomRotate90(),
         Flip(),
+        ShiftScaleRotate(shift_limit=0.05, scale_limit=0.2, rotate_limit=90),
         RandomBrightnessContrast(brightness_limit=3, contrast_limit=0.5),
         ElasticTransform(sigma=50, alpha_affine=50, p=0.1)
     ]

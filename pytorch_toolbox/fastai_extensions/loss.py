@@ -40,15 +40,18 @@ class FocalLoss:
     def __call__(self, out, *yb):
         prediction = out
         target = yb[0]
-        focal_loss = calculate_focal_loss(prediction, target, self.gamma)
+        # This returns B x ... (same shape as input)
+        focal_loss = calculate_focal_loss(prediction, target, self.gamma).sum(dim=1)
         self.loss = focal_loss
-        return focal_loss.sum(dim=1).mean()
+        return focal_loss.mean()
 
 
 class SoftF1Loss:
     def __call__(self, out, *yb):
         prediction = out
         target = yb[0]
+
+        # This returns B x 1
         f1_soft_loss = calculate_f1_soft_loss(prediction, target)
         self.loss = f1_soft_loss
         return f1_soft_loss.mean()

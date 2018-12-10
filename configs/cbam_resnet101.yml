@@ -1,5 +1,5 @@
 split_method:
-  name: MultilabelStratifiedShuffleSplit
+  name: ShuffleSplit
   parameters:
     n_splits: 1
     test_size: 0.1
@@ -13,10 +13,10 @@ augment_fn:
     width: null
 
 normalize_fn:
-  name: four_channel_image_net_normalize
+  name: identity
 
 denormalize_fn:
-  name: four_channel_image_net_denormalize
+  name: identity
 
 dataset:
   name: ProteinClassificationDataset
@@ -25,23 +25,16 @@ data_bunch:
   name: DataBunch
   parameters:
     train_bs: 32
-    val_bs: 64
-    test_bs: 64
-
-sampler:
-  name: WeightedRandomSampler
-  parameters:
-    replacement: true
+    val_bs: 32
+    test_bs: 32
 
 model:
-  name: resnet34_four_channel_input
+  name: cbam_resnet101_four_channel_input
   parameters:
-    pretrained: true
+    pretrained: false
 
 loss_func:
   - name: FocalLoss
-    parameters:
-        gamma: 0
   - name: SoftF1Loss
 
 callbacks:
@@ -59,9 +52,9 @@ learner:
   name: Learner
 
 training_scheme:
-  name: training_scheme_1
+  name: training_scheme_3
   parameters:
-    epochs: 40
+    lr: 2e-3
 
 
 

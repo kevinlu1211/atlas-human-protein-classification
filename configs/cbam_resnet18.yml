@@ -6,17 +6,17 @@ split_method:
     random_state: 42
 
 augment_fn:
-  name: very_simple_aug
+  name: resize_aug
   parameters:
     p: 1
-    height: null
-    width: null
+    height: 512
+    width: 512
 
 normalize_fn:
-  name: four_channel_image_net_normalize
+  name: identity
 
 denormalize_fn:
-  name: four_channel_image_net_denormalize
+  name: identity
 
 dataset:
   name: ProteinClassificationDataset
@@ -27,6 +27,7 @@ data_bunch:
     train_bs: 32
     val_bs: 64
     test_bs: 64
+    num_workers: 0
 
 sampler:
   name: WeightedRandomSampler
@@ -34,14 +35,10 @@ sampler:
     replacement: true
 
 model:
-  name: resnet34_four_channel_input
-  parameters:
-    pretrained: true
+  name: cbam_resnet18_four_channel_input_one_fc
 
 loss_func:
   - name: FocalLoss
-    parameters:
-        gamma: 0
   - name: SoftF1Loss
 
 callbacks:
@@ -61,8 +58,7 @@ learner:
 training_scheme:
   name: training_scheme_1
   parameters:
-    epochs: 40
-
+    epochs: 30
 
 
 

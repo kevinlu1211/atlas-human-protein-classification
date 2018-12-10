@@ -6,17 +6,17 @@ split_method:
     random_state: 42
 
 augment_fn:
-  name: very_simple_aug
+  name: simple_aug
   parameters:
     p: 1
     height: null
     width: null
 
 normalize_fn:
-  name: four_channel_image_net_normalize
+  name: identity
 
 denormalize_fn:
-  name: four_channel_image_net_denormalize
+  name: identity
 
 dataset:
   name: ProteinClassificationDataset
@@ -34,14 +34,10 @@ sampler:
     replacement: true
 
 model:
-  name: resnet34_four_channel_input
-  parameters:
-    pretrained: true
+  name: GapNet
 
 loss_func:
   - name: FocalLoss
-    parameters:
-        gamma: 0
   - name: SoftF1Loss
 
 callbacks:
@@ -59,10 +55,10 @@ learner:
   name: Learner
 
 training_scheme:
-  name: training_scheme_1
+  name: training_scheme_gapnet
   parameters:
-    epochs: 40
-
+    epochs: 30
+    lr: 2e-4
 
 
 
