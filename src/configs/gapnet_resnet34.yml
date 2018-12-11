@@ -25,8 +25,8 @@ data_bunch:
   name: DataBunch
   parameters:
     train_bs: 32
-    val_bs: 64
-    test_bs: 64
+    val_bs: 32
+    test_bs: 32
 
 sampler:
   name: WeightedRandomSampler
@@ -34,11 +34,16 @@ sampler:
     replacement: true
 
 model:
-  name: GapNet
+  name: gapnet_resnet34_four_channel_input_backbone
+  parameters:
+    pretrained: false
 
 loss_func:
   - name: FocalLoss
-  - name: SoftF1Loss
+    parameters:
+      gamma: 0
+#  - name: SoftF1Loss
+
 
 callbacks:
   - name: NameExtractionTrainer
@@ -58,7 +63,7 @@ training_scheme:
   name: training_scheme_gapnet
   parameters:
     epochs: 30
-    lr: 2e-4
+    lr: 8e-3
 
 
 

@@ -35,11 +35,11 @@ from pytorch_toolbox.fastai_extensions.loss import LossWrapper, FocalLoss, SoftF
 from pytorch_toolbox.fastai_extensions.basic_data import DataBunch
 
 # CONFIG_FILE = Path("configs/cbam_resnet18.yml")
-CONFIG_FILE = Path("configs/iafoss_resnet34.yml")
-# CONFIG_FILE = Path("configs/gapnet.yml")
+# CONFIG_FILE = Path("configs/iafoss_resnet34.yml")
 # CONFIG_FILE = Path("configs/iafoss_resnet50.yml")
 # CONFIG_FILE = Path("configs/cbam_resnet50.yml")
 # CONFIG_FILE = Path("configs/cbam_resnet101.yml")
+CONFIG_FILE = Path("configs/gapnet_resnet34.yml")
 
 DEBUG = False
 ROOT_SAVE_PATH = Path("/media/hd1/data/Kaggle/human-protein-image-classification/results")
@@ -242,7 +242,7 @@ model_lookup = {
     "cbam_resnet50_four_channel_input": cbam_resnet50_four_channel_input,
     "cbam_resnet50_four_channel_input_one_fc": cbam_resnet50_four_channel_input_one_fc,
     "cbam_resnet101_four_channel_input": cbam_resnet101_four_channel_input,
-    "GapNet": GapNet
+    "gapnet_resnet34_four_channel_input_backbone": gapnet_resnet34_four_channel_input_backbone
 }
 
 model_name, model_parameters = extract_name_and_parameters(config, "model")
