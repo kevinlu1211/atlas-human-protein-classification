@@ -1,8 +1,14 @@
+from collections import OrderedDict
+
 import torch
 import torch.nn as nn
-from torch.nn import functional as F
-import pytorch_toolbox.fastai.fastai as fastai
+import torch.nn.functional as F
+import torchvision
 
+import pytorch_toolbox.fastai.fastai as fastai
+from pytorch_toolbox.models import cbam
+from .layers_and_init import *
+from .resnet import *
 
 class GapNet(nn.Module):
 
@@ -96,4 +102,22 @@ class DynamicGapNet(nn.Module):
         features = F.dropout(features, p=self.dropout_prob)
         logits = self.fc(features)
         return logits
+
+
+def one_level_flatten(model):
+    model_flattened = []
+    for module in model:
+        if isinstance(module, nn.Sequential):
+            for inner_module in module:
+                model_flattened.append(inner_module)
+        else:
+            model_flattened.append(module)
+    return nn.Sequential(*model_flattened)
+
+
+def gapnet_resnet34_four_channel_input_backbone(pretrained=True):
+    encoder = resnet34_four_channel_input_one_fc(pretrained)[:-1]
+    flattened_encoder = one_level_flatten(encoder)
+    resnet34_gapnet = DynamicGapNet(flattened_encoder, n_classes=28, gap_layer_idxs=range(4, len(flattened_encoder)))
+    return resnet34_gapnet
 

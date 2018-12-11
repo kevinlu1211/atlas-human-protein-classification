@@ -6,11 +6,11 @@ split_method:
     random_state: 42
 
 augment_fn:
-  name: simple_aug
+  name: resize_aug
   parameters:
     p: 1
-    height: null
-    width: null
+    height: 64
+    width: 64
 
 normalize_fn:
   name: identity
@@ -24,24 +24,20 @@ dataset:
 data_bunch:
   name: DataBunch
   parameters:
-    train_bs: 32
-    val_bs: 32
-    test_bs: 32
+    train_bs: 2
+    val_bs: 2
+    test_bs: 2
+    num_workers: 0
 
 sample_weight_fn:
   name: mean_proportion_class_weight
 
 model:
-  name: gapnet_resnet34_four_channel_input_backbone
-  parameters:
-    pretrained: false
+  name: debug_cnn
 
 loss_func:
   - name: FocalLoss
-    parameters:
-      gamma: 0
-#  - name: SoftF1Loss
-
+  - name: SoftF1Loss
 
 callbacks:
   - name: NameExtractionTrainer
@@ -58,10 +54,9 @@ learner:
   name: Learner
 
 training_scheme:
-  name: training_scheme_gapnet
+  name: training_scheme_debug
   parameters:
     epochs: 30
-    lr: 8e-3
 
 
 

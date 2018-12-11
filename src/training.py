@@ -59,7 +59,19 @@ def training_scheme_4(learner, lr=2e-3, epochs=50, div_factor=25.):
     learner.unfreeze()
     learner.fit_one_cycle(cyc_len=epochs, max_lr=lrs, div_factor=div_factor)
 
-def training_scheme_gapnet(learner, lr, epochs, div_factor=25.):
+def training_scheme_gapnet_1(learner, lr, epochs, div_factor=25.):
+    lr = float(lr)
+    learner.unfreeze()
+    learner.fit_one_cycle(cyc_len=epochs, max_lr=lr, div_factor=div_factor)
+
+def training_scheme_gapnet_lr_warmup(learner, lr, epochs, warmup_epochs, div_factor=100.):
+    lr = float(lr)
+    learner.unfreeze()
+    assert warmup_epochs < epochs
+    pct_start = warmup_epochs / epochs
+    learner.fit_one_cycle(cyc_len=epochs, max_lr=lr, pct_start=pct_start, div_factor=div_factor)
+
+def training_scheme_debug(learner, lr=1e-3, epochs=3, div_factor=25.):
     lr = float(lr)
     learner.unfreeze()
     learner.fit_one_cycle(cyc_len=epochs, max_lr=lr, div_factor=div_factor)

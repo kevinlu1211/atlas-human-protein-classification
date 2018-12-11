@@ -34,14 +34,16 @@ from pytorch_toolbox.vision.utils import normalize, denormalize, tensor2img
 from pytorch_toolbox.fastai_extensions.loss import LossWrapper, FocalLoss, SoftF1Loss
 from pytorch_toolbox.fastai_extensions.basic_data import DataBunch
 
+DEBUG = True
 # CONFIG_FILE = Path("configs/cbam_resnet18.yml")
 # CONFIG_FILE = Path("configs/iafoss_resnet34.yml")
 # CONFIG_FILE = Path("configs/iafoss_resnet50.yml")
 # CONFIG_FILE = Path("configs/cbam_resnet50.yml")
 # CONFIG_FILE = Path("configs/cbam_resnet101.yml")
-CONFIG_FILE = Path("configs/gapnet_resnet34.yml")
+# CONFIG_FILE = Path("configs/gapnet_resnet34.yml")
+if DEBUG:
+    CONFIG_FILE = Path("configs/debug_cnn.yml")
 
-DEBUG = False
 ROOT_SAVE_PATH = Path("/media/hd1/data/Kaggle/human-protein-image-classification/results")
 SAVE_FOLDER_NAME = f"{'DEBUG-' if DEBUG else ''}{CONFIG_FILE.stem}_{time.strftime('%Y%m%d-%H%M%S')}"
 RESULTS_SAVE_PATH = ROOT_SAVE_PATH / SAVE_FOLDER_NAME
@@ -196,7 +198,7 @@ sampler_weight_lookup = {
 sampler_weight_fn_name, sampler_weight_fn_parameters = extract_name_and_parameters(config, 'sample_weight_fn')
 if sampler_weight_fn_name is not None:
     sampler_weight_fn = partial(sampler_weight_lookup[sampler_weight_fn_name], **sampler_weight_fn_parameters)
-    weights = sampler_weight_fn(labels_df['Target'].values[train_idx])
+    weights = np.array(sampler_weight_fn(labels_df['Target'].values[train_idx]))
     sampler = WeightedRandomSampler(weights=weights, num_samples=len(weights))
 else:
     sampler = None
@@ -219,13 +221,22 @@ data = DataBunch.create(train_ds, val_ds, test_ds,
                         sampler=sampler,
                         **config["data_bunch"].get("parameters", dict()))
 
-if DEBUG:
-    from tqdm import tqdm
-    cnt = Counter()
-    for x, y in tqdm(data.train_dl):
-        for l in np.where(y['label'].cpu().data.numpy() == 1)[1]:
-            cnt[l] += 1
-    print(cnt)
+if weights is not None:
+    label_cnt = Counter()
+    name_cnt = Counter()
+    n_samples = len(weights)
+    for idx in np.random.choice(train_idx, n_samples, p=weights / weights.sum()):
+        row = labels_df.iloc[idx]
+        labels = row['Target']
+        for l in labels:
+            label_cnt[l] += 1
+        name_cnt[row['Id']] += 1
+    print("Weighted sampled proportions:")
+    pprint(sorted({k: v / sum(label_cnt.values()) for k, v in label_cnt.items()}.items()))
+    # pprint(sorted({k: v for k, v in name_cnt.items()}.items(), key=lambda x: x[1]))
+else:
+    print("No weighted sampling")
+
 
 # 5. Initialize the model
 import pytorch_toolbox.fastai.fastai as fastai
@@ -242,7 +253,8 @@ model_lookup = {
     "cbam_resnet50_four_channel_input": cbam_resnet50_four_channel_input,
     "cbam_resnet50_four_channel_input_one_fc": cbam_resnet50_four_channel_input_one_fc,
     "cbam_resnet101_four_channel_input": cbam_resnet101_four_channel_input,
-    "gapnet_resnet34_four_channel_input_backbone": gapnet_resnet34_four_channel_input_backbone
+    "gapnet_resnet34_four_channel_input_backbone": gapnet_resnet34_four_channel_input_backbone,
+    "debug_cnn": debug_cnn
 }
 
 model_name, model_parameters = extract_name_and_parameters(config, "model")
@@ -251,7 +263,6 @@ model = model_lookup[model_name](**model_parameters)
 
 if DEBUG:
     from pytorch_toolbox.utils import num_parameters
-
     print(model)
     print(f"Number of parameters: {num_parameters(model, only_trainable=False)}")
     print(f"Number of trainable parameters: {num_parameters(model, only_trainable=True)}")
@@ -325,6 +336,7 @@ training_scheme_lookup = {
     "training_scheme_3": training_scheme_3,
     "training_scheme_4": training_scheme_4,
     "training_scheme_gapnet": training_scheme_gapnet,
+    "training_scheme_debug": training_scheme_debug
 }
 
 training_scheme_name, training_scheme_parameters = extract_name_and_parameters(config, "training_scheme")
