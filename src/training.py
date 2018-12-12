@@ -4,7 +4,7 @@ import pytorch_toolbox.fastai.fastai as fastai
 def three_tier_layer_group(learner):
     model = learner.model
     n_starting_layers = len(fastai.flatten_model(model[:6]))
-    n_middle_layers = len(fastai.flatten_model(model[6:9]))
+    n_middle_layers = len(fastai.flatten_model(model[6:8]))
     # n_head = len(fastai.flatten_model(model[9:]))
     layer_groups = fastai.split_model_idx(model, [n_starting_layers, n_starting_layers + n_middle_layers])
     return layer_groups
@@ -64,8 +64,12 @@ def training_scheme_gapnet_1(learner, lr, epochs, div_factor=25.):
     learner.unfreeze()
     learner.fit_one_cycle(cyc_len=epochs, max_lr=lr, div_factor=div_factor)
 
-def training_scheme_gapnet_lr_warmup(learner, lr, epochs, warmup_epochs, div_factor=100.):
+def training_scheme_lr_warmup(learner, epochs, warmup_epochs=None, lr=1e-3):
     lr = float(lr)
+    start_lr = 1e-9
+    div_factor = max(fastai.listify(lr)) / start_lr
+    if warmup_epochs is None:
+        warmup_epochs = int(epochs * 0.05) + 1
     learner.unfreeze()
     assert warmup_epochs < epochs
     pct_start = warmup_epochs / epochs

@@ -27,20 +27,21 @@ import torch.nn as nn
 
 from src.data import DataPaths
 
-from pytorch_toolbox.fastai import fastai
+import pytorch_toolbox.fastai.fastai as fastai
 from pytorch_toolbox.utils.core import to_numpy
 from pytorch_toolbox.fastai.fastai import vision
 from pytorch_toolbox.vision.utils import normalize, denormalize, tensor2img
 from pytorch_toolbox.fastai_extensions.loss import LossWrapper, FocalLoss, SoftF1Loss
 from pytorch_toolbox.fastai_extensions.basic_data import DataBunch
 
-DEBUG = True
+DEBUG = False
 # CONFIG_FILE = Path("configs/cbam_resnet18.yml")
-# CONFIG_FILE = Path("configs/iafoss_resnet34.yml")
+CONFIG_FILE = Path("configs/iafoss_resnet34.yml")
 # CONFIG_FILE = Path("configs/iafoss_resnet50.yml")
 # CONFIG_FILE = Path("configs/cbam_resnet50.yml")
 # CONFIG_FILE = Path("configs/cbam_resnet101.yml")
 # CONFIG_FILE = Path("configs/gapnet_resnet34.yml")
+# CONFIG_FILE = Path("configs/debug_cnn.yml")
 if DEBUG:
     CONFIG_FILE = Path("configs/debug_cnn.yml")
 
@@ -221,7 +222,7 @@ data = DataBunch.create(train_ds, val_ds, test_ds,
                         sampler=sampler,
                         **config["data_bunch"].get("parameters", dict()))
 
-if weights is not None:
+if sampler is not None:
     label_cnt = Counter()
     name_cnt = Counter()
     n_samples = len(weights)
@@ -239,7 +240,7 @@ else:
 
 
 # 5. Initialize the model
-import pytorch_toolbox.fastai.fastai as fastai
+from pytorch_toolbox.fastai.fastai.callbacks import CSVLogger
 from pytorch_toolbox.fastai_extensions.basic_train import Learner
 from src.models import *
 
@@ -268,7 +269,7 @@ if DEBUG:
     print(f"Number of trainable parameters: {num_parameters(model, only_trainable=True)}")
 
 # 6. Initialize the callbacks
-from pytorch_toolbox.fastai_extensions.callbacks import NameExtractionTrainer, GradientClipping
+from pytorch_toolbox.fastai_extensions.callbacks import NameExtractionTrainer
 from src.callbacks import OutputRecorder
 
 callback_lookup = {
@@ -278,8 +279,11 @@ callback_lookup = {
 learner_callback_lookup = {
     "OutputRecorder": partial(OutputRecorder, save_path=RESULTS_SAVE_PATH,
                               save_img_fn=partial(tensor2img, denorm_fn=denormalize_fn)),
-    "GradientClipping": GradientClipping
+    "CSVLogger": partial(CSVLogger, filename=str(RESULTS_SAVE_PATH / 'history')),
+    "GradientClipping": fastai.GradientClipping,
 }
+
+
 callbacks = []
 for callback in config.get('callbacks', list()):
     name = callback['name']
@@ -319,11 +323,17 @@ for metric in config.get('metrics', list()):
     metrics.append(partial(metric_lookup[name], **parameters))
 
 # 9. Initialize the learner class
+class LRPrinter(fastai.LearnerCallback):
+    def on_batch_begin(self, **kwargs):
+        print("Current LR:")
+        print(f"{self.learn.opt.read_val('lr')}")
+
 learner = Learner(data,
                   model=model,
                   loss_func=LossWrapper(loss_funcs),
                   callbacks=callbacks,
                   callback_fns=callback_fns,
+                  # callback_fns=callback_fns + [LRPrinter],
                   metrics=metrics)
 
 # Now for the training scheme
@@ -335,10 +345,12 @@ training_scheme_lookup = {
     "training_scheme_2": training_scheme_2,
     "training_scheme_3": training_scheme_3,
     "training_scheme_4": training_scheme_4,
-    "training_scheme_gapnet": training_scheme_gapnet,
+    "training_scheme_gapnet_1": training_scheme_gapnet_1,
+    "training_scheme_lr_warmup": training_scheme_lr_warmup,
     "training_scheme_debug": training_scheme_debug
 }
 
+# learner.load_from_path("/media/hd1/data/Kaggle/human-protein-image-classification/saved_results/gapnet_resnet34_20181211-010542/model.pth")
 training_scheme_name, training_scheme_parameters = extract_name_and_parameters(config, "training_scheme")
 training_scheme_lookup[training_scheme_name](learner=learner, **training_scheme_parameters)
 learner.save(RESULTS_SAVE_PATH / 'model')

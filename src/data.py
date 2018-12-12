@@ -37,6 +37,9 @@ label_to_string = {
     27: 'Rods & rings'
 }
 
+string_to_label = {
+    v: k for k, v in label_to_string.items()
+}
 class DataPaths:
     ROOT_DATA_PATH = Path(__file__).parent.parent / 'data'
     TRAIN_IMAGES = Path(ROOT_DATA_PATH, "train")
@@ -153,3 +156,5 @@ def single_class_counter(labels, smooth=0, inv_proportions=True):
         return sorted(prop_cnt.items())
     else:
         return sorted(cnt.items())
+
+

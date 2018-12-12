@@ -24,9 +24,9 @@ dataset:
 data_bunch:
   name: DataBunch
   parameters:
-    train_bs: 2
-    val_bs: 2
-    test_bs: 2
+    train_bs: 32
+    val_bs: 32
+    test_bs: 32
     num_workers: 0
 
 sample_weight_fn:
@@ -45,6 +45,9 @@ callbacks:
 callback_fns:
   - name: OutputRecorder
   - name: GradientClipping
+    parameters:
+      clip: 1.0
+  - name: CSVLogger
 
 metrics:
   - name: accuracy
@@ -54,7 +57,7 @@ learner:
   name: Learner
 
 training_scheme:
-  name: training_scheme_debug
+  name: training_scheme_lr_warmup
   parameters:
     epochs: 30
 

@@ -40,7 +40,7 @@ loss_func:
   - name: FocalLoss
     parameters:
       gamma: 0
-#  - name: SoftF1Loss
+  - name: SoftF1Loss
 
 
 callbacks:
@@ -49,6 +49,9 @@ callbacks:
 callback_fns:
   - name: OutputRecorder
   - name: GradientClipping
+    parameters:
+      clip: 1.0
+  - name: CSVLogger
 
 metrics:
   - name: accuracy
@@ -58,9 +61,9 @@ learner:
   name: Learner
 
 training_scheme:
-  name: training_scheme_gapnet
+  name: training_scheme_gapnet_1
   parameters:
-    epochs: 30
+    epochs: 40
     lr: 8e-3
 
 

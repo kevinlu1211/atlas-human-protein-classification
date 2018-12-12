@@ -46,3 +46,7 @@ class Learner(fastai.Learner):
         if not is_listy(layer_group_idxs): layer_group_idxs = [layer_group_idxs]
         layer_group_idxs_to_freeze = list(set(list(range(len(self.layer_groups)))) - set(layer_group_idxs))
         self.freeze_layer_groups(layer_group_idxs_to_freeze)
+
+    def load_from_path(self, path, device=None):
+        if device is None: device = self.data.device
+        self.model.load_state_dict(torch.load(path, map_location=device))

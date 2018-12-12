@@ -81,32 +81,48 @@ class OutputRecorder(fastai.LearnerCallback):
             # reduced_loss = to_numpy(loss.loss.mean())
             self.current_batch[f"{name}"] = unreduced_loss
             # self.current_batch[f"{name}_reduced"] = reduced_loss
-        prediction = self.current_batch['prediction']
-        label = self.current_batch['label']
-        n_classes = label.shape[-1]
-        indices_to_keep = np.where((prediction == label).sum(axis=1) != n_classes)[0]
+        # prediction = self.current_batch['prediction']
+        # label = self.current_batch['label']
+        # n_classes = label.shape[-1]
+        # indices_to_keep = np.where((prediction == label).sum(axis=1) != n_classes)[0]
         if self.phase =='TRAIN' or self.phase == 'VAL':
-            for idx in indices_to_keep:
+
+            """
+            self.current_batch is a dictionary with:
+            {
+                stat1: [stat1_for_sample_1, stat1_for_sample_2, ...]
+            }
+            """
+
+            # Get the keys, and the array of values associated with each key
+            stat_names, stat_values = zip(*self.current_batch.items())
+
+
+            # zip the array of values so each element in the zip has [stat1_for_sample_1, stat2_for_sample_1, ...]
+            stat_values_for_samples = zip(*stat_values)
+
+            for stat_values_for_sample in stat_values_for_samples:
                 sample_to_save = dict()
-                for k, v in self.current_batch.items():
-                    if k != "input":
-                        sample_to_save[k] = v[idx]
+                for stat_name, stat_value in zip(stat_names, stat_values_for_sample):
+                    if stat_name == 'input': continue
+                    sample_to_save[stat_name] = stat_value
                 self.history[self.key].append(sample_to_save)
 
     def on_epoch_end(self, epoch, **kwargs):
-        history_save_path = self.save_path / 'training_logs' / f"epoch_{epoch}_train.csv"
+        prev_epoch = epoch - 1
+        history_save_path = self.save_path / 'training_logs' / f"epoch_{prev_epoch}_train.csv"
         history_save_path.parent.mkdir(exist_ok=True, parents=True)
-        history = self.history[('TRAIN', epoch)]
+        history = self.history[('TRAIN', prev_epoch)]
         df = pd.DataFrame(history)
         df.to_csv(history_save_path, index=False)
 
-        history_save_path = self.save_path / 'training_logs' / f"epoch_{epoch}_val.csv"
+        history_save_path = self.save_path / 'training_logs' / f"epoch_{prev_epoch}_val.csv"
         history_save_path.parent.mkdir(exist_ok=True, parents=True)
-        history = self.history[('VAL', epoch)]
+        history = self.history[('VAL', prev_epoch)]
         df = pd.DataFrame(history)
         df.to_csv(history_save_path, index=False)
 
-        model_save_path = self.save_path / 'model_checkpoints' / f"epoch_{epoch}"
+        model_save_path = self.save_path / 'model_checkpoints' / f"epoch_{prev_epoch}"
         model_save_path.parent.mkdir(exist_ok=True, parents=True)
         self.learn.save(model_save_path)
         self.history = defaultdict(list)
