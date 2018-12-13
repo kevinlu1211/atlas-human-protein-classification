@@ -29,7 +29,8 @@ data_bunch:
     test_bs: 32
 
 sample_weight_fn:
-  name: mean_proportion_class_weight
+#  name: mean_proportion_class_weight
+  name: null
 
 model:
   name: gapnet_resnet34_four_channel_input_backbone
@@ -63,7 +64,7 @@ learner:
 training_scheme:
   name: training_scheme_gapnet_1
   parameters:
-    epochs: 40
+    epochs: 50
     lr: 8e-3
 
 

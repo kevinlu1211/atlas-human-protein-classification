@@ -61,7 +61,7 @@ learner:
 training_scheme:
   name: training_scheme_1
   parameters:
-    epochs: 40
+    epochs: 50
 
 
 
