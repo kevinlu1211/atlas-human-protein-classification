@@ -71,10 +71,33 @@ def extract_name_and_parameters(config, key):
 # 1. Generate the training data
 from pytorch_toolbox.utils import make_one_hot
 
-# Get paths for training
-train_paths = sorted(list(DataPaths.TRAIN_ALL_COMBINED_IMAGES.glob("*")), key=lambda p: p.stem)
-labels_df = pd.read_csv(DataPaths.TRAIN_ALL_LABELS)
+def create_image_label_set(image_paths, label_paths):
+    image_paths = sorted(image_paths, key=lambda p: p.stem)
+    labels_df = pd.read_csv(label_paths)
+    labels_df['Target'] = [[int(i) for i in s.split()] for s in labels_df['Target']]
+    labels_df = labels_df.sort_values(["Id"], ascending=[True])
+    assert np.all(np.array([p.stem for p in image_paths]) == labels_df["Id"])
+    labels_one_hot = make_one_hot(labels_df['Target'])
+    return image_paths, labels_df, labels_one_hot
+
+# All images
+# train_image_paths = list(DataPaths.TRAIN_ALL_COMBINED_IMAGES.glob("*"))
+# train_label_paths = DataPaths.TRAIN_ALL_LABELS
+# train_paths, train_labels_one_hot = create_image_label_set(train_image_paths, train_label_paths)
+# test_paths = sorted(list(DataPaths.TEST_COMBINED_IMAGES.glob("*")), key=lambda p: p.stem)
+
+# Filtered combination of Kaggle and HPA, w/ non-used HPA data as extra validation
+train_image_paths = list(DataPaths.TRAIN_HPA_KAGGLE_THRESH_0_02_COMBINED_IMAGES.glob("*"))
+train_label_paths = DataPaths.TRAIN_HPA_KAGGLE_THRESH_0_02_LABELS
+train_paths, labels_df, train_labels_one_hot = create_image_label_set(train_image_paths, train_label_paths)
+
+# val_image_paths = list(DataPaths.VAL_HPA_KAGGLE_THRESH_0_02_COMBINED_IMAGES.glob("*"))
+# val_label_paths = DataPaths.VAL_HPA_KAGGLE_THRESH_0_02_LABELS
+# val_paths, val_labels_one_hot = create_image_label_set(val_image_paths, val_label_paths)
+
 test_paths = sorted(list(DataPaths.TEST_COMBINED_IMAGES.glob("*")), key=lambda p: p.stem)
+
+
 
 # train_paths = sorted(list(DataPaths.TRAIN_COMBINED_HPA_V18_IMAGES.glob("*")), key=lambda p: p.stem)
 # labels_df = pd.read_csv(DataPaths.TRAIN_HPA_V18_LABELS)
@@ -84,11 +107,6 @@ test_paths = sorted(list(DataPaths.TEST_COMBINED_IMAGES.glob("*")), key=lambda p
 # labels_df = pd.read_csv((DataPaths.TRAIN_LABELS))
 # test_paths = sorted(list(DataPaths.TEST_COMBINED_IMAGES.glob("*")), key=lambda p: p.stem)
 
-labels_df['Target'] = [[int(i) for i in s.split()] for s in labels_df['Target']]
-labels_df = labels_df.sort_values(["Id"], ascending=[True])
-train_labels_one_hot = make_one_hot(labels_df['Target'])
-
-assert np.all(np.array([p.stem for p in train_paths]) == labels_df["Id"])
 
 if DEBUG:
     from iterstrat.ml_stratifiers import MultilabelStratifiedShuffleSplit

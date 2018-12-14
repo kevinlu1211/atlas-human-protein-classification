@@ -49,6 +49,10 @@ class DataPaths:
     TRAIN_LABELS = Path(ROOT_DATA_PATH, "train.csv")
     TRAIN_ALL_LABELS = Path(ROOT_DATA_PATH, "train_all.csv")
     TRAIN_HPA_V18_LABELS = Path(ROOT_DATA_PATH, "HPAv18RBGY_wodpl.csv")
+    TRAIN_HPA_KAGGLE_THRESH_0_02_COMBINED_IMAGES = Path(ROOT_DATA_PATH, 'train_hpa_kaggle_thresh_0_02')
+    TRAIN_HPA_KAGGLE_THRESH_0_02_LABELS = Path(ROOT_DATA_PATH, 'train_hpa_kaggle_thresh_0_02.csv')
+    VAL_HPA_KAGGLE_THRESH_0_02_COMBINED_IMAGES = Path(ROOT_DATA_PATH, 'val_hpa_kaggle_thresh_0_02')
+    VAL_HPA_KAGGLE_THRESH_0_02_LABELS = Path(ROOT_DATA_PATH, 'val_hpa_kaggle_thresh_0_02.csv')
     TEST_IMAGES = Path(ROOT_DATA_PATH, "test")
     TEST_COMBINED_IMAGES = Path(ROOT_DATA_PATH, "test_combined")
 
@@ -157,4 +161,12 @@ def single_class_counter(labels, smooth=0, inv_proportions=True):
     else:
         return sorted(cnt.items())
 
-
+def create_combined_training_examples(kaggle_labels_df, hpa_labels_df, threshold=0.02):
+    include_below = threshold
+    included_labels = []
+    for label, proportion in sorted(single_class_counter(kaggle_labels_df['Target'].values), key=lambda x: x[1]):
+        if proportion < include_below:
+            included_labels.append(label)
+    rare_labels_from_hpa_df = hpa_labels_df[hpa_labels_df['Target'].map(lambda x: len(set(x) & set(included_labels)) > 0)]
+    combined_training_df = pd.concat([kaggle_labels_df, rare_labels_from_hpa_df])
+    return combined_training_df

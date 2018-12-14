@@ -3,7 +3,7 @@ split_method:
   parameters:
     n_splits: 1
     test_size: 0.1
-    random_state: 42
+    random_state: 99
 
 augment_fn:
   name: simple_aug
@@ -65,7 +65,7 @@ training_scheme:
   name: training_scheme_gapnet_1
   parameters:
     epochs: 50
-    lr: 8e-3
+    lr: 1e-3
 
 
 
