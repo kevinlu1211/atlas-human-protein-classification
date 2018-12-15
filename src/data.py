@@ -5,6 +5,7 @@ import torch
 import torch.utils.data
 import cv2
 import numpy as np
+import pandas as pd
 
 label_to_string = {
     0: 'Nucleoplasm',

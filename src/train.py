@@ -81,21 +81,21 @@ def create_image_label_set(image_paths, label_paths):
     return image_paths, labels_df, labels_one_hot
 
 # All images
-# train_image_paths = list(DataPaths.TRAIN_ALL_COMBINED_IMAGES.glob("*"))
-# train_label_paths = DataPaths.TRAIN_ALL_LABELS
-# train_paths, train_labels_one_hot = create_image_label_set(train_image_paths, train_label_paths)
-# test_paths = sorted(list(DataPaths.TEST_COMBINED_IMAGES.glob("*")), key=lambda p: p.stem)
+train_image_paths = list(DataPaths.TRAIN_ALL_COMBINED_IMAGES.glob("*"))
+train_label_paths = DataPaths.TRAIN_ALL_LABELS
+train_paths, labels_df, train_labels_one_hot = create_image_label_set(train_image_paths, train_label_paths)
+test_paths = sorted(list(DataPaths.TEST_COMBINED_IMAGES.glob("*")), key=lambda p: p.stem)
 
 # Filtered combination of Kaggle and HPA, w/ non-used HPA data as extra validation
-train_image_paths = list(DataPaths.TRAIN_HPA_KAGGLE_THRESH_0_02_COMBINED_IMAGES.glob("*"))
-train_label_paths = DataPaths.TRAIN_HPA_KAGGLE_THRESH_0_02_LABELS
-train_paths, labels_df, train_labels_one_hot = create_image_label_set(train_image_paths, train_label_paths)
+# train_image_paths = list(DataPaths.TRAIN_HPA_KAGGLE_THRESH_0_02_COMBINED_IMAGES.glob("*"))
+# train_label_paths = DataPaths.TRAIN_HPA_KAGGLE_THRESH_0_02_LABELS
+# train_paths, labels_df, train_labels_one_hot = create_image_label_set(train_image_paths, train_label_paths)
 
 # val_image_paths = list(DataPaths.VAL_HPA_KAGGLE_THRESH_0_02_COMBINED_IMAGES.glob("*"))
 # val_label_paths = DataPaths.VAL_HPA_KAGGLE_THRESH_0_02_LABELS
 # val_paths, val_labels_one_hot = create_image_label_set(val_image_paths, val_label_paths)
 
-test_paths = sorted(list(DataPaths.TEST_COMBINED_IMAGES.glob("*")), key=lambda p: p.stem)
+# test_paths = sorted(list(DataPaths.TEST_COMBINED_IMAGES.glob("*")), key=lambda p: p.stem)
 
 
 

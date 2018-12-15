@@ -126,22 +126,9 @@ def cbam_resnet50_four_channel_input_one_fc(pretrained=True, checkpoint_path="..
     return model
 
 
-def cbam_resnet101_four_channel_input(pretrained=True, checkpoint_path="../model_checkpoints/RESNET50_CBAM.pth"):
+def cbam_resnet101_four_channel_input():
     first_layer_conv = nn.Conv2d(4, 64, kernel_size=7, stride=3, padding=3, bias=False)
     model = cbam.cbam_resnet101(num_classes=28)
-
-    if pretrained:
-        assert checkpoint_path is not None
-        checkpoint = torch.load(checkpoint_path, map_location=lambda storage, loc: storage)
-
-        # Get rid of the module. prefix
-        updated_checkpoint_state_dict = OrderedDict()
-        for k, v in checkpoint['state_dict'].items():
-            updated_checkpoint_state_dict[k[7:]] = v
-        model.load_state_dict(updated_checkpoint_state_dict)
-        pretrained_conv_weights = list(model.children())[0].weight
-        first_layer_conv.weight = torch.nn.Parameter(
-            torch.cat((pretrained_conv_weights, pretrained_conv_weights[:, :1, :, :]), dim=1))
     fc_layers = nn.Sequential(
         AdaptiveConcatPool2d(),
         Flatten(),
