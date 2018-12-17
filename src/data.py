@@ -6,6 +6,10 @@ import torch.utils.data
 import cv2
 import numpy as np
 import pandas as pd
+from sklearn.model_selection import ShuffleSplit
+from iterstrat.ml_stratifiers import MultilabelStratifiedShuffleSplit
+
+from pytorch_toolbox.utils import make_one_hot
 
 label_to_string = {
     0: 'Nucleoplasm',
@@ -171,3 +175,34 @@ def create_combined_training_examples(kaggle_labels_df, hpa_labels_df, threshold
     rare_labels_from_hpa_df = hpa_labels_df[hpa_labels_df['Target'].map(lambda x: len(set(x) & set(included_labels)) > 0)]
     combined_training_df = pd.concat([kaggle_labels_df, rare_labels_from_hpa_df])
     return combined_training_df
+
+def create_image_label_set(image_paths, label_paths):
+    image_paths = sorted(image_paths, key=lambda p: p.stem)
+    labels_df = pd.read_csv(label_paths)
+    labels_df['Target'] = [[int(i) for i in s.split()] for s in labels_df['Target']]
+    labels_df = labels_df.sort_values(["Id"], ascending=[True])
+    assert np.all(np.array([p.stem for p in image_paths]) == labels_df["Id"])
+    labels_one_hot = make_one_hot(labels_df['Target'])
+    return image_paths, labels_df, labels_one_hot
+
+def mean_proportion_class_weights(all_labels):
+    all_weights = []
+    label_proportions = single_class_counter(all_labels)
+    weight_lookup = {label: 1 / prop for label, prop in label_proportions}
+    for labels in all_labels:
+        weights = np.array([weight_lookup[l] for l in labels]).mean()
+        all_weights.append(weights)
+    return all_weights
+
+sampler_weight_lookup = {
+    "mean_proportion_class_weight": mean_proportion_class_weights
+}
+
+dataset_lookup = {
+    "ProteinClassificationDataset": ProteinClassificationDataset
+}
+
+split_method_lookup = {
+    "ShuffleSplit": ShuffleSplit,
+    "MultilabelStratifiedShuffleSplit": MultilabelStratifiedShuffleSplit
+}

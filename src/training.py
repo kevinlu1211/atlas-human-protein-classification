@@ -86,3 +86,15 @@ def training_scheme_se_resnext50_32x4d(learner, lr, epochs=50, div_factor=25):
     learner.unfreeze()
     lrs = np.array([lr] * len(learner.model.layer_groups))
     learner.fit_one_cycle(cyc_len=epochs, max_lr=lrs, div_factor=div_factor)
+
+training_scheme_lookup = {
+    "iafoss_training_scheme": iafoss_training_scheme,
+    "training_scheme_1": training_scheme_1,
+    "training_scheme_2": training_scheme_2,
+    "training_scheme_3": training_scheme_3,
+    "training_scheme_4": training_scheme_4,
+    "training_scheme_gapnet_1": training_scheme_gapnet_1,
+    "training_scheme_lr_warmup": training_scheme_lr_warmup,
+    "training_scheme_debug": training_scheme_debug,
+    "training_scheme_se_resnext50_32x4d": training_scheme_se_resnext50_32x4d
+}

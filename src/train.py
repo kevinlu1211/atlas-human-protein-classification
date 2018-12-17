@@ -25,7 +25,7 @@ import torch
 import torch.utils.data
 import torch.nn as nn
 
-from src.data import DataPaths
+from src.data import DataPaths, create_image_label_set
 
 import pytorch_toolbox.fastai.fastai as fastai
 from pytorch_toolbox.utils.core import to_numpy
@@ -72,15 +72,6 @@ def extract_name_and_parameters(config, key):
 # 1. Generate the training data
 from pytorch_toolbox.utils import make_one_hot
 
-def create_image_label_set(image_paths, label_paths):
-    image_paths = sorted(image_paths, key=lambda p: p.stem)
-    labels_df = pd.read_csv(label_paths)
-    labels_df['Target'] = [[int(i) for i in s.split()] for s in labels_df['Target']]
-    labels_df = labels_df.sort_values(["Id"], ascending=[True])
-    assert np.all(np.array([p.stem for p in image_paths]) == labels_df["Id"])
-    labels_one_hot = make_one_hot(labels_df['Target'])
-    return image_paths, labels_df, labels_one_hot
-
 # All images
 # train_image_paths = list(DataPaths.TRAIN_ALL_COMBINED_IMAGES.glob("*"))
 # train_label_paths = DataPaths.TRAIN_ALL_LABELS
@@ -97,7 +88,6 @@ train_paths, labels_df, train_labels_one_hot = create_image_label_set(train_imag
 # val_paths, val_labels_one_hot = create_image_label_set(val_image_paths, val_label_paths)
 
 test_paths = sorted(list(DataPaths.TEST_COMBINED_IMAGES.glob("*")), key=lambda p: p.stem)
-
 
 
 # train_paths = sorted(list(DataPaths.TRAIN_COMBINED_HPA_V18_IMAGES.glob("*")), key=lambda p: p.stem)
@@ -119,48 +109,14 @@ if DEBUG:
     train_labels_one_hot = np.array(train_labels_one_hot)[idx]
 
 # 2. Transformation / normalization of images
-from pytorch_toolbox.vision.transforms import *
-
-augment_fn_lookup = {
-    "very_simple_aug": very_simple_aug,
-    "very_simple_aug_with_elastic_transform": very_simple_aug_with_elastic_transform,
-    "simple_aug": simple_aug,
-    "simple_aug_lower_prob": simple_aug_lower_prob,
-    "resize_aug": resize_aug,
-}
+from pytorch_toolbox.vision import augment_fn_lookup
+from src.models import denormalize_fn_lookup, normalize_fn_lookup
 
 augment_fn_name, augment_fn_parameters = extract_name_and_parameters(config, "augment_fn")
 
 augment_fn = partial(albumentations_transform_wrapper,
                      augment_fn=augment_fn_lookup[augment_fn_name](**augment_fn_parameters))
 
-four_channel_image_net_stats = {
-    'mean': [0.485, 0.456, 0.406, 0.485],
-    'sd': [0.229, 0.224, 0.224, 0.229]
-}
-four_channel_image_net_normalize = partial(normalize, **four_channel_image_net_stats)
-four_channel_image_net_denormalize = partial(denormalize, **four_channel_image_net_stats)
-
-
-four_channel_pnasnet5large_stats = {
-    'mean': [0.5, 0.5, 0.5, 0.5],
-    'sd': [0.5, 0.5, 0.5, 0.5]
-}
-
-four_channel_pnasnet5large_normalize = partial(normalize, **four_channel_pnasnet5large_stats)
-four_channel_pnasnet5large_denormalize = partial(denormalize, **four_channel_pnasnet5large_stats)
-
-normalize_fn_lookup = {
-    "four_channel_image_net_normalize": four_channel_image_net_normalize,
-    "four_channel_pnasnet5large_normalize": four_channel_image_net_normalize,
-    "identity": lambda x: x
-}
-
-denormalize_fn_lookup = {
-    "four_channel_image_net_denormalize": four_channel_image_net_denormalize,
-    "four_channel_pnasnet5large_denormalize": four_channel_image_net_denormalize,
-    "identity": lambda x: x
-}
 
 normalize_fn_name, normalize_fn_parameters = extract_name_and_parameters(config, "normalize_fn")
 normalize_fn = partial(normalize_fn_lookup[normalize_fn_name], **normalize_fn_parameters)
@@ -170,14 +126,7 @@ denormalize_fn = partial(denormalize_fn_lookup[denormalize_fn_name], **denormali
 # 3. Create the splits
 from collections import Counter
 from pprint import pprint
-from sklearn.model_selection import ShuffleSplit
-from iterstrat.ml_stratifiers import MultilabelStratifiedShuffleSplit
-from src.data import single_class_counter
 
-split_method_lookup = {
-    "ShuffleSplit": ShuffleSplit,
-    "MultilabelStratifiedShuffleSplit": MultilabelStratifiedShuffleSplit
-}
 
 split_method_name, split_method_parameters = extract_name_and_parameters(config, "split_method")
 
@@ -194,32 +143,15 @@ print("Validation distribution:")
 pprint(single_class_counter(labels_df['Target'].iloc[val_idx].values))
 
 # 4. Create the data bunch which wraps our dataset
-from src.data import ProteinClassificationDataset, open_numpy
+from src.data import ProteinClassificationDataset, open_numpy,\
+    mean_proportion_class_weights, dataset_lookup, sampler_weight_lookup
 import torch.utils.data
 from torch.utils.data import WeightedRandomSampler
 
 
 
-def mean_proportion_class_weights(all_labels):
-    all_weights = []
-    label_proportions = single_class_counter(all_labels)
-    weight_lookup = {label: 1 / prop for label, prop in label_proportions}
-    for labels in all_labels:
-        weights = np.array([weight_lookup[l] for l in labels]).mean()
-        all_weights.append(weights)
-    return all_weights
-
-
-dataset_lookup = {
-    "ProteinClassificationDataset": ProteinClassificationDataset
-}
 dataset_name, dataset_parameters = extract_name_and_parameters(config, 'dataset')
 dataset = partial(dataset_lookup[dataset_name], **dataset_parameters)
-
-
-sampler_weight_lookup = {
-    "mean_proportion_class_weight": mean_proportion_class_weights
-}
 
 sampler_weight_fn_name, sampler_weight_fn_parameters = extract_name_and_parameters(config, 'sample_weight_fn')
 if sampler_weight_fn_name is not None:
@@ -267,25 +199,10 @@ else:
 # 5. Initialize the model
 from pytorch_toolbox.fastai.fastai.callbacks import CSVLogger
 from pytorch_toolbox.fastai_extensions.basic_train import Learner
-from src.models import *
+from src.models import model_lookup
 
-model_lookup = {
-    "resnet18_four_channel_input": resnet18_four_channel_input,
-    "resnet34_four_channel_input": resnet34_four_channel_input,
-    "resnet34_four_channel_input_one_fc": resnet34_four_channel_input_one_fc,
-    "resnet50_four_channel_input": resnet50_four_channel_input,
-    "cbam_resnet18_four_channel_input_one_fc": cbam_resnet18_four_channel_input_one_fc,
-    "cbam_resnet34_four_channel_input": cbam_resnet34_four_channel_input,
-    "cbam_resnet50_four_channel_input": cbam_resnet50_four_channel_input,
-    "cbam_resnet50_four_channel_input_one_fc": cbam_resnet50_four_channel_input_one_fc,
-    "cbam_resnet101_four_channel_input": cbam_resnet101_four_channel_input,
-    "gapnet_resnet34_four_channel_input_backbone": gapnet_resnet34_four_channel_input_backbone,
-    "se_resnext50_32x4d_four_channel_input": se_resnext50_32x4d_four_channel_input,
-    "debug_cnn": debug_cnn
-}
 
 model_name, model_parameters = extract_name_and_parameters(config, "model")
-
 model = model_lookup[model_name](**model_parameters)
 
 if DEBUG:
@@ -295,12 +212,10 @@ if DEBUG:
     print(f"Number of trainable parameters: {num_parameters(model, only_trainable=True)}")
 
 # 6. Initialize the callbacks
-from pytorch_toolbox.fastai_extensions.callbacks import NameExtractionTrainer
+from pytorch_toolbox.fastai_extensions.callbacks import callback_lookup
+from pytorch_toolbox.fastai_extensions.loss import loss_lookup
 from src.callbacks import OutputRecorder
 
-callback_lookup = {
-    "NameExtractionTrainer": NameExtractionTrainer
-}
 
 learner_callback_lookup = {
     "OutputRecorder": partial(OutputRecorder, save_path=RESULTS_SAVE_PATH,
@@ -323,10 +238,6 @@ for callback_fn in config.get('callback_fns', list()):
     callback_fns.append(partial(learner_callback_lookup[name], **parameters))
 
 # 7. Initialize the loss func:
-loss_lookup = {
-    "FocalLoss": FocalLoss,
-    "SoftF1Loss": SoftF1Loss
-}
 
 loss_funcs = []
 for loss_func in config.get('loss_func', list()):
@@ -363,19 +274,7 @@ learner = Learner(data,
                   metrics=metrics)
 
 # Now for the training scheme
-from src.training import *
-
-training_scheme_lookup = {
-    "iafoss_training_scheme": iafoss_training_scheme,
-    "training_scheme_1": training_scheme_1,
-    "training_scheme_2": training_scheme_2,
-    "training_scheme_3": training_scheme_3,
-    "training_scheme_4": training_scheme_4,
-    "training_scheme_gapnet_1": training_scheme_gapnet_1,
-    "training_scheme_lr_warmup": training_scheme_lr_warmup,
-    "training_scheme_debug": training_scheme_debug,
-    "training_scheme_se_resnext50_32x4d": training_scheme_se_resnext50_32x4d
-}
+from src.training import training_scheme_lookup
 
 # learner.load_from_path("/media/hd1/data/Kaggle/human-protein-image-classification/saved_results/gapnet_resnet34_20181211-010542/model.pth")
 training_scheme_name, training_scheme_parameters = extract_name_and_parameters(config, "training_scheme")

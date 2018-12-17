@@ -83,3 +83,11 @@ def resize_aug(p=1, height=None, width=None):
 def albumentations_transform_wrapper(image, augment_fn):
     augmentation = augment_fn(image=image.px)
     return augmentation['image']
+
+augment_fn_lookup = {
+    "very_simple_aug": very_simple_aug,
+    "very_simple_aug_with_elastic_transform": very_simple_aug_with_elastic_transform,
+    "simple_aug": simple_aug,
+    "simple_aug_lower_prob": simple_aug_lower_prob,
+    "resize_aug": resize_aug,
+}
