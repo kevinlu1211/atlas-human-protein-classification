@@ -68,3 +68,7 @@ class LossWrapper(nn.Module):
         total_loss = sum([l(out, *yb) for l in self.losses])
         return total_loss
 
+loss_lookup = {
+    "FocalLoss": FocalLoss,
+    "SoftF1Loss": SoftF1Loss
+}

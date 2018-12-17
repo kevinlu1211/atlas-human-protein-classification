@@ -16,3 +16,7 @@ class NameExtractionTrainer(fastai.Callback):
             return last_input, last_target[self.label_key]
         else:
             return last_input, last_target
+
+callback_lookup = {
+    "NameExtractionTrainer": NameExtractionTrainer
+}

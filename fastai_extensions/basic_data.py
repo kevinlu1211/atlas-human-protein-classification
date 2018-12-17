@@ -5,7 +5,6 @@ from fastai import *
 import fastai
 from fastai import vision
 
-tfms = vision.get_transforms()
 
 class DeviceDataLoader(fastai.DeviceDataLoader):
     """
@@ -29,7 +28,7 @@ class DeviceDataLoader(fastai.DeviceDataLoader):
     @classmethod
     def create(cls, dataset: fastai.Dataset, bs: int = 64, shuffle: bool = False,
                device: torch.device = fastai.defaults.device,
-               tfms: Collection[Callable] = tfms, num_workers: int = fastai.defaults.cpus,
+               tfms: Collection[Callable] = None, num_workers: int = fastai.defaults.cpus,
                collate_fn: Callable = fastai.data_collate, **kwargs: Any):
         "Create DeviceDataLoader from `dataset` with `batch_size` and `shuffle`: processs using `num_workers`."
         return cls(DataLoader(dataset, batch_size=bs, shuffle=shuffle, num_workers=num_workers, **kwargs),
