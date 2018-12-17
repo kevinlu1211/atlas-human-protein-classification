@@ -3,12 +3,12 @@ split_method:
   parameters:
     n_splits: 1
     test_size: 0.2
-    random_state: 424442
+    random_state: 4233
 
 augment_fn:
   name: very_simple_aug_with_elastic_transform
   parameters:
-    p: 1
+    p: 0.95
     height: null
     width: null
 
@@ -24,23 +24,21 @@ dataset:
 data_bunch:
   name: DataBunch
   parameters:
-    train_bs: 32
-    val_bs: 32
-    test_bs: 32
+    train_bs: 24
+    val_bs: 24
+    test_bs: 24
 
 sample_weight_fn:
   name: mean_proportion_class_weight
 #  name: null
 model:
-  name: resnet34_four_channel_input_one_fc
-  parameters:
-    pretrained: true
+  name: se_resnext50_32x4d_four_channel_input
 
 loss_func:
   - name: FocalLoss
     parameters:
-        gamma: 0
-#  - name: SoftF1Loss
+        gamma: 0.0
+  - name: SoftF1Loss
 
 callbacks:
   - name: NameExtractionTrainer
@@ -59,9 +57,10 @@ learner:
   name: Learner
 
 training_scheme:
-  name: training_scheme_1
+  name: training_scheme_se_resnext50_32x4d
   parameters:
     epochs: 75
+    lr: 5e-3
 
 
 

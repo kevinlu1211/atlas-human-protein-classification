@@ -2,24 +2,27 @@ split_method:
   name: MultilabelStratifiedShuffleSplit
   parameters:
     n_splits: 1
-    test_size: 0.2
-    random_state: 424442
+    test_size: 0.1
+    random_state: 93746
 
 augment_fn:
   name: very_simple_aug_with_elastic_transform
   parameters:
-    p: 1
+    p: 0.95
     height: null
     width: null
 
 normalize_fn:
-  name: four_channel_image_net_normalize
+  name: four_channel_pnasnet5large_normalize
 
 denormalize_fn:
-  name: four_channel_image_net_denormalize
+  name: four_channel_pnasnet5large_denormalize
 
 dataset:
   name: ProteinClassificationDataset
+
+sampler:
+  name: null
 
 data_bunch:
   name: DataBunch
@@ -28,18 +31,15 @@ data_bunch:
     val_bs: 32
     test_bs: 32
 
-sample_weight_fn:
-  name: mean_proportion_class_weight
-#  name: null
 model:
-  name: resnet34_four_channel_input_one_fc
+  name: pnasnet5large_four_channel_input
   parameters:
     pretrained: true
 
 loss_func:
   - name: FocalLoss
     parameters:
-        gamma: 0
+      gamma: 0
 #  - name: SoftF1Loss
 
 callbacks:
@@ -50,6 +50,7 @@ callback_fns:
   - name: GradientClipping
     parameters:
       clip: 1.0
+  - name: CSVLogger
 
 metrics:
   - name: accuracy
@@ -59,10 +60,7 @@ learner:
   name: Learner
 
 training_scheme:
-  name: training_scheme_1
-  parameters:
-    epochs: 75
-
+  name: training_scheme_3
 
 
 

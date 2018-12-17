@@ -3,7 +3,7 @@ split_method:
   parameters:
     n_splits: 1
     test_size: 0.1
-    random_state: 42
+    random_state: 93746
 
 augment_fn:
   name: very_simple_aug
@@ -32,13 +32,15 @@ data_bunch:
     test_bs: 32
 
 model:
-  name: resnet50_four_channel_input_one_fc
+  name: resnet50_four_channel_input
   parameters:
     pretrained: true
 
 loss_func:
   - name: FocalLoss
-  - name: SoftF1Loss
+    parameters:
+      gamma: 0
+#  - name: SoftF1Loss
 
 callbacks:
   - name: NameExtractionTrainer
@@ -46,6 +48,9 @@ callbacks:
 callback_fns:
   - name: OutputRecorder
   - name: GradientClipping
+    parameters:
+      clip: 1.0
+  - name: CSVLogger
 
 metrics:
   - name: accuracy

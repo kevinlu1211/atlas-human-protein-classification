@@ -42,6 +42,7 @@ CONFIG_FILE = Path("configs/iafoss_resnet34.yml")
 # CONFIG_FILE = Path("configs/cbam_resnet101.yml")
 # CONFIG_FILE = Path("configs/gapnet_resnet34.yml")
 # CONFIG_FILE = Path("configs/debug_cnn.yml")
+# CONFIG_FILE = Path("configs/se_resnext50_32x4d.yml")
 if DEBUG:
     CONFIG_FILE = Path("configs/debug_cnn.yml")
 
@@ -81,21 +82,21 @@ def create_image_label_set(image_paths, label_paths):
     return image_paths, labels_df, labels_one_hot
 
 # All images
-train_image_paths = list(DataPaths.TRAIN_ALL_COMBINED_IMAGES.glob("*"))
-train_label_paths = DataPaths.TRAIN_ALL_LABELS
-train_paths, labels_df, train_labels_one_hot = create_image_label_set(train_image_paths, train_label_paths)
-test_paths = sorted(list(DataPaths.TEST_COMBINED_IMAGES.glob("*")), key=lambda p: p.stem)
+# train_image_paths = list(DataPaths.TRAIN_ALL_COMBINED_IMAGES.glob("*"))
+# train_label_paths = DataPaths.TRAIN_ALL_LABELS
+# train_paths, labels_df, train_labels_one_hot = create_image_label_set(train_image_paths, train_label_paths)
+# test_paths = sorted(list(DataPaths.TEST_COMBINED_IMAGES.glob("*")), key=lambda p: p.stem)
 
 # Filtered combination of Kaggle and HPA, w/ non-used HPA data as extra validation
-# train_image_paths = list(DataPaths.TRAIN_HPA_KAGGLE_THRESH_0_02_COMBINED_IMAGES.glob("*"))
-# train_label_paths = DataPaths.TRAIN_HPA_KAGGLE_THRESH_0_02_LABELS
-# train_paths, labels_df, train_labels_one_hot = create_image_label_set(train_image_paths, train_label_paths)
+train_image_paths = list(DataPaths.TRAIN_HPA_KAGGLE_THRESH_0_02_COMBINED_IMAGES.glob("*"))
+train_label_paths = DataPaths.TRAIN_HPA_KAGGLE_THRESH_0_02_LABELS
+train_paths, labels_df, train_labels_one_hot = create_image_label_set(train_image_paths, train_label_paths)
 
 # val_image_paths = list(DataPaths.VAL_HPA_KAGGLE_THRESH_0_02_COMBINED_IMAGES.glob("*"))
 # val_label_paths = DataPaths.VAL_HPA_KAGGLE_THRESH_0_02_LABELS
 # val_paths, val_labels_one_hot = create_image_label_set(val_image_paths, val_label_paths)
 
-# test_paths = sorted(list(DataPaths.TEST_COMBINED_IMAGES.glob("*")), key=lambda p: p.stem)
+test_paths = sorted(list(DataPaths.TEST_COMBINED_IMAGES.glob("*")), key=lambda p: p.stem)
 
 
 
@@ -120,14 +121,9 @@ if DEBUG:
 # 2. Transformation / normalization of images
 from pytorch_toolbox.vision.transforms import *
 
-
-def albumentations_transform_wrapper(image, augment_fn):
-    augmentation = augment_fn(image=image.px)
-    return augmentation['image']
-
-
 augment_fn_lookup = {
     "very_simple_aug": very_simple_aug,
+    "very_simple_aug_with_elastic_transform": very_simple_aug_with_elastic_transform,
     "simple_aug": simple_aug,
     "simple_aug_lower_prob": simple_aug_lower_prob,
     "resize_aug": resize_aug,
@@ -145,13 +141,24 @@ four_channel_image_net_stats = {
 four_channel_image_net_normalize = partial(normalize, **four_channel_image_net_stats)
 four_channel_image_net_denormalize = partial(denormalize, **four_channel_image_net_stats)
 
+
+four_channel_pnasnet5large_stats = {
+    'mean': [0.5, 0.5, 0.5, 0.5],
+    'sd': [0.5, 0.5, 0.5, 0.5]
+}
+
+four_channel_pnasnet5large_normalize = partial(normalize, **four_channel_pnasnet5large_stats)
+four_channel_pnasnet5large_denormalize = partial(denormalize, **four_channel_pnasnet5large_stats)
+
 normalize_fn_lookup = {
     "four_channel_image_net_normalize": four_channel_image_net_normalize,
+    "four_channel_pnasnet5large_normalize": four_channel_image_net_normalize,
     "identity": lambda x: x
 }
 
 denormalize_fn_lookup = {
     "four_channel_image_net_denormalize": four_channel_image_net_denormalize,
+    "four_channel_pnasnet5large_denormalize": four_channel_image_net_denormalize,
     "identity": lambda x: x
 }
 
@@ -273,6 +280,7 @@ model_lookup = {
     "cbam_resnet50_four_channel_input_one_fc": cbam_resnet50_four_channel_input_one_fc,
     "cbam_resnet101_four_channel_input": cbam_resnet101_four_channel_input,
     "gapnet_resnet34_four_channel_input_backbone": gapnet_resnet34_four_channel_input_backbone,
+    "se_resnext50_32x4d_four_channel_input": se_resnext50_32x4d_four_channel_input,
     "debug_cnn": debug_cnn
 }
 
@@ -365,7 +373,8 @@ training_scheme_lookup = {
     "training_scheme_4": training_scheme_4,
     "training_scheme_gapnet_1": training_scheme_gapnet_1,
     "training_scheme_lr_warmup": training_scheme_lr_warmup,
-    "training_scheme_debug": training_scheme_debug
+    "training_scheme_debug": training_scheme_debug,
+    "training_scheme_se_resnext50_32x4d": training_scheme_se_resnext50_32x4d
 }
 
 # learner.load_from_path("/media/hd1/data/Kaggle/human-protein-image-classification/saved_results/gapnet_resnet34_20181211-010542/model.pth")

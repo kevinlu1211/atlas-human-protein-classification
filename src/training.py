@@ -79,3 +79,10 @@ def training_scheme_debug(learner, lr=1e-3, epochs=3, div_factor=25.):
     lr = float(lr)
     learner.unfreeze()
     learner.fit_one_cycle(cyc_len=epochs, max_lr=lr, div_factor=div_factor)
+
+def training_scheme_se_resnext50_32x4d(learner, lr, epochs=50, div_factor=25):
+    lr = float(lr)
+    learner.layer_groups = learner.model.layer_groups
+    learner.unfreeze()
+    lrs = np.array([lr] * len(learner.model.layer_groups))
+    learner.fit_one_cycle(cyc_len=epochs, max_lr=lrs, div_factor=div_factor)
