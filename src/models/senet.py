@@ -7,22 +7,24 @@ from .layers_and_init import *
 
 
 
-def se_resnext50_32x4d_four_channel_input():
-    model = pretrainedmodels.se_resnext50_32x4d(num_classes=1000, pretrained='imagenet')
-    pretrained_conv_weights = list(model.children())[0][0].weight
+def se_resnext50_32x4d_four_channel_input(pretrained=True):
+    if pretrained:
+        model = pretrainedmodels.se_resnext50_32x4d(num_classes=1000, pretrained='imagenet')
 
+    else:
+        model = pretrainedmodels.se_resnext50_32x4d(num_classes=1000, pretrained=None)
+
+    first_layer_conv_weights = list(model.children())[0][0].weight
     first_layer_conv = nn.Conv2d(4, 64, kernel_size=7, stride=3, padding=3, bias=False)
     first_layer_conv.weight = torch.nn.Parameter(
-        torch.cat((pretrained_conv_weights, pretrained_conv_weights[:, :1, :, :]), dim=1))
+        torch.cat((first_layer_conv_weights, first_layer_conv_weights[:, :1, :, :]), dim=1))
     list(model.children())[0][0] = first_layer_conv
 
     fc_layers = nn.Sequential(
         AdaptiveConcatPool2d(),
         Flatten(),
         nn.Dropout(p=0.5),
-        nn.Linear(4096, 512, bias=True),
-        nn.Dropout(p=0.5),
-        nn.Linear(512, 28, bias=True)
+        nn.Linear(4096, 28, bias=True),
     )
 
     fc_layers.apply(kaiming_init)

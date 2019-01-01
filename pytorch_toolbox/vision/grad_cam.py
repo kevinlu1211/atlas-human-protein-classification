@@ -1,8 +1,13 @@
 # Referenced from: https://github.com/kazuto1011/grad-cam-pytorch
+from collections import OrderedDict
 
-class _PropagationBase(object):
+import cv2
+import torch
+import torch.nn.functional as F
+import numpy as np
+
+class _PropagationBase:
     def __init__(self, model):
-        super(_PropagationBase, self).__init__()
         self.device = next(model.parameters()).device
         self.model = model
         self.image = None
@@ -26,7 +31,7 @@ class _PropagationBase(object):
 
 class GradCAM(_PropagationBase):
     def __init__(self, model):
-        super(GradCAM, self).__init__(model)
+        super().__init__(model)
         self.all_fmaps = OrderedDict()
         self.all_grads = OrderedDict()
 
@@ -69,10 +74,11 @@ class GradCAM(_PropagationBase):
 
         return gcam.detach().cpu().numpy()
 
-def overlay_gradcam_on_img(gcam, raw_image):
-    h, w, _ = raw_image.shape
-    gcam = cv2.resize(gcam, (w, h))
-    gcam = cv2.applyColorMap(np.uint8(gcam * 255.0), cv2.COLORMAP_JET)
-    gcam = gcam.astype(np.float) + raw_image.astype(np.float)
-    gcam = gcam / gcam.max() * 255.0
-    return gcam
+    @staticmethod
+    def overlay_gradcam_on_img(gcam, raw_image):
+        h, w, _ = raw_image.shape
+        gcam = cv2.resize(gcam, (w, h))
+        gcam = cv2.applyColorMap(np.uint8(gcam * 255.0), cv2.COLORMAP_JET)
+        gcam = gcam.astype(np.float) + raw_image.astype(np.float)
+        gcam = gcam / gcam.max() * 255.0
+        return gcam.astype(np.uint8)

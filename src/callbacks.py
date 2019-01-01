@@ -110,19 +110,20 @@ class OutputRecorder(fastai.LearnerCallback):
 
     def on_epoch_end(self, epoch, **kwargs):
         prev_epoch = epoch - 1
-        history_save_path = self.save_path / 'training_logs' / f"epoch_{prev_epoch}_train.csv"
+        n_cycle = self.learn.n_cycle
+        history_save_path = self.save_path / 'training_logs' / f"cycle_{n_cycle}_epoch_{prev_epoch}_train.csv"
         history_save_path.parent.mkdir(exist_ok=True, parents=True)
         history = self.history[('TRAIN', prev_epoch)]
         df = pd.DataFrame(history)
         df.to_csv(history_save_path, index=False)
 
-        history_save_path = self.save_path / 'training_logs' / f"epoch_{prev_epoch}_val.csv"
+        history_save_path = self.save_path / 'training_logs' / f"cycle_{n_cycle}_epoch_{prev_epoch}_val.csv"
         history_save_path.parent.mkdir(exist_ok=True, parents=True)
         history = self.history[('VAL', prev_epoch)]
         df = pd.DataFrame(history)
         df.to_csv(history_save_path, index=False)
 
-        model_save_path = self.save_path / 'model_checkpoints' / f"epoch_{prev_epoch}"
+        model_save_path = self.save_path / 'model_checkpoints' / f"cycle_{n_cycle}_epoch_{prev_epoch}"
         model_save_path.parent.mkdir(exist_ok=True, parents=True)
         self.learn.save(model_save_path)
         self.history = defaultdict(list)

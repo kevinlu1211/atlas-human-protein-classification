@@ -1,3 +1,4 @@
+import random
 from pathlib import Path
 from collections import Counter
 
@@ -137,21 +138,30 @@ class ProteinClassificationDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, i):
         ret = {}
+        prob_zero_green_channel = 1
 
         if self.image_cached:
             img = self.inputs[i]
         else:
             img = self.open_image_fn(self.inputs[i])
-
         if self.augment_fn is not None:
+            if prob_zero_green_channel < 0.5:
+                img.px[:,:,1] = 0
             img.px = self.augment_fn(img)
+
         img_tensor = img.tensor
+
         if self.normalize_fn is not None:
             img_tensor = self.normalize_fn(img_tensor)
+
         ret['input'] = img_tensor
         ret['name'] = img.name
+
         if self.labels is not None:
-            ret['label'] = self.labels[i]
+            if prob_zero_green_channel < 0.5 and self.augment_fn is not None:
+                ret['label'] = np.zeros_like(self.labels[i])
+            else:
+                ret['label'] = self.labels[i]
         return ret
 
 def single_class_counter(labels, smooth=0, inv_proportions=True):
@@ -176,13 +186,13 @@ def create_combined_training_examples(kaggle_labels_df, hpa_labels_df, threshold
     combined_training_df = pd.concat([kaggle_labels_df, rare_labels_from_hpa_df])
     return combined_training_df
 
-def create_image_label_set(image_paths, label_paths):
+def create_image_label_set(image_paths, label_paths, n_classes=28):
     image_paths = sorted(image_paths, key=lambda p: p.stem)
     labels_df = pd.read_csv(label_paths)
     labels_df['Target'] = [[int(i) for i in s.split()] for s in labels_df['Target']]
     labels_df = labels_df.sort_values(["Id"], ascending=[True])
     assert np.all(np.array([p.stem for p in image_paths]) == labels_df["Id"])
-    labels_one_hot = make_one_hot(labels_df['Target'])
+    labels_one_hot = make_one_hot(labels_df['Target'], n_classes=n_classes)
     return image_paths, labels_df, labels_one_hot
 
 def mean_proportion_class_weights(all_labels):
@@ -194,8 +204,21 @@ def mean_proportion_class_weights(all_labels):
         all_weights.append(weights)
     return all_weights
 
+def create_sample_weights(all_labels, method="MEAN"):
+    all_weights = []
+    label_proportions = single_class_counter(all_labels)
+    weight_lookup = {label: 1 / prop for label, prop in label_proportions}
+    for labels in all_labels:
+        if method == "MEAN":
+            weights = np.array([weight_lookup[l] for l in labels]).mean()
+        elif method == "MAX":
+            weights = np.array([weight_lookup[l] for l in labels]).max()
+        all_weights.append(weights)
+    return all_weights
+
 sampler_weight_lookup = {
-    "mean_proportion_class_weight": mean_proportion_class_weights
+    "mean_proportion_class_weight": mean_proportion_class_weights,
+    "create_sample_weights": create_sample_weights
 }
 
 dataset_lookup = {

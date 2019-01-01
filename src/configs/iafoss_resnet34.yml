@@ -32,7 +32,7 @@ sample_weight_fn:
   name: mean_proportion_class_weight
 #  name: null
 model:
-  name: resnet34_four_channel_input_one_fc
+  name: resnet34_four_channel_input
   parameters:
     pretrained: true
 
@@ -40,7 +40,7 @@ loss_func:
   - name: FocalLoss
     parameters:
         gamma: 0
-#  - name: SoftF1Loss
+  - name: SoftF1Loss
 
 callbacks:
   - name: NameExtractionTrainer
@@ -61,7 +61,7 @@ learner:
 training_scheme:
   name: training_scheme_1
   parameters:
-    epochs: 75
+    epochs: 50
 
 
 

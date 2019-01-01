@@ -36,11 +36,15 @@ from pytorch_toolbox.fastai_extensions.basic_data import DataBunch
 
 DEBUG = False
 # CONFIG_FILE = Path("configs/cbam_resnet18.yml")
-CONFIG_FILE = Path("configs/iafoss_resnet34.yml")
+# CONFIG_FILE = Path("configs/iafoss_resnet34.yml")
+# CONFIG_FILE = Path("configs/resnet34_d.yml")
 # CONFIG_FILE = Path("configs/iafoss_resnet50.yml")
 # CONFIG_FILE = Path("configs/cbam_resnet50.yml")
 # CONFIG_FILE = Path("configs/cbam_resnet101.yml")
 # CONFIG_FILE = Path("configs/gapnet_resnet34.yml")
+CONFIG_FILE = Path("configs/gapnet_resnet34_d.yml")
+# CONFIG_FILE = Path("configs/gapnet2_resnet34.yml")
+# CONFIG_FILE = Path("configs/gapnet2_resnet34_d.yml")
 # CONFIG_FILE = Path("configs/debug_cnn.yml")
 # CONFIG_FILE = Path("configs/se_resnext50_32x4d.yml")
 if DEBUG:
@@ -73,21 +77,21 @@ def extract_name_and_parameters(config, key):
 from pytorch_toolbox.utils import make_one_hot
 
 # All images
-# train_image_paths = list(DataPaths.TRAIN_ALL_COMBINED_IMAGES.glob("*"))
-# train_label_paths = DataPaths.TRAIN_ALL_LABELS
-# train_paths, labels_df, train_labels_one_hot = create_image_label_set(train_image_paths, train_label_paths)
-# test_paths = sorted(list(DataPaths.TEST_COMBINED_IMAGES.glob("*")), key=lambda p: p.stem)
+train_image_paths = list(DataPaths.TRAIN_ALL_COMBINED_IMAGES.glob("*"))
+train_label_paths = DataPaths.TRAIN_ALL_LABELS
+train_paths, labels_df, train_labels_one_hot = create_image_label_set(train_image_paths, train_label_paths)
+test_paths = sorted(list(DataPaths.TEST_COMBINED_IMAGES.glob("*")), key=lambda p: p.stem)
 
 # Filtered combination of Kaggle and HPA, w/ non-used HPA data as extra validation
-train_image_paths = list(DataPaths.TRAIN_HPA_KAGGLE_THRESH_0_02_COMBINED_IMAGES.glob("*"))
-train_label_paths = DataPaths.TRAIN_HPA_KAGGLE_THRESH_0_02_LABELS
-train_paths, labels_df, train_labels_one_hot = create_image_label_set(train_image_paths, train_label_paths)
+# train_image_paths = list(DataPaths.TRAIN_HPA_KAGGLE_THRESH_0_02_COMBINED_IMAGES.glob("*"))
+# train_label_paths = DataPaths.TRAIN_HPA_KAGGLE_THRESH_0_02_LABELS
+# train_paths, labels_df, train_labels_one_hot = create_image_label_set(train_image_paths, train_label_paths)
 
 # val_image_paths = list(DataPaths.VAL_HPA_KAGGLE_THRESH_0_02_COMBINED_IMAGES.glob("*"))
 # val_label_paths = DataPaths.VAL_HPA_KAGGLE_THRESH_0_02_LABELS
 # val_paths, val_labels_one_hot = create_image_label_set(val_image_paths, val_label_paths)
 
-test_paths = sorted(list(DataPaths.TEST_COMBINED_IMAGES.glob("*")), key=lambda p: p.stem)
+# test_paths = sorted(list(DataPaths.TEST_COMBINED_IMAGES.glob("*")), key=lambda p: p.stem)
 
 
 # train_paths = sorted(list(DataPaths.TRAIN_COMBINED_HPA_V18_IMAGES.glob("*")), key=lambda p: p.stem)
@@ -109,8 +113,8 @@ if DEBUG:
     train_labels_one_hot = np.array(train_labels_one_hot)[idx]
 
 # 2. Transformation / normalization of images
-from pytorch_toolbox.vision import augment_fn_lookup
-from src.models import denormalize_fn_lookup, normalize_fn_lookup
+from pytorch_toolbox.vision import augment_fn_lookup, albumentations_transform_wrapper
+from pytorch_toolbox.vision.utils import denormalize_fn_lookup, normalize_fn_lookup
 
 augment_fn_name, augment_fn_parameters = extract_name_and_parameters(config, "augment_fn")
 
@@ -124,6 +128,7 @@ denormalize_fn_name, denormalize_fn_parameters = extract_name_and_parameters(con
 denormalize_fn = partial(denormalize_fn_lookup[denormalize_fn_name], **denormalize_fn_parameters)
 
 # 3. Create the splits
+from src.data import sampler_weight_lookup, dataset_lookup, split_method_lookup, single_class_counter
 from collections import Counter
 from pprint import pprint
 
@@ -272,7 +277,7 @@ learner = Learner(data,
                   callback_fns=callback_fns,
                   # callback_fns=callback_fns + [LRPrinter],
                   metrics=metrics)
-
+# learner.load_from_path("notebook/results/iafoss_resnet34_20181219-090750/model.pth")
 # Now for the training scheme
 from src.training import training_scheme_lookup
 

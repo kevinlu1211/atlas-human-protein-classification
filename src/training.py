@@ -10,19 +10,31 @@ def three_tier_layer_group(learner):
     return layer_groups
 
 def iafoss_training_scheme(learner, lr=2e-2):
-    layer_groups = three_tier_layer_group(learner)
-    learner.layer_groups = layer_groups
+    learner.layer_groups = learner.model.layer_groups
     lrs = np.array([lr / 10, lr / 3, lr])
     learner.unfreeze_layer_groups(2)
-    learner.fit(epochs=1, lr=[0, 0, lr])
+    learner.fit(epochs=3, lr=[0, 0, lr])
     learner.unfreeze()
     learner.fit_one_cycle(cyc_len=2, max_lr=lrs / 4)
     learner.fit_one_cycle(cyc_len=2, max_lr=lrs / 4)
     learner.fit_one_cycle(cyc_len=2, max_lr=lrs / 4)
     learner.fit_one_cycle(cyc_len=2, max_lr=lrs / 4)
-    learner.fit_one_cycle(cyc_len=4, max_lr=lrs / 4)
-    learner.fit_one_cycle(cyc_len=4, max_lr=lrs / 4)
+    learner.fit_one_cycle(cyc_len=4, max_lr=lrs / 8)
+    learner.fit_one_cycle(cyc_len=4, max_lr=lrs / 8)
     learner.fit_one_cycle(cyc_len=8, max_lr=lrs / 16)
+
+def warm_restarts_training_scheme(learner, lr=2e-2):
+    lr = float(lr)
+    learner.layer_groups = learner.model.layer_groups
+    lrs = np.array([lr] * len(learner.layer_groups))
+    learner.unfreeze()
+    learner.fit_one_cycle(cyc_len=4, max_lr=lrs)
+    learner.fit_one_cycle(cyc_len=6, max_lr=lrs / 2)
+    learner.fit_one_cycle(cyc_len=8, max_lr=lrs / 4)
+    learner.fit_one_cycle(cyc_len=10, max_lr=lrs / 8)
+    learner.fit_one_cycle(cyc_len=12, max_lr=lrs / 16)
+    learner.fit_one_cycle(cyc_len=14, max_lr=lrs / 20)
+
 
 
 def training_scheme_1(learner, lr=2e-2, epochs=40):
@@ -32,6 +44,14 @@ def training_scheme_1(learner, lr=2e-2, epochs=40):
     lrs = np.array([lr / 10, lr / 3, lr])
     learner.unfreeze()
     learner.fit_one_cycle(cyc_len=epochs, max_lr=lrs / 4)
+
+def training_scheme_1_1(learner, lr=3e-4, epochs=40, pct_start=0.05):
+    layer_groups = three_tier_layer_group(learner)
+    learner.layer_groups = layer_groups
+    lr = float(lr)
+    lrs = np.array([lr, lr, lr])
+    learner.unfreeze()
+    learner.fit_one_cycle(cyc_len=epochs, max_lr=lrs / 4, pct_start=pct_start)
 
 
 def training_scheme_2(learner, lr=2e-2, epochs=50):
@@ -87,14 +107,18 @@ def training_scheme_se_resnext50_32x4d(learner, lr, epochs=50, div_factor=25):
     lrs = np.array([lr] * len(learner.model.layer_groups))
     learner.fit_one_cycle(cyc_len=epochs, max_lr=lrs, div_factor=div_factor)
 
+
+
 training_scheme_lookup = {
     "iafoss_training_scheme": iafoss_training_scheme,
     "training_scheme_1": training_scheme_1,
+    "training_scheme_1_1": training_scheme_1_1,
     "training_scheme_2": training_scheme_2,
     "training_scheme_3": training_scheme_3,
     "training_scheme_4": training_scheme_4,
     "training_scheme_gapnet_1": training_scheme_gapnet_1,
     "training_scheme_lr_warmup": training_scheme_lr_warmup,
     "training_scheme_debug": training_scheme_debug,
-    "training_scheme_se_resnext50_32x4d": training_scheme_se_resnext50_32x4d
+    "training_scheme_se_resnext50_32x4d": training_scheme_se_resnext50_32x4d,
+    "warm_restarts_training_scheme": warm_restarts_training_scheme
 }

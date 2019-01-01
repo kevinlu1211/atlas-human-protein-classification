@@ -7,6 +7,9 @@ from fastai import *
 import fastai
 
 class Learner(fastai.Learner):
+    def __init__(self, *args, **kwargs):
+        self.n_cycle = None
+        super().__init__(*args, **kwargs)
 
     def model_gradients(self):
         for lg in self.layer_groups:
@@ -16,10 +19,11 @@ class Learner(fastai.Learner):
                     print(p.shape)
                     print(p.requires_grad)
 
-    def predict_on_dl(self, dl, pbar=None, callbacks=None, metrics=None):
+    def predict_on_dl(self, dl, pbar=None, callbacks=None, callback_fns=None, metrics=None):
         assert dl is not None
         metrics = ifnone(metrics, self.metrics)
-        cb_handler = CallbackHandler(self.callbacks + ifnone(callbacks, []), metrics)
+        callbacks_fns = [cb(self) for cb in ifnone(callback_fns, [])]
+        cb_handler = CallbackHandler(self.callbacks + ifnone(callbacks, []) + callbacks_fns, metrics)
         with torch.no_grad():
             self.model.eval()
             for xb, yb in progress_bar(dl, parent=pbar, leave=(pbar is not None)):
@@ -50,3 +54,10 @@ class Learner(fastai.Learner):
     def load_from_path(self, path, device=None):
         if device is None: device = self.data.device
         self.model.load_state_dict(torch.load(path, map_location=device))
+
+    def fit(self, *args, **kwargs):
+        if self.n_cycle is None:
+            self.n_cycle = 0
+        else:
+            self.n_cycle += 1
+        super().fit(*args, **kwargs)

@@ -60,6 +60,15 @@ class GapNet(nn.Module):
         return out
 
 
+class TransparentConvGAP(nn.Module):
+    def __init__(self, in_channels, n_classes=28):
+        super().__init__()
+        self.conv = nn.Conv2d(in_channels, n_classes, 1, bias=False)
+
+    def forward(self, x):
+        self.feature_maps = F.adaptive_avg_pool2d(self.conv(x), 1)
+        return x
+
 class TransparentGAP(nn.Module):
     def __init__(self):
         super().__init__()
@@ -103,6 +112,37 @@ class DynamicGapNet(nn.Module):
         logits = self.fc(features)
         return logits
 
+class DynamicGapNet2(nn.Module):
+    def __init__(self, encoder, n_classes, gap_layer_idxs=None):
+        """
+        encoder: nn.Sequential object
+        gap_feature_start_idx: these are the layers after which a GAP layer will be placed
+        """
+        super().__init__()
+        sizes, *_ = fastai.callbacks.model_sizes(encoder)
+        if gap_layer_idxs is None:
+            gap_layer_idxs = range(len(encoder))
+        layers = []
+        total_n_features = 0
+        self.gaps = []
+        for i, (size, module) in enumerate(zip(sizes, encoder)):
+            layers.append(module)
+            if i in gap_layer_idxs:
+                total_n_features += size[1]
+                gap = TransparentConvGAP(in_channels=size[1], n_classes=n_classes)
+                self.gaps.append(gap)
+                layers.append(gap)
+        self.model = nn.Sequential(*layers)
+
+    def forward(self, x):
+        _ = self.model(x)
+        logits = torch.stack([gap.feature_maps for gap in self.gaps]).sum(dim=0)
+        bs = logits.size()[0]
+        logits = logits.squeeze()
+        if bs == 1:
+            logits = logits.unsqueeze(0)
+        return logits
+
 
 def one_level_flatten(model):
     model_flattened = []
@@ -121,3 +161,17 @@ def gapnet_resnet34_four_channel_input_backbone(pretrained=True):
     resnet34_gapnet = DynamicGapNet(flattened_encoder, n_classes=28, gap_layer_idxs=range(4, len(flattened_encoder)))
     return resnet34_gapnet
 
+def gapnet_resnet34_d_four_channel_input_backbone(pretrained=True, n_classes=28):
+    encoder = resnet34_d_four_channel_input(pretrained)[:-1]
+    resnet34_d_gapnet = DynamicGapNet(encoder, n_classes=n_classes, gap_layer_idxs=range(4, len(encoder)))
+    return resnet34_d_gapnet
+
+def gapnet2_resnet34_four_channel_input_backbone(pretrained=True):
+    encoder = resnet34_four_channel_input_one_fc(pretrained)[:-1]
+    resnet34_gapnet = DynamicGapNet2(encoder, n_classes=28, gap_layer_idxs=range(4, len(encoder)))
+    return resnet34_gapnet
+
+def gapnet2_resnet34_d_four_channel_input_backbone(pretrained=True):
+    encoder = resnet34_d_four_channel_input(pretrained)[:-1]
+    resnet34_d_gapnet = DynamicGapNet2(encoder, n_classes=28, gap_layer_idxs=range(4, len(encoder)))
+    return resnet34_d_gapnet

@@ -2,13 +2,13 @@ split_method:
   name: MultilabelStratifiedShuffleSplit
   parameters:
     n_splits: 1
-    test_size: 0.2
-    random_state: 42398
+    test_size: 0.1
+    random_state: 333
 
 augment_fn:
   name: very_simple_aug_with_elastic_transform
   parameters:
-    p: 0.95
+    p: 1
     height: null
     width: null
 
@@ -24,23 +24,26 @@ dataset:
 data_bunch:
   name: DataBunch
   parameters:
-    train_bs: 24
-    val_bs: 24
-    test_bs: 24
+    train_bs: 32
+    val_bs: 32
+    test_bs: 32
 
 sample_weight_fn:
-  name: mean_proportion_class_weight
-#  name: null
+  name: create_sample_weights
+  parameters:
+    method: MEAN
+
 model:
-  name: se_resnext50_32x4d_four_channel_input
+  name: gapnet_resnet34_d_four_channel_input_backbone
   parameters:
     pretrained: false
 
 loss_func:
-  - name: FocalLoss
-    parameters:
-        gamma: 0
+#  - name: FocalLoss
+#    parameters:
+#      gamma: 0
   - name: SoftF1Loss
+
 
 callbacks:
   - name: NameExtractionTrainer
@@ -50,6 +53,7 @@ callback_fns:
   - name: GradientClipping
     parameters:
       clip: 1.0
+  - name: CSVLogger
 
 metrics:
   - name: accuracy
@@ -59,12 +63,10 @@ learner:
   name: Learner
 
 training_scheme:
-  name: training_scheme_se_resnext50_32x4d
+  name: training_scheme_gapnet_1
   parameters:
-    epochs: 30
-    lr: 5e-4
-
-
+    epochs: 200
+    lr: 1e-4
 
 
 

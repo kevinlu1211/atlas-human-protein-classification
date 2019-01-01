@@ -53,15 +53,16 @@ def register_cmap():
 
 def plot_rgby(image):
     register_cmap()
-    _, axs = plt.subplots(2, 3, figsize=(24, 16))
+    _, axs = plt.subplots(1, 4, figsize=(24, 16))
     axs = axs.flatten()
     axs[0].imshow(image[:, :, 0], cmap='reds')
     axs[1].imshow(image[:, :, 1], cmap='greens')
     axs[2].imshow(image[:, :, 2], cmap='blues')
     axs[3].imshow(image[:, :, 3], cmap='yellows')
-    axs[4].imshow(image[:, :, :3])
-    axs[5].imshow(image[:,:,:])
     plt.tight_layout()
+
+def plot_rgb(image):
+    plt.imshow(image[:,:,:3])
 
 
 def get_image_with_id(image_id):
@@ -69,6 +70,9 @@ def get_image_with_id(image_id):
     path, = [p for p in paths if p.stem == image_id]
     return open_numpy(path, with_image_wrapper=False)['image']
 
+def get_label_with_id(image_id):
+    df = pd.read_csv(DataPaths.TRAIN_ALL_LABELS)
+    return df[df['Id'] == image_id]
 
 def convert_to_labels(class_labels):
     converted_labels = []
