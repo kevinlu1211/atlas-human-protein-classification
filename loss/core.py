@@ -100,6 +100,7 @@ def calculate_f1_soft_loss(logits, labels):
     logits: B x N_classes
     labels: B x N_classes
     """
+
     __small_value = 1e-6
     beta = 1
     probs = F.sigmoid(logits)
