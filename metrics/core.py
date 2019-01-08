@@ -29,3 +29,7 @@ def f1_soft(preds,targs,th=0.5,d=50.0):
         score = 2.0*(preds*targs).sum(axis=0)/((preds+targs).sum(axis=0) + 1e-6)
         return score
 
+metric_lookup = {
+    "accuracy": accuracy,
+    "f1_soft": f1_soft
+}

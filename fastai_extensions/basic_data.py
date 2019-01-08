@@ -1,4 +1,5 @@
 import sys
+
 sys.path.append("../fastai")
 
 from fastai import *
@@ -11,6 +12,7 @@ class DeviceDataLoader(fastai.DeviceDataLoader):
     This is subclasses because there are situations where the batch being returns may contain more than tensors e.g.
     maybe we also return the UID of the image. Hence the proc_batch function is overridden to provide this functionality
     """
+
     def proc_batch(self, b):
         input = fastai.to_device(b[0], self.device)
         output = {}
@@ -58,7 +60,8 @@ class DataBunch(fastai.DataBunch):
     @classmethod
     def create(cls, train_ds: Dataset, valid_ds: Dataset, test_ds: Dataset = None, path: PathOrStr = '.',
                train_bs: int = 64, val_bs: int = None, test_bs: int = None, sampler=None,
-               num_workers: int = fastai.defaults.cpus, tfms: Optional[Collection[Callable]] = None,
+               num_workers: int = fastai.defaults.cpus, pin_memory: bool = False,
+               tfms: Optional[Collection[Callable]] = None,
                device: torch.device = None,
                collate_fn: Callable = data_collate) -> 'DataBunch':
         "`DataBunch` factory. `bs` batch size, `ds_tfms` for `Dataset`, `tfms` for `DataLoader`."
@@ -68,9 +71,9 @@ class DataBunch(fastai.DataBunch):
         datasets = [train_ds, valid_ds]
         if test_ds is not None: datasets.append(test_ds)
         if sampler is None:
-            train_dl = DataLoader(train_ds, train_bs, sampler=sampler, num_workers=num_workers, drop_last=True)
+            train_dl = DataLoader(train_ds, train_bs, shuffle=True, num_workers=num_workers, pin_memory=pin_memory, drop_last=True)
         else:
-            train_dl = DataLoader(train_ds, train_bs, sampler=sampler, num_workers=num_workers, drop_last=True)
+            train_dl = DataLoader(train_ds, train_bs, sampler=sampler, num_workers=num_workers, pin_memory=pin_memory, drop_last=True)
         val_dl = DataLoader(valid_ds, val_bs, shuffle=False, num_workers=num_workers)
         test_dl = DataLoader(test_ds, test_bs, shuffle=False, num_workers=num_workers)
         dls = [train_dl, val_dl, test_dl]
