@@ -3,20 +3,20 @@ split_method:
   parameters:
     n_splits: 1
     test_size: 0.1
-    random_state: 42
+    random_state: 333
 
 augment_fn:
-  name: very_simple_aug
+  name: very_simple_aug_with_elastic_transform
   parameters:
-    p: 1
-    height: null
-    width: null
+    p: 0.5
+    height: 1024
+    width: 1024
 
 normalize_fn:
-  name: four_channel_image_net_normalize
+  name: identity
 
 denormalize_fn:
-  name: four_channel_image_net_denormalize
+  name: identity
 
 dataset:
   name: ProteinClassificationDataset
@@ -24,23 +24,27 @@ dataset:
 data_bunch:
   name: DataBunch
   parameters:
-    train_bs: 32
-    val_bs: 32
-    test_bs: 32
+    train_bs: 8
+    val_bs: 8
+    test_bs: 8
+    pin_memory: true
 
 sample_weight_fn:
-  name: mean_proportion_class_weight
-#  name: null
+  name: create_sample_weights
+  parameters:
+    method: MEAN
+
 model:
-  name: resnet34_d_four_channel_input
+  name: resnet34_d_four_channel_input_one_fc
   parameters:
     pretrained: false
 
 loss_func:
   - name: FocalLoss
     parameters:
-        gamma: 0
-  - name: SoftF1Loss
+      gamma: 0
+#  - name: SoftF1Loss
+
 
 callbacks:
   - name: NameExtractionTrainer
@@ -50,6 +54,7 @@ callback_fns:
   - name: GradientClipping
     parameters:
       clip: 1.0
+  - name: CSVLogger
 
 metrics:
   - name: accuracy
@@ -59,11 +64,10 @@ learner:
   name: Learner
 
 training_scheme:
-  name: training_scheme_1
+  name: training_scheme_gapnet_1
   parameters:
-    epochs: 75
-
-
+    epochs: 60
+    lr: 3e-3
 
 
 

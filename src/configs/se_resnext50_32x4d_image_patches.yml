@@ -1,0 +1,70 @@
+split_method:
+  name: MultilabelStratifiedShuffleSplit
+  parameters:
+    n_splits: 1
+    test_size: 0.1
+    random_state: 333
+
+augment_fn:
+  name: very_simple_aug
+  parameters:
+    p: 0.33
+    width: 384
+    height: 384
+
+normalize_fn:
+  name: identity
+
+denormalize_fn:
+  name: identity
+
+dataset:
+  name: ProteinClassificationDataset
+
+data_bunch:
+  name: DataBunch
+  parameters:
+    train_bs: 32
+    val_bs: 32
+    test_bs: 32
+
+sample_weight_fn:
+  name: null
+
+model:
+  name: se_resnext50_32x4d_four_channel_input
+  parameters:
+    pretrained: false
+
+loss_func:
+  - name: FocalLoss
+    parameters:
+        gamma: 0
+#  - name: SoftF1Loss
+
+callbacks:
+  - name: NameExtractionTrainer
+
+callback_fns:
+  - name: OutputRecorder
+  - name: GradientClipping
+    parameters:
+      clip: 1.0
+
+metrics:
+  - name: accuracy
+  - name: f1_soft
+
+learner:
+  name: Learner
+
+training_scheme:
+  name: training_scheme_se_resnext50_32x4d
+  parameters:
+    epochs: 4
+    lr: 5e-5
+
+
+
+
+

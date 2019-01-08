@@ -2,15 +2,14 @@ split_method:
   name: MultilabelStratifiedShuffleSplit
   parameters:
     n_splits: 1
-    test_size: 0.2
-    random_state: 42398
+    test_size: 0.1
+    random_state: 333
 
 augment_fn:
-  name: very_simple_aug_with_elastic_transform
+  name: very_simple_aug_with_elastic_transform_and_crop
   parameters:
-    p: 0.95
-    height: null
-    width: null
+    height: 512
+    width: 512
 
 normalize_fn:
   name: identity
@@ -24,9 +23,9 @@ dataset:
 data_bunch:
   name: DataBunch
   parameters:
-    train_bs: 24
-    val_bs: 24
-    test_bs: 24
+    train_bs: 16
+    val_bs: 4
+    test_bs: 4
 
 sample_weight_fn:
   name: mean_proportion_class_weight
@@ -40,7 +39,7 @@ loss_func:
   - name: FocalLoss
     parameters:
         gamma: 0
-  - name: SoftF1Loss
+#  - name: SoftF1Loss
 
 callbacks:
   - name: NameExtractionTrainer
@@ -61,8 +60,8 @@ learner:
 training_scheme:
   name: training_scheme_se_resnext50_32x4d
   parameters:
-    epochs: 30
-    lr: 5e-4
+    epochs: 60
+    lr: 1e-4
 
 
 

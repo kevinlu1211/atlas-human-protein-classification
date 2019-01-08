@@ -37,12 +37,12 @@ from pytorch_toolbox.fastai_extensions.basic_data import DataBunch
 DEBUG = False
 # CONFIG_FILE = Path("configs/cbam_resnet18.yml")
 # CONFIG_FILE = Path("configs/iafoss_resnet34.yml")
-# CONFIG_FILE = Path("configs/resnet34_d.yml")
+CONFIG_FILE = Path("configs/resnet34_d.yml")
 # CONFIG_FILE = Path("configs/iafoss_resnet50.yml")
 # CONFIG_FILE = Path("configs/cbam_resnet50.yml")
 # CONFIG_FILE = Path("configs/cbam_resnet101.yml")
 # CONFIG_FILE = Path("configs/gapnet_resnet34.yml")
-CONFIG_FILE = Path("configs/gapnet_resnet34_d.yml")
+# CONFIG_FILE = Path("configs/gapnet_resnet34_d.yml")
 # CONFIG_FILE = Path("configs/gapnet2_resnet34.yml")
 # CONFIG_FILE = Path("configs/gapnet2_resnet34_d.yml")
 # CONFIG_FILE = Path("configs/debug_cnn.yml")
@@ -50,7 +50,7 @@ CONFIG_FILE = Path("configs/gapnet_resnet34_d.yml")
 if DEBUG:
     CONFIG_FILE = Path("configs/debug_cnn.yml")
 
-ROOT_SAVE_PATH = Path("/media/hd1/data/Kaggle/human-protein-image-classification/results")
+ROOT_SAVE_PATH = Path("/media/hd/Kaggle/human-protein-image-classification/results")
 SAVE_FOLDER_NAME = f"{'DEBUG-' if DEBUG else ''}{CONFIG_FILE.stem}_{time.strftime('%Y%m%d-%H%M%S')}"
 RESULTS_SAVE_PATH = ROOT_SAVE_PATH / SAVE_FOLDER_NAME
 RESULTS_SAVE_PATH.mkdir(exist_ok=True, parents=True)
@@ -72,15 +72,14 @@ def extract_name_and_parameters(config, key):
     return name, parameters
 
 
-
 # 1. Generate the training data
 from pytorch_toolbox.utils import make_one_hot
 
 # All images
-train_image_paths = list(DataPaths.TRAIN_ALL_COMBINED_IMAGES.glob("*"))
-train_label_paths = DataPaths.TRAIN_ALL_LABELS
-train_paths, labels_df, train_labels_one_hot = create_image_label_set(train_image_paths, train_label_paths)
-test_paths = sorted(list(DataPaths.TEST_COMBINED_IMAGES.glob("*")), key=lambda p: p.stem)
+# train_image_paths = list(DataPaths.TRAIN_ALL_COMBINED_IMAGES.glob("*"))
+# train_label_paths = DataPaths.TRAIN_ALL_LABELS
+# train_paths, labels_df, train_labels_one_hot = create_image_label_set(train_image_paths, train_label_paths)
+# test_paths = sorted(list(DataPaths.TEST_COMBINED_IMAGES.glob("*")), key=lambda p: p.stem)
 
 # Filtered combination of Kaggle and HPA, w/ non-used HPA data as extra validation
 # train_image_paths = list(DataPaths.TRAIN_HPA_KAGGLE_THRESH_0_02_COMBINED_IMAGES.glob("*"))
@@ -98,10 +97,10 @@ test_paths = sorted(list(DataPaths.TEST_COMBINED_IMAGES.glob("*")), key=lambda p
 # labels_df = pd.read_csv(DataPaths.TRAIN_HPA_V18_LABELS)
 # test_paths = sorted(list(DataPaths.TEST_COMBINED_IMAGES.glob("*")), key=lambda p: p.stem)
 
-# train_paths = sorted(list(DataPaths.TRAIN_COMBINED_IMAGES.glob("*")), key=lambda p: p.stem)
-# labels_df = pd.read_csv((DataPaths.TRAIN_LABELS))
-# test_paths = sorted(list(DataPaths.TEST_COMBINED_IMAGES.glob("*")), key=lambda p: p.stem)
-
+train_image_paths = list(DataPaths.TRAIN_COMBINED_IMAGES.glob("*"))
+train_label_paths = DataPaths.TRAIN_LABELS
+train_paths, labels_df, train_labels_one_hot = create_image_label_set(train_image_paths, train_label_paths)
+test_paths = sorted(list(DataPaths.TEST_COMBINED_IMAGES.glob("*")), key=lambda p: p.stem)
 
 if DEBUG:
     from iterstrat.ml_stratifiers import MultilabelStratifiedShuffleSplit
@@ -121,7 +120,6 @@ augment_fn_name, augment_fn_parameters = extract_name_and_parameters(config, "au
 augment_fn = partial(albumentations_transform_wrapper,
                      augment_fn=augment_fn_lookup[augment_fn_name](**augment_fn_parameters))
 
-
 normalize_fn_name, normalize_fn_parameters = extract_name_and_parameters(config, "normalize_fn")
 normalize_fn = partial(normalize_fn_lookup[normalize_fn_name], **normalize_fn_parameters)
 denormalize_fn_name, denormalize_fn_parameters = extract_name_and_parameters(config, "denormalize_fn")
@@ -131,7 +129,6 @@ denormalize_fn = partial(denormalize_fn_lookup[denormalize_fn_name], **denormali
 from src.data import sampler_weight_lookup, dataset_lookup, split_method_lookup, single_class_counter
 from collections import Counter
 from pprint import pprint
-
 
 split_method_name, split_method_parameters = extract_name_and_parameters(config, "split_method")
 
@@ -148,12 +145,10 @@ print("Validation distribution:")
 pprint(single_class_counter(labels_df['Target'].iloc[val_idx].values))
 
 # 4. Create the data bunch which wraps our dataset
-from src.data import ProteinClassificationDataset, open_numpy,\
+from src.data import ProteinClassificationDataset, open_numpy, \
     mean_proportion_class_weights, dataset_lookup, sampler_weight_lookup
 import torch.utils.data
 from torch.utils.data import WeightedRandomSampler
-
-
 
 dataset_name, dataset_parameters = extract_name_and_parameters(config, 'dataset')
 dataset = partial(dataset_lookup[dataset_name], **dataset_parameters)
@@ -200,27 +195,25 @@ if sampler is not None:
 else:
     print("No weighted sampling")
 
-
 # 5. Initialize the model
 from pytorch_toolbox.fastai.fastai.callbacks import CSVLogger
 from pytorch_toolbox.fastai_extensions.basic_train import Learner
 from src.models import model_lookup
 
-
 model_name, model_parameters = extract_name_and_parameters(config, "model")
 model = model_lookup[model_name](**model_parameters)
 
 if DEBUG:
-    from pytorch_toolbox.utils import num_parameters
-    print(model)
-    print(f"Number of parameters: {num_parameters(model, only_trainable=False)}")
-    print(f"Number of trainable parameters: {num_parameters(model, only_trainable=True)}")
+    from torchsummary import summary
+    x, _ = next(iter(data.train_dl))
+    input_shape = x.shape[1:]
+    print(summary(model.cuda(), input_shape))
+
 
 # 6. Initialize the callbacks
 from pytorch_toolbox.fastai_extensions.callbacks import callback_lookup
 from pytorch_toolbox.fastai_extensions.loss import loss_lookup
 from src.callbacks import OutputRecorder
-
 
 learner_callback_lookup = {
     "OutputRecorder": partial(OutputRecorder, save_path=RESULTS_SAVE_PATH,
@@ -228,7 +221,6 @@ learner_callback_lookup = {
     "CSVLogger": partial(CSVLogger, filename=str(RESULTS_SAVE_PATH / 'history')),
     "GradientClipping": fastai.GradientClipping,
 }
-
 
 callbacks = []
 for callback in config.get('callbacks', list()):
@@ -251,12 +243,7 @@ for loss_func in config.get('loss_func', list()):
     loss_funcs.append(loss_lookup[name](**parameters))
 
 # 8. Define the metrics
-from pytorch_toolbox.metrics import accuracy, f1_soft
-
-metric_lookup = {
-    "accuracy": accuracy,
-    "f1_soft": f1_soft
-}
+from pytorch_toolbox.metrics import metric_lookup
 
 metrics = []
 for metric in config.get('metrics', list()):
@@ -264,11 +251,13 @@ for metric in config.get('metrics', list()):
     parameters = metric.get('parameters', dict())
     metrics.append(partial(metric_lookup[name], **parameters))
 
+
 # 9. Initialize the learner class
 class LRPrinter(fastai.LearnerCallback):
     def on_batch_begin(self, **kwargs):
         print("Current LR:")
         print(f"{self.learn.opt.read_val('lr')}")
+
 
 learner = Learner(data,
                   model=model,
@@ -277,6 +266,8 @@ learner = Learner(data,
                   callback_fns=callback_fns,
                   # callback_fns=callback_fns + [LRPrinter],
                   metrics=metrics)
+learner = learner.to_fp16()
+
 # learner.load_from_path("notebook/results/iafoss_resnet34_20181219-090750/model.pth")
 # Now for the training scheme
 from src.training import training_scheme_lookup

@@ -46,10 +46,14 @@ label_to_string = {
 string_to_label = {
     v: k for k, v in label_to_string.items()
 }
+
+
 class DataPaths:
     ROOT_DATA_PATH = Path(__file__).parent.parent / 'data'
     TRAIN_IMAGES = Path(ROOT_DATA_PATH, "train")
     TRAIN_COMBINED_IMAGES = Path(ROOT_DATA_PATH, "train_combined")
+    TRAIN_RGBY_IMAGES = Path(ROOT_DATA_PATH, "train_rgby")
+    TRAIN_RGBY_IMAGES_HPA_V18 = Path(ROOT_DATA_PATH, "train_rgby_HPAv18")
     TRAIN_COMBINED_HPA_V18_IMAGES = Path(ROOT_DATA_PATH, "train_combined_HPAv18")
     TRAIN_ALL_COMBINED_IMAGES = Path(ROOT_DATA_PATH, "train_all_combined")
     TRAIN_LABELS = Path(ROOT_DATA_PATH, "train.csv")
@@ -63,11 +67,11 @@ class DataPaths:
     TEST_COMBINED_IMAGES = Path(ROOT_DATA_PATH, "test_combined")
 
 
-def open_rgby(path, with_image_wrapper=True): #a function that reads RGBY image
-    colors = ['red','green','blue','yellow']
+def open_rgby(path, with_image_wrapper=True):  # a function that reads RGBY image
+    colors = ['red', 'green', 'blue', 'yellow']
     flags = cv2.IMREAD_GRAYSCALE
-    img_id = path.name[:36]
-    img = [cv2.imread(f"{str(path)}_{color}.png", flags).astype(np.uint8) for color in colors]
+    img_id = Path(path).name
+    img = [cv2.imread(f"{str(path)}_{color}.jpg", flags).astype(np.uint8) for color in colors]
     if with_image_wrapper:
         return Image(px=np.stack(img, axis=-1), name=img_id)
     else:
@@ -76,8 +80,9 @@ def open_rgby(path, with_image_wrapper=True): #a function that reads RGBY image
             "name": img_id
         }
 
+
 def open_numpy(path, with_image_wrapper=True):
-    img = np.load(path, allow_pickle=True).transpose(1, 2, 0)
+    img = np.load(path, allow_pickle=True)
     img_id = path.stem
     if with_image_wrapper:
         return Image(px=img, name=img_id)
@@ -86,6 +91,7 @@ def open_numpy(path, with_image_wrapper=True):
             "image": img,
             "name": path.stem
         }
+
 
 class Image:
     def __init__(self, px, name=None):
@@ -125,7 +131,8 @@ class ProteinClassificationDataset(torch.utils.data.Dataset):
             y['label'] = default_collate_batch['label']
         return x, y
 
-    def __init__(self, inputs, open_image_fn=open_numpy, image_cached=False, augment_fn=None, normalize_fn=None, labels=None):
+    def __init__(self, inputs, open_image_fn=open_numpy, image_cached=False, augment_fn=None, normalize_fn=None,
+                 labels=None):
         self.inputs = inputs
         self.open_image_fn = open_image_fn
         self.image_cached = image_cached
@@ -146,7 +153,7 @@ class ProteinClassificationDataset(torch.utils.data.Dataset):
             img = self.open_image_fn(self.inputs[i])
         if self.augment_fn is not None:
             if prob_zero_green_channel < 0.5:
-                img.px[:,:,1] = 0
+                img.px[:, :, 1] = 0
             img.px = self.augment_fn(img)
 
         img_tensor = img.tensor
@@ -164,6 +171,7 @@ class ProteinClassificationDataset(torch.utils.data.Dataset):
                 ret['label'] = self.labels[i]
         return ret
 
+
 def single_class_counter(labels, smooth=0, inv_proportions=True):
     flattened_classes = []
     for l in labels:
@@ -171,10 +179,11 @@ def single_class_counter(labels, smooth=0, inv_proportions=True):
     cnt = Counter(flattened_classes)
     n_classes = sum(cnt.values())
     if inv_proportions:
-        prop_cnt = {k: (v + smooth * n_classes)/n_classes for k, v in cnt.items()}
+        prop_cnt = {k: (v + smooth * n_classes) / n_classes for k, v in cnt.items()}
         return sorted(prop_cnt.items())
     else:
         return sorted(cnt.items())
+
 
 def create_combined_training_examples(kaggle_labels_df, hpa_labels_df, threshold=0.02):
     include_below = threshold
@@ -182,9 +191,11 @@ def create_combined_training_examples(kaggle_labels_df, hpa_labels_df, threshold
     for label, proportion in sorted(single_class_counter(kaggle_labels_df['Target'].values), key=lambda x: x[1]):
         if proportion < include_below:
             included_labels.append(label)
-    rare_labels_from_hpa_df = hpa_labels_df[hpa_labels_df['Target'].map(lambda x: len(set(x) & set(included_labels)) > 0)]
+    rare_labels_from_hpa_df = hpa_labels_df[
+        hpa_labels_df['Target'].map(lambda x: len(set(x) & set(included_labels)) > 0)]
     combined_training_df = pd.concat([kaggle_labels_df, rare_labels_from_hpa_df])
     return combined_training_df
+
 
 def create_image_label_set(image_paths, label_paths, n_classes=28):
     image_paths = sorted(image_paths, key=lambda p: p.stem)
@@ -195,6 +206,7 @@ def create_image_label_set(image_paths, label_paths, n_classes=28):
     labels_one_hot = make_one_hot(labels_df['Target'], n_classes=n_classes)
     return image_paths, labels_df, labels_one_hot
 
+
 def mean_proportion_class_weights(all_labels):
     all_weights = []
     label_proportions = single_class_counter(all_labels)
@@ -203,6 +215,7 @@ def mean_proportion_class_weights(all_labels):
         weights = np.array([weight_lookup[l] for l in labels]).mean()
         all_weights.append(weights)
     return all_weights
+
 
 def create_sample_weights(all_labels, method="MEAN"):
     all_weights = []
@@ -215,6 +228,7 @@ def create_sample_weights(all_labels, method="MEAN"):
             weights = np.array([weight_lookup[l] for l in labels]).max()
         all_weights.append(weights)
     return all_weights
+
 
 sampler_weight_lookup = {
     "mean_proportion_class_weight": mean_proportion_class_weights,

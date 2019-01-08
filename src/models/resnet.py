@@ -143,6 +143,91 @@ def resnet34_four_channel_input_one_fc(pretrained=True):
 
     return model
 
+def resnet34_d_four_channel_input_one_fc(pretrained=False):
+    from torchvision.models.resnet import ResNet, BasicBlock
+    class ResNet_D(ResNet):
+        def _make_layer(self, block, planes, blocks, stride=1):
+            downsample = None
+            if stride != 1 or self.inplanes != planes * block.expansion:
+                downsample = nn.Sequential(
+                    nn.AvgPool2d(kernel_size=2, stride=stride),
+                    conv1x1(self.inplanes, planes * block.expansion, 1),
+                    nn.BatchNorm2d(planes * block.expansion),
+                )
+            layers = []
+            layers.append(block(self.inplanes, planes, stride, downsample))
+            self.inplanes = planes * block.expansion
+            for _ in range(1, blocks):
+                layers.append(block(self.inplanes, planes))
+
+            return nn.Sequential(*layers)
+
+    if pretrained:
+        raise ValueError("Can't use pretrained model")
+    model = ResNet_D(BasicBlock, [3, 4, 6, 3])
+    first_layer_conv = nn.Conv2d(4, 64, kernel_size=7, stride=2, padding=3, bias=False)
+    nn.init.kaiming_normal_(first_layer_conv.weight, mode='fan_out', nonlinearity='relu')
+
+    fc_layers = nn.Sequential(
+        AdaptiveConcatPool2d(),
+        Flatten(),
+        nn.BatchNorm1d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+        nn.Linear(in_features=1024, out_features=28, bias=True),
+    )
+
+    fc_layers.apply(kaiming_init)
+
+
+    model = nn.Sequential(
+        first_layer_conv,
+        *list(model.children())[1:-2],
+        fc_layers
+    )
+
+    return model
+
+def resnet34_d_four_channel_input_one_fc(pretrained=False):
+    from torchvision.models.resnet import ResNet, BasicBlock
+    class ResNet_D(ResNet):
+        def _make_layer(self, block, planes, blocks, stride=1):
+            downsample = None
+            if stride != 1 or self.inplanes != planes * block.expansion:
+                downsample = nn.Sequential(
+                    nn.AvgPool2d(kernel_size=2, stride=stride),
+                    conv1x1(self.inplanes, planes * block.expansion, 1),
+                    nn.BatchNorm2d(planes * block.expansion),
+                )
+            layers = []
+            layers.append(block(self.inplanes, planes, stride, downsample))
+            self.inplanes = planes * block.expansion
+            for _ in range(1, blocks):
+                layers.append(block(self.inplanes, planes))
+
+            return nn.Sequential(*layers)
+
+    if pretrained:
+        raise ValueError("Can't use pretrained model")
+    model = ResNet_D(BasicBlock, [3, 4, 6, 3])
+    first_layer_conv = nn.Conv2d(4, 64, kernel_size=7, stride=2, padding=3, bias=False)
+    nn.init.kaiming_normal_(first_layer_conv.weight, mode='fan_out', nonlinearity='relu')
+
+    fc_layers = nn.Sequential(
+        AdaptiveConcatPool2d(),
+        Flatten(),
+        nn.BatchNorm1d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+        nn.Linear(in_features=1024, out_features=28, bias=True),
+    )
+
+    fc_layers.apply(kaiming_init)
+
+
+    model = nn.Sequential(
+        first_layer_conv,
+        *list(model.children())[1:-2],
+        fc_layers
+    )
+
+    return model
 
 def resnet50_four_channel_input(pretrained=True):
     first_layer_conv = nn.Conv2d(4, 64, kernel_size=7, stride=3, padding=3, bias=False)

@@ -8,9 +8,9 @@ split_method:
 augment_fn:
   name: very_simple_aug_with_elastic_transform
   parameters:
-    p: 1
-    height: null
-    width: null
+    p: 0.5
+    height: 1024
+    width: 1024
 
 normalize_fn:
   name: identity
@@ -24,9 +24,10 @@ dataset:
 data_bunch:
   name: DataBunch
   parameters:
-    train_bs: 32
-    val_bs: 32
-    test_bs: 32
+    train_bs: 8
+    val_bs: 8
+    test_bs: 8
+    pin_memory: true
 
 sample_weight_fn:
   name: create_sample_weights
@@ -39,10 +40,10 @@ model:
     pretrained: false
 
 loss_func:
-#  - name: FocalLoss
-#    parameters:
-#      gamma: 0
-  - name: SoftF1Loss
+  - name: FocalLoss
+    parameters:
+      gamma: 0
+#  - name: SoftF1Loss
 
 
 callbacks:
@@ -65,8 +66,8 @@ learner:
 training_scheme:
   name: training_scheme_gapnet_1
   parameters:
-    epochs: 200
-    lr: 1e-4
+    epochs: 60
+    lr: 8e-3
 
 
 

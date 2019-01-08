@@ -1,10 +1,14 @@
 import sys
+
 sys.path.append("../fastai")
 
 import torch
 
 from fastai import *
 import fastai
+
+from .callbacks import MixedPrecision
+
 
 class Learner(fastai.Learner):
     def __init__(self, *args, **kwargs):
@@ -38,7 +42,6 @@ class Learner(fastai.Learner):
         dl = ifnone(dl, self.data.test_dl)
         predict_on_dl(dl, pbar, callbacks, metrics)
 
-
     def freeze_layer_groups(self, layer_group_idxs):
         if not is_listy(layer_group_idxs): layer_group_idxs = [layer_group_idxs]
         super().unfreeze()
@@ -61,3 +64,13 @@ class Learner(fastai.Learner):
         else:
             self.n_cycle += 1
         super().fit(*args, **kwargs)
+
+
+def to_fp16(learn: Learner, loss_scale: float = 512, flat_master: bool = False) -> Learner:
+    "Transform `learn` in FP16 precision."
+    learn.model = fastai.model2half(learn.model)
+    learn.mp_cb = MixedPrecision(learn, loss_scale=loss_scale, flat_master=flat_master)
+    learn.callbacks.append(learn.mp_cb)
+    return learn
+
+Learner.to_fp16 = to_fp16

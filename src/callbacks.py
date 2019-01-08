@@ -1,4 +1,3 @@
-
 from collections import defaultdict
 
 import torch
@@ -8,6 +7,7 @@ import pandas as pd
 from pytorch_toolbox.utils import to_numpy
 from pytorch_toolbox.vision.utils import tensor2img
 import pytorch_toolbox.fastai.fastai as fastai
+
 
 class ResultRecorder(fastai.Callback):
     _order = -10
@@ -36,6 +36,7 @@ class ResultRecorder(fastai.Callback):
     def on_loss_begin(self, last_output, **kwargs):
         prob_pred = to_numpy(torch.sigmoid(last_output))
         self.prob_preds.extend(prob_pred)
+
 
 class OutputRecorder(fastai.LearnerCallback):
     _order = -10
@@ -67,7 +68,7 @@ class OutputRecorder(fastai.LearnerCallback):
 
     def on_loss_begin(self, last_output, epoch, **kwargs):
         model_output = to_numpy(last_output)
-        prediction_probs = 1/(1 + np.exp(-model_output))
+        prediction_probs = 1 / (1 + np.exp(-model_output))
         self.current_batch['prediction_probs'] = prediction_probs
         prediction = prediction_probs.copy()
         prediction[prediction < 0.5] = 0
@@ -85,7 +86,7 @@ class OutputRecorder(fastai.LearnerCallback):
         # label = self.current_batch['label']
         # n_classes = label.shape[-1]
         # indices_to_keep = np.where((prediction == label).sum(axis=1) != n_classes)[0]
-        if self.phase =='TRAIN' or self.phase == 'VAL':
+        if self.phase == 'TRAIN' or self.phase == 'VAL':
 
             """
             self.current_batch is a dictionary with:
@@ -96,7 +97,6 @@ class OutputRecorder(fastai.LearnerCallback):
 
             # Get the keys, and the array of values associated with each key
             stat_names, stat_values = zip(*self.current_batch.items())
-
 
             # zip the array of values so each element in the zip has [stat1_for_sample_1, stat2_for_sample_1, ...]
             stat_values_for_samples = zip(*stat_values)
@@ -127,3 +127,53 @@ class OutputRecorder(fastai.LearnerCallback):
         model_save_path.parent.mkdir(exist_ok=True, parents=True)
         self.learn.save(model_save_path)
         self.history = defaultdict(list)
+
+
+import numpy as np
+import cv2
+import os
+import glob
+
+channelColors = ['red', 'green', 'blue', 'yellow']
+
+
+def readChannels(root_dir, imgid):
+    channels = []
+    for color in channelColors:
+        imagePath = root_dir + '/' + imgid + '_' + color + '.tif'
+        chan = cv2.imread(imagePath, cv2.IMREAD_GRAYSCALE)
+        channels.append(chan)
+    channels = np.array(channels)
+    return channels
+
+
+def getImageIds(root_dir):
+    imageFilepaths = glob.glob(root_dir + '/*.png')
+    imgids = []
+    for fp in imageFilepaths:
+        d, f = os.path.split(fp)
+        name, ext = os.path.splitext(f)
+        fid, color = name.split('_')
+        imgids.append(fid)
+    imgids = list(set(imgids))
+    return imgids
+
+
+def makeImagePath(root_dir, imgid):
+    path = root_dir + '/' + imgid + '.npy'
+    return path
+
+
+def makeComposites(root_dir, save_dir, force=False):
+    imgids = getImageIds(root_dir)
+    for imgid in imgids:
+        imgPath = makeImagePath(root_dir, imgid)
+        if force or not os.path.exists(imgPath):
+            channels = readChannels(root_dir, imgid)
+            np.save(imgPath, channels, allow_pickle=True)
+
+
+def readComposite(root_dir, imgid):
+    imgPath = makeImagePath(root_dir, imgid)
+    channels = np.load(imgPath, allow_pickle=True)
+    return channels

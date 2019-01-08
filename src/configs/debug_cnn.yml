@@ -59,7 +59,7 @@ learner:
 training_scheme:
   name: training_scheme_lr_warmup
   parameters:
-    epochs: 30
+    epochs: 3
 
 
 
