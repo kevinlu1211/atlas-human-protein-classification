@@ -30,6 +30,7 @@ data_bunch:
 sample_weight_fn:
   name: mean_proportion_class_weight
 #  name: null
+
 model:
   name: se_resnext50_32x4d_four_channel_input
   parameters:
