@@ -6,10 +6,10 @@ import pandas as pd
 from tornado import ioloop, httpclient
 
 colors = ['red', 'green', 'blue', 'yellow']
-DIR = Path("../data/raw/HPAv18_train/")
+DIR = Path("/media/hd/Kaggle/human-protein-image-classification/data/trainHPAv18")
 DIR.mkdir(exist_ok=True, parents=True)
 v18_url = 'http://v18.proteinatlas.org/images/'
-imgList = pd.read_csv("../data/raw/HPAv18RBGY_wodpl.csv")
+imgList = pd.read_csv("HPAv18RBGY_wodpl.csv")
 
 
 def job(data):
