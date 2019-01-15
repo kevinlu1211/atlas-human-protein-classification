@@ -1,6 +1,4 @@
-import sys
-
-sys.path.append("..")
+# coding: utf-8
 
 import sys
 import warnings
@@ -8,12 +6,16 @@ import warnings
 if not sys.warnoptions:
     warnings.simplefilter("ignore")
 
+# In[3]:
+
+
 import time
 import pickle
 from pathlib import Path
 from functools import partial
 import random
-from collections import defaultdict
+from collections import defaultdict, Counter
+from pprint import pprint
 
 import cv2
 import yaml
@@ -23,35 +25,47 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm_notebook
 import torch
 import torch.utils.data
+from torch.utils.data import WeightedRandomSampler
 import torch.nn as nn
+from torchsummary import summary
 
-from src.data import DataPaths, create_image_label_set
+sys.path.append("../..")
+from src.data import DataPaths, create_image_label_set, make_one_hot, open_rgby
+from src.data import ProteinClassificationDataset, open_numpy, mean_proportion_class_weights, dataset_lookup, \
+    sampler_weight_lookup, split_method_lookup, single_class_counter
+from src.models import model_lookup
+from src.callbacks import OutputRecorder
+from src.image import plot_rgby
 
 import pytorch_toolbox.fastai.fastai as fastai
 from pytorch_toolbox.utils.core import to_numpy
-from pytorch_toolbox.fastai.fastai import vision
-from pytorch_toolbox.vision.utils import normalize, denormalize, tensor2img
-from pytorch_toolbox.fastai_extensions.loss import LossWrapper, FocalLoss, SoftF1Loss
+from pytorch_toolbox.fastai_extensions.vision import augment_fn_lookup, albumentations_transform_wrapper
+from pytorch_toolbox.fastai_extensions.vision.utils import denormalize_fn_lookup, normalize_fn_lookup
+from pytorch_toolbox.fastai.fastai.callbacks import CSVLogger
+from pytorch_toolbox.fastai_extensions.basic_train import Learner
+from pytorch_toolbox.fastai_extensions.loss import LossWrapper, loss_lookup
 from pytorch_toolbox.fastai_extensions.basic_data import DataBunch
+from pytorch_toolbox.fastai_extensions.callbacks import callback_lookup
+from pytorch_toolbox.fastai_extensions.metrics import metric_lookup
+from pytorch_toolbox.pipeline_parser
 
-DEBUG = False
-# CONFIG_FILE = Path("configs/cbam_resnet18.yml")
-# CONFIG_FILE = Path("configs/iafoss_resnet34.yml")
-CONFIG_FILE = Path("configs/resnet34_d.yml")
-# CONFIG_FILE = Path("configs/iafoss_resnet50.yml")
-# CONFIG_FILE = Path("configs/cbam_resnet50.yml")
-# CONFIG_FILE = Path("configs/cbam_resnet101.yml")
-# CONFIG_FILE = Path("configs/gapnet_resnet34.yml")
-# CONFIG_FILE = Path("configs/gapnet_resnet34_d.yml")
-# CONFIG_FILE = Path("configs/gapnet2_resnet34.yml")
-# CONFIG_FILE = Path("configs/gapnet2_resnet34_d.yml")
-# CONFIG_FILE = Path("configs/debug_cnn.yml")
-# CONFIG_FILE = Path("configs/se_resnext50_32x4d.yml")
-if DEBUG:
-    CONFIG_FILE = Path("configs/debug_cnn.yml")
 
+lookups = {
+    **dataset_lookup,
+    **sampler_weight_lookup,
+    **split_method_lookup,
+    **augment_fn_lookup,
+    **normalize_fn_lookup,
+    **denormalize_fn_lookup,
+    **loss_lookup,
+    **callback_lookup,
+    **metric_lookup
+}
+
+# CONFIG_FILE = Path("../configs/resnet34_d.yml")
+CONFIG_FILE = Path("../configs/se_resnext50_32x4d_image_patches.yml")
 ROOT_SAVE_PATH = Path("/media/hd/Kaggle/human-protein-image-classification/results")
-SAVE_FOLDER_NAME = f"{'DEBUG-' if DEBUG else ''}{CONFIG_FILE.stem}_{time.strftime('%Y%m%d-%H%M%S')}"
+SAVE_FOLDER_NAME = f"{CONFIG_FILE.stem}_{time.strftime('%Y%m%d-%H%M%S')}"
 RESULTS_SAVE_PATH = ROOT_SAVE_PATH / SAVE_FOLDER_NAME
 RESULTS_SAVE_PATH.mkdir(exist_ok=True, parents=True)
 
@@ -66,221 +80,500 @@ from pprint import pprint
 pprint(config)
 
 
+# In[5]:
+
+
+# In[6]:
+
+
 def extract_name_and_parameters(config, key):
     name = config.get(key, dict()).get('name')
     parameters = config.get(key, dict()).get('parameters', dict())
     return name, parameters
 
 
-# 1. Generate the training data
-from pytorch_toolbox.utils import make_one_hot
+# #### Load data
 
-# All images
-# train_image_paths = list(DataPaths.TRAIN_ALL_COMBINED_IMAGES.glob("*"))
-# train_label_paths = DataPaths.TRAIN_ALL_LABELS
-# train_paths, labels_df, train_labels_one_hot = create_image_label_set(train_image_paths, train_label_paths)
-# test_paths = sorted(list(DataPaths.TEST_COMBINED_IMAGES.glob("*")), key=lambda p: p.stem)
-
-# Filtered combination of Kaggle and HPA, w/ non-used HPA data as extra validation
-# train_image_paths = list(DataPaths.TRAIN_HPA_KAGGLE_THRESH_0_02_COMBINED_IMAGES.glob("*"))
-# train_label_paths = DataPaths.TRAIN_HPA_KAGGLE_THRESH_0_02_LABELS
-# train_paths, labels_df, train_labels_one_hot = create_image_label_set(train_image_paths, train_label_paths)
-
-# val_image_paths = list(DataPaths.VAL_HPA_KAGGLE_THRESH_0_02_COMBINED_IMAGES.glob("*"))
-# val_label_paths = DataPaths.VAL_HPA_KAGGLE_THRESH_0_02_LABELS
-# val_paths, val_labels_one_hot = create_image_label_set(val_image_paths, val_label_paths)
-
-# test_paths = sorted(list(DataPaths.TEST_COMBINED_IMAGES.glob("*")), key=lambda p: p.stem)
+# In[7]:
 
 
-# train_paths = sorted(list(DataPaths.TRAIN_COMBINED_HPA_V18_IMAGES.glob("*")), key=lambda p: p.stem)
-# labels_df = pd.read_csv(DataPaths.TRAIN_HPA_V18_LABELS)
-# test_paths = sorted(list(DataPaths.TEST_COMBINED_IMAGES.glob("*")), key=lambda p: p.stem)
+train_label_paths = DataPaths.TRAIN_ALL_LABELS
+# train_image_paths = list(DataPaths.TRAIN_RGBY_IMAGES.glob("*")) + list(DataPaths.TRAIN_RGBY_IMAGES_HPA_V18.glob("*"))
+train_image_paths = pickle.load(open("train_image_paths.p", "rb"))
+img_ids = sorted(list(set([p.name.split("_crop")[0] for p in train_image_paths])))
+img_ids_lookup = Counter(img_ids)
+# print(len(img_ids))
 
-train_image_paths = list(DataPaths.TRAIN_COMBINED_IMAGES.glob("*"))
-train_label_paths = DataPaths.TRAIN_LABELS
-train_paths, labels_df, train_labels_one_hot = create_image_label_set(train_image_paths, train_label_paths)
-test_paths = sorted(list(DataPaths.TEST_COMBINED_IMAGES.glob("*")), key=lambda p: p.stem)
+# #### Create training DataFrame
 
-if DEBUG:
-    from iterstrat.ml_stratifiers import MultilabelStratifiedShuffleSplit
-
-    msss = partial(MultilabelStratifiedShuffleSplit(n_splits=1, test_size=0.1, random_state=42).split, X=train_paths,
-                   y=train_labels_one_hot)
-    _, idx = next(iter(msss()))
-    train_paths = np.array(train_paths)[idx]
-    train_labels_one_hot = np.array(train_labels_one_hot)[idx]
-
-# 2. Transformation / normalization of images
-from pytorch_toolbox.vision import augment_fn_lookup, albumentations_transform_wrapper
-from pytorch_toolbox.vision.utils import denormalize_fn_lookup, normalize_fn_lookup
-
-augment_fn_name, augment_fn_parameters = extract_name_and_parameters(config, "augment_fn")
-
-augment_fn = partial(albumentations_transform_wrapper,
-                     augment_fn=augment_fn_lookup[augment_fn_name](**augment_fn_parameters))
-
-normalize_fn_name, normalize_fn_parameters = extract_name_and_parameters(config, "normalize_fn")
-normalize_fn = partial(normalize_fn_lookup[normalize_fn_name], **normalize_fn_parameters)
-denormalize_fn_name, denormalize_fn_parameters = extract_name_and_parameters(config, "denormalize_fn")
-denormalize_fn = partial(denormalize_fn_lookup[denormalize_fn_name], **denormalize_fn_parameters)
-
-# 3. Create the splits
-from src.data import sampler_weight_lookup, dataset_lookup, split_method_lookup, single_class_counter
-from collections import Counter
-from pprint import pprint
-
-split_method_name, split_method_parameters = extract_name_and_parameters(config, "split_method")
-
-# Data splitting
-split_method = partial(split_method_lookup[split_method_name](**split_method_parameters).split, X=train_paths,
-                       y=train_labels_one_hot)
-
-train_idx, val_idx = next(iter(split_method()))
-
-print("Training distribution:")
-pprint(single_class_counter(labels_df['Target'].iloc[train_idx].values))
-
-print("Validation distribution:")
-pprint(single_class_counter(labels_df['Target'].iloc[val_idx].values))
-
-# 4. Create the data bunch which wraps our dataset
-from src.data import ProteinClassificationDataset, open_numpy, \
-    mean_proportion_class_weights, dataset_lookup, sampler_weight_lookup
-import torch.utils.data
-from torch.utils.data import WeightedRandomSampler
-
-dataset_name, dataset_parameters = extract_name_and_parameters(config, 'dataset')
-dataset = partial(dataset_lookup[dataset_name], **dataset_parameters)
-
-sampler_weight_fn_name, sampler_weight_fn_parameters = extract_name_and_parameters(config, 'sample_weight_fn')
-if sampler_weight_fn_name is not None:
-    sampler_weight_fn = partial(sampler_weight_lookup[sampler_weight_fn_name], **sampler_weight_fn_parameters)
-    weights = np.array(sampler_weight_fn(labels_df['Target'].values[train_idx]))
-    sampler = WeightedRandomSampler(weights=weights, num_samples=len(weights))
-else:
-    sampler = None
-
-train_ds = dataset(inputs=np.array(train_paths)[train_idx],
-                   open_image_fn=open_numpy,
-                   labels=np.array(train_labels_one_hot)[train_idx],
-                   augment_fn=augment_fn,
-                   normalize_fn=normalize_fn)
-val_ds = dataset(inputs=np.array(train_paths)[val_idx],
-                 open_image_fn=open_numpy,
-                 labels=np.array(train_labels_one_hot)[val_idx],
-                 normalize_fn=normalize_fn)
-test_ds = dataset(inputs=np.array(test_paths),
-                  open_image_fn=open_numpy,
-                  normalize_fn=normalize_fn)
-
-data = DataBunch.create(train_ds, val_ds, test_ds,
-                        collate_fn=train_ds.collate_fn,
-                        sampler=sampler,
-                        **config["data_bunch"].get("parameters", dict()))
-
-if sampler is not None:
-    label_cnt = Counter()
-    name_cnt = Counter()
-    n_samples = len(weights)
-    for idx in np.random.choice(train_idx, n_samples, p=weights / weights.sum()):
-        row = labels_df.iloc[idx]
-        labels = row['Target']
-        for l in labels:
-            label_cnt[l] += 1
-        name_cnt[row['Id']] += 1
-    print("Weighted sampled proportions:")
-    pprint(sorted({k: v / sum(label_cnt.values()) for k, v in label_cnt.items()}.items()))
-    # pprint(sorted({k: v for k, v in name_cnt.items()}.items(), key=lambda x: x[1]))
-else:
-    print("No weighted sampling")
-
-# 5. Initialize the model
-from pytorch_toolbox.fastai.fastai.callbacks import CSVLogger
-from pytorch_toolbox.fastai_extensions.basic_train import Learner
-from src.models import model_lookup
-
-model_name, model_parameters = extract_name_and_parameters(config, "model")
-model = model_lookup[model_name](**model_parameters)
-
-if DEBUG:
-    from torchsummary import summary
-    x, _ = next(iter(data.train_dl))
-    input_shape = x.shape[1:]
-    print(summary(model.cuda(), input_shape))
+# In[9]:
 
 
-# 6. Initialize the callbacks
-from pytorch_toolbox.fastai_extensions.callbacks import callback_lookup
-from pytorch_toolbox.fastai_extensions.loss import loss_lookup
-from src.callbacks import OutputRecorder
+labels_df = pd.read_csv(train_label_paths)
+labels_df['Target'] = [[int(i) for i in s.split()] for s in labels_df['Target']]
+labels_df = labels_df.sort_values(["Id"], ascending=[True])
+labels_df = labels_df.loc[labels_df["Id"].map(lambda x: img_ids_lookup.get(x) is not None)]
+# assert np.all(np.array(img_ids) == labels_df["Id"])
+labels_one_hot = make_one_hot(labels_df['Target'], n_classes=28)
+print("labels_df.shape")
+print(labels_df.shape)
+print("len(labels_one_hot)")
+print(len(labels_one_hot))
+
+# Get the names for each patch
+# In[11]:
+
+from tqdm import tqdm
+
+lookup = {}
+for i in tqdm(range(len(labels_df))):
+    row = labels_df.iloc[i].to_dict()
+    lookup[row['Id']] = row['Target']
+
+# Create new df with oversampled patches for rare labels
+
+# In[12]:
+
+
+rows = []
+for p in tqdm(train_image_paths):
+    root_path = Path(p).parent
+    img_ids_crop_with_color = "_".join(p.name.split("_"))
+    img_ids_crop = "_".join(p.name.split("_")[:-1])
+    base_id = img_ids_crop.split("_crop")[0]
+    target = lookup[base_id]
+    row = {
+        'RootPath': root_path / img_ids_crop_with_color,
+        'LoadPath': root_path / img_ids_crop,
+        'Id': img_ids_crop,
+        'BaseId': base_id,
+        'Target': target
+    }
+    rows.append(row)
+
+
+# for p in tqdm(train_image_paths):
+#     root_path = Path(p).parent
+#     img_ids_crop_with_color = "_".join(p.name.split("_"))
+#     img_ids_crop = "_".join(p.name.split("_")[:-1])
+#     load_ = "_".join(p.name.split("_"))
+#     base_id = img_ids_crop.split("_crop")[0]
+#     target = lookup[base_id]
+#     row = {
+#         'RootPath': root_path / img_ids_crop_with_color,
+#         'LoadPath': root_path / img_ids_crop,
+#         'Id': img_ids_crop,
+#         'BaseId': base_id,
+#         'Target': target
+#     }
+#     rows.append(row)
+
+
+# #### Create the data split
+
+# In[13]:
+
+
+def create_split_indices(config, train_paths, train_labels_one_hot):
+    split_method_name, split_method_parameters = extract_name_and_parameters(config, "split_method")
+
+    # Data splitting
+    split_method = partial(split_method_lookup[split_method_name](**split_method_parameters).split, X=train_paths,
+                           y=train_labels_one_hot)
+
+    train_idx, val_idx = next(iter(split_method()))
+
+    return train_idx, val_idx
+
+
+train_idx, val_idx = create_split_indices(config, labels_df['Id'], labels_one_hot)
+train_ids, val_ids = labels_df['Id'].values[train_idx], labels_df['Id'].values[val_idx]
+
+# Now create the train / val rows
+
+# In[14]:
+
+
+train_ids_lookup = Counter(train_ids)
+val_ids_lookup = Counter(val_ids)
+train_df_rows = []
+val_df_rows = []
+for row in rows:
+    train_id = train_ids_lookup.get(row['BaseId'])
+    val_id = val_ids_lookup.get(row['BaseId'])
+    if train_id is None and val_id is None:
+        continue
+    else:
+        if train_id:
+            train_df_rows.append(row)
+        else:
+            val_df_rows.append(row)
+
+# Oversample rare classes for training set
+
+# In[15]:
+
+
+rares = [8, 9, 10, 15, 16, 17, 20, 24, 26, 27]
+n_oversample = 2
+oversampled_train_df_rows = []
+for row in train_df_rows:
+    target = row['Target']
+    oversampled_train_df_rows.append(row)
+    for t in target:
+        if t in rares:
+            for _ in range(n_oversample - 1):
+                oversampled_train_df_rows.append(row)
+
+# Create the training / val data frame
+
+# In[16]:
+
+train_df = pd.DataFrame(oversampled_train_df_rows)
+train_paths = np.array([root_path for root_path in train_df['LoadPath'].values])
+train_labels_one_hot = make_one_hot(train_df['Target'], n_classes=28)
+
+# Now create the paths to the images
+
+# In[20]:
+
+from collections import defaultdict
+
+val_data = defaultdict(list)
+
+sorted_val_df_rows = sorted(val_df_rows, key=lambda d: d['BaseId'])
+
+for row in sorted_val_df_rows:
+    data = {**row}
+    val_data[row['BaseId']].append(row)
+
+val_data = list(val_data.values())
+
+# test_img_ids = sorted(list(set([p.name.split("_crop")[0] for p in test_image_paths])))
+test_image_paths = DataPaths.TEST_RGBY_IMAGES.glob("*")
+test_rows = []
+for p in tqdm(test_image_paths):
+    root_path = Path(p).parent
+    img_ids_crop_with_color = "_".join(p.name.split("_"))
+    img_ids_crop = "_".join(p.name.split("_")[:-1])
+    base_id = img_ids_crop.split("_crop")[0]
+    row = {
+        'RootPath': root_path / img_ids_crop_with_color,
+        'LoadPath': root_path / img_ids_crop,
+        'Id': img_ids_crop,
+        'BaseId': base_id,
+    }
+    test_rows.append(row)
+test_data = defaultdict(list)
+sorted_test_rows = sorted(test_rows, key=lambda d: d['BaseId'])
+
+for row in sorted_test_rows:
+    data = {**row}
+    test_data[row['BaseId']].append(row)
+
+for k, v in test_data.items():
+    sorted_v = sorted(test_data[k], key=lambda x: x['LoadPath'])
+    test_data[k] = sorted_v[120:]
+
+test_data = list(test_data.values())
+print("test data len is")
+print(len(test_data))
+
+
+
+# In[21]:
+
+
+def load_augmentation_functions(config):
+    augment_fn_name, augment_fn_parameters = extract_name_and_parameters(config, "augment_fn")
+
+    augment_fn = partial(albumentations_transform_wrapper,
+                         augment_fn=augment_fn_lookup[augment_fn_name](**augment_fn_parameters))
+
+    normalize_fn_name, normalize_fn_parameters = extract_name_and_parameters(config, "normalize_fn")
+    normalize_fn = partial(normalize_fn_lookup[normalize_fn_name], **normalize_fn_parameters)
+    denormalize_fn_name, denormalize_fn_parameters = extract_name_and_parameters(config, "denormalize_fn")
+    denormalize_fn = partial(denormalize_fn_lookup[denormalize_fn_name], **denormalize_fn_parameters)
+    return augment_fn, normalize_fn, denormalize_fn
+
+
+# In[24]:
+
+
+augment_fn, normalize_fn, denormalize_fn = load_augmentation_functions(config)
+
+
+# In[25]:
+
+
+# Uncomment to see the distribution of the dataset
+
+# In[26]:
+
+
+# print("Training distribution:")
+# pprint(single_class_counter(labels_df['Target'].iloc[train_idx].values))
+
+# print("Validation distribution:")
+# pprint(single_class_counter(labels_df['Target'].iloc[val_idx].values))
+
+
+# #### Create data bunch that wraps our dataset
+
+# In[27]:
+
+
+def create_sampler(config):
+    sampler_weight_fn_name, sampler_weight_fn_parameters = extract_name_and_parameters(config, 'sample_weight_fn')
+    if sampler_weight_fn_name is not None:
+        sampler_weight_fn = partial(sampler_weight_lookup[sampler_weight_fn_name], **sampler_weight_fn_parameters)
+        weights = np.array(sampler_weight_fn(labels_df['Target'].values[train_idx]))
+        sampler = WeightedRandomSampler(weights=weights, num_samples=len(weights))
+        return sampler, weights
+    else:
+        sampler = None
+        return sampler, None
+
+
+from src.data import ProteinClassificationDatasetForTest
+
+
+def create_data_bunch(config, sampler, train_paths, train_labels_one_hot, val_data, test_data):
+    dataset_name, dataset_parameters = extract_name_and_parameters(config, 'dataset')
+    dataset = partial(dataset_lookup[dataset_name], **dataset_parameters)
+
+    train_ds = dataset(inputs=np.array(train_paths),
+                       open_image_fn=open_rgby,
+                       labels=train_labels_one_hot,
+                       augment_fn=augment_fn,
+                       normalize_fn=normalize_fn)
+    val_ds = ProteinClassificationDatasetForTest(data=np.array(val_data),
+                                                 open_image_fn=open_rgby,
+                                                 augment_fn=partial(albumentations_transform_wrapper,
+                                                                    augment_fn=augment_fn_lookup["resize_aug"](p=1,
+                                                                                                               height=384,
+                                                                                                               width=384)),
+                                                 normalize_fn=normalize_fn)
+    test_ds = ProteinClassificationDatasetForTest(data=np.array(test_data),
+                                                  open_image_fn=open_rgby,
+                                                  augment_fn=partial(albumentations_transform_wrapper,
+                                                                     augment_fn=augment_fn_lookup["resize_aug"](p=1,
+                                                                                                                height=384,
+                                                                                                                width=384)),
+                                                  normalize_fn=normalize_fn)
+
+    data = DataBunch.create(train_ds, val_ds, test_ds,
+                            train_collate_fn=train_ds.collate_fn,
+                            val_collate_fn=val_ds.collate_fn,
+                            test_collate_fn=test_ds.collate_fn,
+                            sampler=sampler,
+                            **config["data_bunch"].get("parameters", dict()))
+    return data
+
+
+# Uncomment to see the distribution of the sampled data
+
+# In[28]:
+
+
+# sampler, weights = create_sampler(config)
+# if sampler is not None:
+#     label_cnt = Counter()
+#     name_cnt = Counter()
+#     n_samples = len(weights)
+#     for idx in np.random.choice(train_idx, n_samples, p=weights / weights.sum()):
+#         row = labels_df.iloc[idx]
+#         labels = row['Target']
+#         for l in labels:
+#             label_cnt[l] += 1
+#         name_cnt[row['Id']] += 1
+#     print("Weighted sampled proportions:")
+#     pprint(sorted({k: v / sum(label_cnt.values()) for k, v in label_cnt.items()}.items()))
+#     # pprint(sorted({k: v for k, v in name_cnt.items()}.items(), key=lambda x: x[1]))
+# else:
+#     print("No weighted sampling")
+
+
+# In[29]:
+
+
+sampler, _ = create_sampler(config)
+data = create_data_bunch(config, sampler, train_paths, train_labels_one_hot, val_data, test_data)
+
+
+# In[32]:
+
+
+# Uncomment to see a sample of the batch
+
+# In[34]:
+
+
+# x, _ = next(iter(data.train_dl))
+# sample_x = x[1]
+# plot_rgby(tensor2img(sample_x, denorm_fn=denormalize_fn))
+
+
+# #### Initialize the model
+
+# In[35]:
+
+
+def create_model(config):
+    model_name, model_parameters = extract_name_and_parameters(config, "model")
+    model = model_lookup[model_name](**model_parameters)
+    return model
+
+
+# In[36]:
+
+
+model = create_model(config)
+
+# Uncomment to see model summary
+
+# In[37]:
+
+
+# x, _ = next(iter(data.train_dl))
+# input_shape = x.shape[1:]
+# summary(model.cuda(), input_shape)
+
+
+# #### Initialize the callbacks
+
+# In[38]:
+
 
 learner_callback_lookup = {
-    "OutputRecorder": partial(OutputRecorder, save_path=RESULTS_SAVE_PATH,
-                              save_img_fn=partial(tensor2img, denorm_fn=denormalize_fn)),
+    # "OutputRecorder": partial(OutputRecorder, save_path=RESULTS_SAVE_PATH,
+    #                           save_img_fn=partial(tensor2img, denorm_fn=denormalize_fn)),
     "CSVLogger": partial(CSVLogger, filename=str(RESULTS_SAVE_PATH / 'history')),
     "GradientClipping": fastai.GradientClipping,
 }
 
-callbacks = []
-for callback in config.get('callbacks', list()):
-    name = callback['name']
-    parameters = callback.get('parameters', dict())
-    callbacks.append(callback_lookup[name](**parameters))
 
-callback_fns = []
-for callback_fn in config.get('callback_fns', list()):
-    name = callback_fn['name']
-    parameters = callback_fn.get('parameters', dict())
-    callback_fns.append(partial(learner_callback_lookup[name], **parameters))
-
-# 7. Initialize the loss func:
-
-loss_funcs = []
-for loss_func in config.get('loss_func', list()):
-    name = loss_func['name']
-    parameters = loss_func.get('parameters', dict())
-    loss_funcs.append(loss_lookup[name](**parameters))
-
-# 8. Define the metrics
-from pytorch_toolbox.metrics import metric_lookup
-
-metrics = []
-for metric in config.get('metrics', list()):
-    name = metric['name']
-    parameters = metric.get('parameters', dict())
-    metrics.append(partial(metric_lookup[name], **parameters))
+# In[39]:
 
 
-# 9. Initialize the learner class
-class LRPrinter(fastai.LearnerCallback):
-    def on_batch_begin(self, **kwargs):
-        print("Current LR:")
-        print(f"{self.learn.opt.read_val('lr')}")
+def create_callbacks(config):
+    callbacks = []
+    for callback in config.get('callbacks', list()):
+        name = callback['name']
+        parameters = callback.get('parameters', dict())
+        callbacks.append(callback_lookup[name](**parameters))
+
+    callback_fns = []
+    for callback_fn in config.get('callback_fns', list()):
+        name = callback_fn['name']
+        parameters = callback_fn.get('parameters', dict())
+        callback_fns.append(partial(learner_callback_lookup[name], **parameters))
+    return callbacks, callback_fns
 
 
-learner = Learner(data,
-                  model=model,
-                  loss_func=LossWrapper(loss_funcs),
-                  callbacks=callbacks,
-                  callback_fns=callback_fns,
-                  # callback_fns=callback_fns + [LRPrinter],
-                  metrics=metrics)
-learner = learner.to_fp16()
+# In[40]:
 
-# learner.load_from_path("notebook/results/iafoss_resnet34_20181219-090750/model.pth")
-# Now for the training scheme
+
+callbacks, callback_fns = create_callbacks(config)
+
+
+# In[41]:
+
+
+# callbacks
+
+
+# In[42]:
+
+
+# callback_fns
+
+
+# #### Create loss funcs
+
+# In[43]:
+
+
+def create_loss_funcs(config):
+    loss_funcs = []
+    for loss_func in config.get('loss_func', list()):
+        name = loss_func['name']
+        parameters = loss_func.get('parameters', dict())
+        loss_funcs.append(loss_lookup[name](**parameters))
+    return loss_funcs
+
+
+# In[44]:
+
+
+loss_funcs = create_loss_funcs(config)
+
+
+# #### Create metrics
+
+# In[45]:
+
+
+def create_metrics(config):
+    metrics = []
+    for metric in config.get('metrics', list()):
+        name = metric['name']
+        parameters = metric.get('parameters', dict())
+        metrics.append(partial(metric_lookup[name], **parameters))
+    return metrics
+
+
+# In[46]:
+
+
+metrics = create_metrics(config)
+
+# #### Create the Learner object
+
+# In[47]:
+
+from src.callbacks import ImagePatchesPrediction, ImagePatchesConfidenceRecorder
+
+
+def create_learner(config):
+    sampler, _ = create_sampler(config)
+    # data = create_data_bunch(config, sampler, train_paths, train_labels_one_hot, val_data, test_data)
+    data = create_data_bunch(config, sampler, train_paths, train_labels_one_hot, val_data, test_data)
+    model = create_model(config)
+    callbacks, callback_fns = create_callbacks(config)
+    loss_funcs = create_loss_funcs(config)
+    metrics = create_metrics(config)
+    learner = Learner(data,
+                      model=model,
+                      loss_func=LossWrapper(loss_funcs),
+                      callbacks=callbacks,
+                      callback_fns=callback_fns + [partial(ImagePatchesPrediction, save_path=RESULTS_SAVE_PATH),
+                                                   partial(ImagePatchesConfidenceRecorder, save_path=RESULTS_SAVE_PATH)
+                                                   ],
+                      # callback_fns=callback_fns + [LRPrinter],
+                      metrics=metrics)
+    return learner
+
+
+# In[48]:
+
 from src.training import training_scheme_lookup
 
-# learner.load_from_path("/media/hd1/data/Kaggle/human-protein-image-classification/saved_results/gapnet_resnet34_20181211-010542/model.pth")
-training_scheme_name, training_scheme_parameters = extract_name_and_parameters(config, "training_scheme")
-training_scheme_lookup[training_scheme_name](learner=learner, **training_scheme_parameters)
-learner.save(RESULTS_SAVE_PATH / 'model')
-learner.load(RESULTS_SAVE_PATH / 'model')
+learner = create_learner(config)
+# learner = learner.to_fp16()
+learner.load_from_path(
+    "/media/hd/Kaggle/human-protein-image-classification/results/saved_results/se_resnext50_32x4d_image_patches_20190111-060113/model_checkpoints/cycle_0_epoch_0.pth")
 
+
+# training_scheme_name, training_scheme_parameters = extract_name_and_parameters(config, "training_scheme")
+# training_scheme_lookup[training_scheme_name](learner=learner, **training_scheme_parameters)
+# learner.save(RESULTS_SAVE_PATH / 'model')
+# learner.predict_on_dl(learner.data.valid_dl, callback_fns=[partial(ImagePatchesPrediction, save_path=RESULTS_SAVE_PATH),
+#                                                    partial(ImagePatchesConfidenceRecorder, save_path=RESULTS_SAVE_PATH)
+#                                                    ])
 
 class ResultRecorder(fastai.Callback):
-    _order = -10
+    _order = -0.5
 
     def __init__(self):
         self.names = []
@@ -298,7 +591,8 @@ class ResultRecorder(fastai.Callback):
                 self.phase = 'TEST'
                 #         inputs = tensor2img(last_input, denorm_fn=image_net_denormalize)
                 #         self.inputs.extend(inputs)
-        self.names.extend(last_target['name'])
+        print([last_target['name'][0].split("_crop")[0]])
+        self.names.extend([last_target['name'][0].split("_crop")[0]])
         if self.phase == 'TRAIN' or self.phase == 'VAL':
             label = to_numpy(last_target['label'])
             self.targets.extend(label)
@@ -308,8 +602,10 @@ class ResultRecorder(fastai.Callback):
         self.prob_preds.extend(prob_pred)
 
 
-res_recorder = ResultRecorder()
-learner.predict_on_dl(dl=learner.data.valid_dl, callbacks=[res_recorder])
+# res_recorder = ResultRecorder()
+# learner.predict_on_dl(dl=learner.data.valid_dl, callbacks=[res_recorder],
+#                       callback_fns=[partial(ImagePatchesPrediction, save_path=RESULTS_SAVE_PATH),
+#                                     ])
 
 from sklearn.metrics import f1_score
 import scipy.optimize as opt
@@ -335,40 +631,43 @@ def fit_val(x, y):
     return p
 
 
-pred_probs = np.stack(res_recorder.prob_preds)
-targets = np.stack(res_recorder.targets)
-print(targets.shape)
-print(pred_probs.shape)
+# pred_probs = np.stack(res_recorder.prob_preds)
+# targets = np.stack(res_recorder.targets)
+# print(targets.shape)
+# print(pred_probs.shape)
+#
+# th = fit_val(pred_probs, targets)
+# th[th < 0.1] = 0.1
+# print('Thresholds: ', th)
+# print('F1 macro: ', f1_score(targets, pred_probs > th, average='macro'))
+# print('F1 macro (th = 0.5): ', f1_score(targets, pred_probs > 0.5, average='macro'))
+# print('F1 micro: ', f1_score(targets, pred_probs > th, average='micro'))
 
-th = fit_val(pred_probs, targets)
-th[th < 0.1] = 0.1
-print('Thresholds: ', th)
-print('F1 macro: ', f1_score(targets, pred_probs > th, average='macro'))
-print('F1 macro (th = 0.5): ', f1_score(targets, pred_probs > 0.5, average='macro'))
-print('F1 micro: ', f1_score(targets, pred_probs > th, average='micro'))
-
-learner.load(RESULTS_SAVE_PATH / 'model')
+learner.load_from_path(
+    "/media/hd/Kaggle/human-protein-image-classification/results/saved_results/se_resnext50_32x4d_image_patches_20190111-060113/model_checkpoints/cycle_0_epoch_0.pth")
 res_recorder = ResultRecorder()
-learner.predict_on_dl(dl=learner.data.test_dl, callbacks=[res_recorder])
+learner.predict_on_dl(dl=learner.data.test_dl, callbacks=[res_recorder],
+                      callback_fns=[partial(ImagePatchesPrediction, save_path=RESULTS_SAVE_PATH),
+                                    ])
 
 names = np.stack(res_recorder.names)
 pred_probs = np.stack(res_recorder.prob_preds)
-print(names.shape)
-print(pred_probs.shape)
-
-predicted = []
-for pred in tqdm_notebook(pred_probs):
-    classes = [str(c) for c in np.where(pred > th)[0]]
-    if len(classes) == 0:
-        classes = [str(np.argmax(pred[0]))]
-    predicted.append(" ".join(classes))
-
-submission_df = pd.DataFrame({
-    "Id": names,
-    "Predicted": predicted
-})
-
-submission_df.to_csv(RESULTS_SAVE_PATH / "submission_optimal_threshold.csv", index=False)
+# print(names.shape)
+# print(pred_probs.shape)
+#
+# predicted = []
+# for pred in tqdm_notebook(pred_probs):
+#     classes = [str(c) for c in np.where(pred > th)[0]]
+#     if len(classes) == 0:
+#         classes = [str(np.argmax(pred[0]))]
+#     predicted.append(" ".join(classes))
+#
+# submission_df = pd.DataFrame({
+#     "Id": names,
+#     "Predicted": predicted
+# })
+#
+# submission_df.to_csv(RESULTS_SAVE_PATH / "submission_optimal_threshold.csv", index=False)
 
 predicted = []
 for pred in tqdm_notebook(pred_probs):
