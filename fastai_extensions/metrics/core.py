@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from ..utils import to_numpy
+from ...utils import to_numpy
 from ..loss import calculate_f1_soft_loss
 
 # Referenced from https://www.kaggle.com/iafoss/pretrained-resnet34-with-rgby-0-460-public-lb

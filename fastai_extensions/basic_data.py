@@ -42,7 +42,7 @@ class DataBunch(fastai.DataBunch):
     This purpose of this subclass was to provide more customization on how to set the batch sizes for the val and test
     dataset, instead them being set @ twice the size of the train bs. This is because there are situations where we
     would want to train smaller images (maybe it speed up training, or for better generalization as for smaller images
-    the higher features would have to be indentified), but test on the full sized image.
+    the higher features would have to be identitfied), but test on the full sized image.
     """
     "Bind `train_dl`,`valid_dl` and`test_dl` to `device`. tfms are DL tfms (normalize). `path` is for models."
 
