@@ -1,3 +1,5 @@
+from functools import partial
+
 from albumentations import (
     HorizontalFlip, IAAPerspective, ShiftScaleRotate, CLAHE, RandomRotate90,
     Transpose, ShiftScaleRotate, Blur, OpticalDistortion, GridDistortion, HueSaturationValue,
@@ -24,7 +26,7 @@ def very_simple_aug(p=0.5, height=None, width=None):
     return Compose([Resize(height=height, width=width, always_apply=True)] + augs, p=1)
 
 
-def very_simple_aug_with_elastic_transform(p=1, height=None, width=None):
+def very_simple_aug_with_elastic_transform(p=0.25, height=None, width=None, with_image_wrapper=False):
     augs = [
         RandomRotate90(p=0.25),
         Flip(p=0.25),
@@ -32,13 +34,17 @@ def very_simple_aug_with_elastic_transform(p=1, height=None, width=None):
         ElasticTransform(sigma=50, alpha_affine=50, p=0.25)
     ]
     if height is None and width is None:
-        return Compose(augs, p=p)
+        augs = Compose(augs, p=p)
     else:
         if height is not None and width is None:
             width = height
         if width is not None and height is None:
             height = width
-        return Compose([Resize(height=height, width=width, always_apply=True)] + augs, p=p)
+        augs = Compose([Resize(height=height, width=width, always_apply=True)] + augs, p=1)
+    if with_image_wrapper:
+        return partial(albumentations_transform_wrapper, augment_fn=augs)
+    else:
+        return augs
 
 
 def very_simple_aug_with_elastic_transform_and_crop(height, width):

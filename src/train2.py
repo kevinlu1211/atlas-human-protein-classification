@@ -13,11 +13,11 @@ import time
 import pickle
 from pathlib import Path
 from functools import partial
-import random
+import logging
 from collections import defaultdict, Counter
 from pprint import pprint
 
-import cv2
+import click
 import yaml
 import numpy as np
 import pandas as pd
@@ -34,23 +34,125 @@ from src.data import DataPaths, create_image_label_set, make_one_hot, open_rgby
 from src.data import ProteinClassificationDataset, open_numpy, mean_proportion_class_weights, dataset_lookup, \
     sampler_weight_lookup, split_method_lookup, single_class_counter
 from src.models import model_lookup
+from src.transforms import augment_fn_lookup
 from src.callbacks import OutputRecorder
 from src.image import plot_rgby
 
 import pytorch_toolbox.fastai.fastai as fastai
 from pytorch_toolbox.utils.core import to_numpy
-from pytorch_toolbox.fastai_extensions.vision import augment_fn_lookup, albumentations_transform_wrapper
-from pytorch_toolbox.fastai_extensions.vision.utils import denormalize_fn_lookup, normalize_fn_lookup
+from pytorch_toolbox.fastai_extensions.vision.utils import denormalize_fn_lookup, normalize_fn_lookup, tensor2img
 from pytorch_toolbox.fastai.fastai.callbacks import CSVLogger
 from pytorch_toolbox.fastai_extensions.basic_train import Learner
 from pytorch_toolbox.fastai_extensions.loss import LossWrapper, loss_lookup
 from pytorch_toolbox.fastai_extensions.basic_data import DataBunch
 from pytorch_toolbox.fastai_extensions.callbacks import callback_lookup
 from pytorch_toolbox.fastai_extensions.metrics import metric_lookup
-from pytorch_toolbox.pipeline_parser
+from pytorch_toolbox.pipeline import PipelineGraph
 
+
+def set_logger(log_level):
+    log_levels = {
+        "CRITICAL": logging.CRITICAL,
+        "ERROR": logging.ERROR,
+        "WARNING": logging.WARNING,
+        "INFO": logging.INFO,
+        "DEBUG": logging.DEBUG,
+        "NONSET": logging.NOTSET
+    }
+    logging.basicConfig(
+        level=log_levels.get(log_level, logging.INFO),
+    )
+
+
+def load_training_data(root_image_paths, root_label_paths):
+    X = sorted(list(Path(root_image_paths).glob("*")), key=lambda p: p.stem)
+    labels_df = pd.read_csv(root_label_paths)
+    labels_df['Target'] = [[int(i) for i in s.split()] for s in labels_df['Target']]
+    labels_df = labels_df.sort_values(["Id"], ascending=[True])
+    y = labels_df['Target'].values
+    y_one_hot = make_one_hot(labels_df['Target'], n_classes=28)
+    assert np.all(np.array([p.stem for p in X]) == labels_df["Id"])
+    return np.array(X), np.array(y), np.array(y_one_hot)
+
+
+def load_testing_data(root_image_paths):
+    X = sorted(list(Path(root_image_paths).glob("*")), key=lambda p: p.stem)
+    return np.array(X)
+
+
+def create_data_bunch(train_idx, val_idx, train_X, train_y, test_X, train_ds, train_bs, val_ds, val_bs, test_ds,
+                      test_bs, sampler, **kwargs):
+    sampler = sampler(y=train_y[train_idx])
+    train_ds = train_ds(inputs=train_X[train_idx], labels=train_y[train_idx])
+    val_ds = val_ds(inputs=train_X[val_idx], labels=train_y[val_idx])
+    test_ds = test_ds(inputs=test_X),
+    return DataBunch.create(train_ds, val_ds, test_ds,
+                            train_bs=train_bs, val_bs=val_bs, test_bs=test_bs,
+                            collate_fn=train_ds.collate_fn, sampler=sampler, **kwargs)
+
+
+def create_sampler(y=None, sampler_fn=None):
+    sampler = None
+    if sampler_fn is not None:
+        weights = np.array(sampler_fn(y))
+        sampler = WeightedRandomSampler(weights=weights, num_samples=len(weights))
+    else:
+        pass
+    return sampler
+
+
+def create_learner(model_creator, data_bunch_creator, data_splitter_iterable, metrics, loss_funcs, callbacks,
+                   callback_fns):
+    for train_idx, test_idx in data_splitter_iterable():
+        model = model_creator()
+        data = data_bunch_creator(train_idx, test_idx)
+
+        learner = Learner(data,
+                          model=model,
+                          loss_func=LossWrapper(loss_funcs),
+                          callbacks=callbacks,
+                          callback_fns=callback_fns,
+                          metrics=metrics)
+
+
+    return learner
+
+def create_learner(data, model_creator, metrics, loss_funcs, callbacks, callback_fns):
+    model = model_creator()
+    learner = Learner(data,
+                      model=model,
+                      loss_func=LossWrapper(loss_funcs),
+                      callbacks=callbacks,
+                      callback_fns=callback_fns,
+                      metrics=metrics)
+    return learner
+
+# def training(learner_creator, data_bunch_creator, data_spliter_iterable):
+
+
+
+
+
+def create_time_stamped_save_path(save_path):
+    return Path(save_path, f"{time.strftime('%Y%m%d-%H%M%S')}")
+
+
+def create_output_recorder(save_path, denormalize_fn):
+    return partial(OutputRecorder, save_path=save_path, save_img_fn=partial(tensor2img, denormalize_fn=denormalize_fn)),
+
+
+def create_csv_logger(save_path):
+    return partial(CSVLogger, filename=str(save_path / 'history'))
+
+
+learner_callback_lookup = {
+    "create_output_recorder": create_output_recorder,
+    "create_csv_logger": create_csv_logger,
+    "GradientClipping": fastai.GradientClipping,
+}
 
 lookups = {
+    **model_lookup,
     **dataset_lookup,
     **sampler_weight_lookup,
     **split_method_lookup,
@@ -59,8 +161,33 @@ lookups = {
     **denormalize_fn_lookup,
     **loss_lookup,
     **callback_lookup,
-    **metric_lookup
+    **metric_lookup,
+    **sampler_weight_lookup,
+    **learner_callback_lookup,
+    "open_numpy": open_numpy,
+    "load_training_data": load_training_data,
+    "load_testing_data": load_testing_data,
+    "create_data_bunch": create_data_bunch,
+    "create_sampler": create_sampler,
+    "create_learner": create_learner,
+    "create_time_stamped_save_path": create_time_stamped_save_path,
 }
+
+
+@click.command()
+@click.option('-cfg', '--config_file_path')
+@click.option('-log-lvl', '--log_level', default="INFO")
+def main(config_file_path, log_level):
+    set_logger(log_level)
+    with Path(config_file_path).open("r") as f:
+        config = yaml.load(f)
+    pipeline_graph = PipelineGraph.create_pipeline_graph_from_config(config)
+    print(pipeline_graph.sorted_node_names)
+    pipeline_graph.run_graph(reference_lookup=lookups)
+
+
+if __name__ == '__main__':
+    main()
 
 # CONFIG_FILE = Path("../configs/resnet34_d.yml")
 CONFIG_FILE = Path("../configs/se_resnext50_32x4d_image_patches.yml")
@@ -280,7 +407,6 @@ print("test data len is")
 print(len(test_data))
 
 
-
 # In[21]:
 
 
@@ -430,6 +556,7 @@ def create_model(config):
 
 model = create_model(config)
 
+
 # Uncomment to see model summary
 
 # In[37]:
@@ -443,14 +570,6 @@ model = create_model(config)
 # #### Initialize the callbacks
 
 # In[38]:
-
-
-learner_callback_lookup = {
-    # "OutputRecorder": partial(OutputRecorder, save_path=RESULTS_SAVE_PATH,
-    #                           save_img_fn=partial(tensor2img, denorm_fn=denormalize_fn)),
-    "CSVLogger": partial(CSVLogger, filename=str(RESULTS_SAVE_PATH / 'history')),
-    "GradientClipping": fastai.GradientClipping,
-}
 
 
 # In[39]:

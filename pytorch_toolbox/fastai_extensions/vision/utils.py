@@ -7,11 +7,11 @@ import numpy as np
 
 from fastai import vision
 
-def tensor2img(image_tensor, imtype=np.uint8, denorm_fn=None):
+def tensor2img(image_tensor, imtype=np.uint8, denormalize_fn=None):
     shape = image_tensor.shape
     image_tensor = image_tensor.cpu()
-    if denorm_fn is not None:
-        image_tensor = denorm_fn(image_tensor)
+    if denormalize_fn is not None:
+        image_tensor = denormalize_fn(image_tensor)
     np_img = image_tensor.float().numpy()
     if len(shape) == 4:
         ret = []

@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 
 from pytorch_toolbox.utils import to_numpy
-from pytorch_toolbox.vision.utils import tensor2img
 import pytorch_toolbox.fastai.fastai as fastai
 
 
@@ -41,13 +40,14 @@ class ResultRecorder(fastai.Callback):
 class OutputRecorder(fastai.LearnerCallback):
     _order = -10
 
-    def __init__(self, learn, save_path, save_img_fn):
+    def __init__(self, learn, save_path, save_img_fn, save_img=False):
         super().__init__(learn)
         self.save_path = save_path
         self.history = defaultdict(list)
         self.phase = None
         self.current_batch = dict()
         self.save_img_fn = save_img_fn
+        self.save_img = save_img
 
     def on_batch_begin(self, last_input, last_target, epoch, train, **kwargs):
         if train:
@@ -59,8 +59,9 @@ class OutputRecorder(fastai.LearnerCallback):
             else:
                 self.phase = 'TEST'
         self.key = (self.phase, epoch)
-        inputs = self.save_img_fn(last_input)
-        self.current_batch['input'] = inputs
+        if self.save_img:
+            inputs = self.save_img_fn(last_input)
+            self.current_batch['input'] = inputs
         self.current_batch['name'] = last_target['name']
         if self.phase == 'TRAIN' or self.phase == 'VAL':
             label = to_numpy(last_target['label'])

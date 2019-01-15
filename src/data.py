@@ -231,7 +231,7 @@ def create_sample_weights(all_labels, method="MEAN"):
 
 
 sampler_weight_lookup = {
-    "mean_proportion_class_weight": mean_proportion_class_weights,
+    "mean_proportion_class_weights": mean_proportion_class_weights,
     "create_sample_weights": create_sample_weights
 }
 

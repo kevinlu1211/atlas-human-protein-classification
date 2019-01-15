@@ -1,6 +1,7 @@
 import types
 import collections
 from functools import partial
+import logging
 
 import networkx as nx
 
@@ -10,6 +11,7 @@ def listify(x):
         return [x]
     else:
         return x
+
 
 class PipelineGraph:
 
@@ -27,25 +29,30 @@ class PipelineGraph:
         pipeline_graph = nx.DiGraph()
 
         for node_name, node_config in config.items():
-            node_dependencies = find_node_dependencies(node_config)
-            pipeline_graph.add_node(node_name, config=node_config, dependencies=node_dependencies)
+            node_references = find_node_references(node_config)
+            pipeline_graph.add_node(node_name, config=node_config, references=node_references)
 
         for node, attributes in pipeline_graph.nodes(data=True):
-            dependent_on_nodes = list(set(list(dep.keys())[0] for dep in attributes['dependencies']))
-            for dependent_on_node in dependent_on_nodes:
-                pipeline_graph.add_edge(dependent_on_node, node)
+            refer_to_nodes = list(set(list(ref.keys())[0] for ref in attributes['references']))
+            for refer_to_node in refer_to_nodes:
+                pipeline_graph.add_edge(refer_to_node, node)
         return PipelineGraph(graph=pipeline_graph)
 
+    @property
+    def sorted_node_names(self):
+        return list(nx.algorithms.dag.topological_sort(self.graph))
+
     def run_graph(self, reference_lookup, force_run=False):
-        sorted_node_names = list(nx.algorithms.dag.topological_sort(self.graph))
+        sorted_node_names = self.sorted_node_names
 
         for name in sorted_node_names:
+            logging.info(f"Currently running step: {name}")
             node = self.graph.nodes(data=True)[name]
             node_output_lookup = node.get('output_lookup')
             if not force_run and node_output_lookup is not None:
                 continue
             node_config = node['config']
-            node_dependencies = node.get('dependencies')
+            node_references = node.get('references')
             node_output = node_config.get('output', [])
 
             node_properties = node_config.get("properties")
@@ -58,8 +65,8 @@ class PipelineGraph:
                 initialization_arguments = node_properties.get("initialization_arguments", dict())
                 callable_arguments = node_properties.get("callable_arguments", dict())
 
-                has_dependencies = len(node_dependencies) > 0
-                if has_dependencies:
+                has_references = len(node_references) > 0
+                if has_references:
                     # replace the reference values in the arguments
                     initialization_arguments = replace_references(self.graph.nodes(data=True), initialization_arguments)
                     callable_arguments = replace_references(self.graph.nodes(data=True), callable_arguments)
@@ -83,7 +90,7 @@ class PipelineGraph:
                         assert len(
                             node_output) <= 1, 'If this is a partial callable, then there should be one or less output for this step'
                         if len(node_output) == 0:
-                            pass
+                            continue
                         output_name = node_output[0]
                         node['output_lookup'] = {
                             output_name: partial(node_callable, **callable_arguments)
@@ -95,11 +102,13 @@ class PipelineGraph:
                             zip(node['output'], callable_output)
                         }
                 else:
-                    assert (
-                                   partial_initialization and partial_callable) is False, "Can't make both the initialization of a class and it's __call__ method both partial"
-                    assert len(
-                        node_output) == 1, 'If this is a step to initialize an object, then there should only be one output, the object itself'
+                    assert (partial_initialization and partial_callable) is False, "Can't make both the initialization of a class and it's __call__ method both partial"
+                    assert len( node_output) == 1, 'If this is a step to initialize an object, then there should only be one output, the object itself'
+
+                    # Now we check if we want to call a function that isn't that default __call__ method of the class
+                    callable_function_name = node_properties.get("callable_function_name")
                     output_name = node_output[0]
+
                     if partial_initialization:
                         node['output_lookup'] = {
                             output_name: partial(node_callable, **initialization_arguments)
@@ -107,19 +116,39 @@ class PipelineGraph:
                     else:
                         initialized_node_object = node_callable(**initialization_arguments)
                         if partial_callable:
-                            patch_call(initialized_node_object,
-                                       partial(initialized_node_object.__call__, **callable_arguments))
+                            if callable_function_name is None:
+                                patch_call(initialized_node_object,
+                                           partial(initialized_node_object.__call__, **callable_arguments))
+                            else:
+                                patch_call(initialized_node_object,
+                                           partial(getattr(initialized_node_object, callable_function_name),
+                                                           **callable_arguments))
                         node['output_lookup'] = {
                             output_name: initialized_node_object
                         }
+
             else:
                 node['callable'] = node_callable
                 callable_output = listify(node_callable())
                 node['output_lookup'] = {
-                    output_name: callable_output for output_name, callable_output in zip(node['output'], callable_output)
+                    output_name: callable_output for output_name, callable_output in
+                zip(node['output'], callable_output)
                 }
 
-def find_node_dependencies(node_config):
+
+def find_references_from_arguments(arg_values):
+    referenced_argument_values = []
+    if isinstance(arg_values, dict) and arg_values.get("Ref") is not None:
+        node_references = arg_values.get("Ref")
+        if isinstance(node_references, list):
+            for node_reference in node_references:
+                referenced_argument_values.append(node_reference)
+        else:
+            referenced_argument_values.append(node_references)
+    return referenced_argument_values
+
+
+def find_node_references(node_config):
     dependencies = []
     node_properties = node_config.get("properties")
     if node_properties is None:
@@ -129,18 +158,16 @@ def find_node_dependencies(node_config):
         initialization_arguments = node_properties.get("initialization_arguments", dict())
         assert isinstance(initialization_arguments,
                           dict), f"Please make sure the initialization arguments is of type dict for node {node_config}"
-        for arg_name, arg_value in initialization_arguments.items():
-            if isinstance(arg_value, dict) and arg_value.get("Ref") is not None:
-                initialization_dependencies.append(arg_value.get("Ref"))
+        for _, arg_values in initialization_arguments.items():
+            initialization_dependencies.extend(find_references_from_arguments(arg_values))
         dependencies.extend(initialization_dependencies)
 
         callable_dependencies = []
         callable_arguments = node_properties.get("callable_arguments", dict())
         assert isinstance(callable_arguments,
                           dict), f"Please make sure the callable arguments is of type dict for node {node_config}"
-        for arg_name, arg_value in callable_arguments.items():
-            if isinstance(arg_value, dict) and arg_value.get("Ref") is not None:
-                callable_dependencies.append(arg_value.get("Ref"))
+        for _, arg_values in callable_arguments.items():
+            callable_dependencies.extend(find_references_from_arguments(arg_values))
         dependencies.extend(callable_dependencies)
 
     return dependencies
@@ -156,18 +183,42 @@ def patch_call(instance, func):
 
 
 def replace_references(graph, arguments):
-    for arg_name, arg_value in arguments.items():
-        if isinstance(arg_value, dict) and arg_value.get("Ref") is not None:
-            reference_node_name = list(arg_value.get("Ref").keys())[0]
-            reference_node_output_name = list(arg_value.get("Ref").values())[0]
-
-            try:
-                arguments[arg_name] = graph[reference_node_name]['output_lookup'][reference_node_output_name]
-            except KeyError as e:
-                print(f"KeyError: {e}")
-                print(f"Reference node name: {reference_node_name}")
-                print(f"Reference node output lookup: {graph[reference_node_name]['output_lookup']}")
+    for arg_name, arg_values in arguments.items():
+        if isinstance(arg_values, dict) and arg_values.get("Ref") is not None:
+            node_references = arg_values.get("Ref")
+            if isinstance(node_references, list):
+                referenced_argument_values = []
+                for node_reference in node_references:
+                    reference_node_name = list(node_reference.keys())[0]
+                    reference_node_output_name = list(node_reference.values())[0]
+                    try:
+                        referenced_argument_values.append(graph[reference_node_name]['output_lookup'][reference_node_output_name])
+                    except KeyError as e:
+                        print(f"KeyError: {e}")
+                        print(f"Reference node name: {reference_node_name}")
+                        print(f"Reference node output lookup: {graph[reference_node_name]['output_lookup']}")
+                arguments[arg_name] = referenced_argument_values
+            else:
+                reference_node_name = list(node_references.keys())[0]
+                reference_node_output_name = list(node_references.values())[0]
+                try:
+                    arguments[arg_name] = graph[reference_node_name]['output_lookup'][reference_node_output_name]
+                except KeyError as e:
+                    print(f"KeyError: {e}")
+                    print(f"Reference node name: {reference_node_name}")
+                    print(f"Reference node output lookup: {graph[reference_node_name]['output_lookup']}")
     return arguments
 
-
-
+# def replace_references(graph, arguments):
+#     for arg_name, arg_value in arguments.items():
+#         if isinstance(arg_value, dict) and arg_value.get("Ref") is not None:
+#             reference_node_name = list(arg_value.get("Ref").keys())[0]
+#             reference_node_output_name = list(arg_value.get("Ref").values())[0]
+#
+#             try:
+#                 arguments[arg_name] = graph[reference_node_name]['output_lookup'][reference_node_output_name]
+#             except KeyError as e:
+#                 print(f"KeyError: {e}")
+#                 print(f"Reference node name: {reference_node_name}")
+#                 print(f"Reference node output lookup: {graph[reference_node_name]['output_lookup']}")
+#     return arguments
