@@ -1,12 +1,6 @@
 from collections import OrderedDict
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torchvision
-
-import pytorch_toolbox.fastai.fastai as fastai
-from pytorch_toolbox.models import cbam
+from pytorch_toolbox.fastai_extensions.models import cbam
 from .layers_and_init import *
 
 def cbam_resnet18_four_channel_input_one_fc():

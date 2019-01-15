@@ -1,4 +1,3 @@
-import torch.nn as nn
 from .layers_and_init import *
 
 def debug_cnn():

@@ -1,13 +1,3 @@
-from collections import OrderedDict
-
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torchvision
-
-import pytorch_toolbox.fastai.fastai as fastai
-from pytorch_toolbox.models import cbam
-from .layers_and_init import *
 from .resnet import *
 
 class GapNet(nn.Module):

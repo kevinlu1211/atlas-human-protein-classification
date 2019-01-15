@@ -1,8 +1,6 @@
 import pretrainedmodels
-import torch
-import torch.nn as nn
-
 import pytorch_toolbox.fastai.fastai as fastai
+
 from .layers_and_init import *
 
 
