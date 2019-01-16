@@ -1,5 +1,6 @@
 import types
 import collections
+import inspect
 from functools import partial
 import logging
 
@@ -17,6 +18,7 @@ class PipelineGraph:
 
     def __init__(self, graph):
         self.graph = graph
+        self.state_dict = {}
 
     def ___getitem__(self, item):
         try:
@@ -93,17 +95,22 @@ class PipelineGraph:
                             continue
                         output_name = node_output[0]
                         node['output_lookup'] = {
-                            output_name: partial(node_callable, **callable_arguments)
+                            output_name: partial(node_callable, **callable_arguments,
+                                                 **self.state_dict if needs_state_dict else {})
                         }
                     else:
-                        callable_output = listify(node_callable(**callable_arguments))
+                        needs_state_dict = "state_dict" in inspect.signature(node_callable).parameters
+                        callable_output = listify(
+                            node_callable(**callable_arguments, **self.state_dict if needs_state_dict else {}))
                         node['output_lookup'] = {
                             output_name: callable_output for output_name, callable_output in
                             zip(node['output'], callable_output)
                         }
                 else:
-                    assert (partial_initialization and partial_callable) is False, "Can't make both the initialization of a class and it's __call__ method both partial"
-                    assert len( node_output) == 1, 'If this is a step to initialize an object, then there should only be one output, the object itself'
+                    assert (
+                                       partial_initialization and partial_callable) is False, "Can't make both the initialization of a class and it's __call__ method both partial"
+                    assert len(
+                        node_output) == 1, 'If this is a step to initialize an object, then there should only be one output, the object itself'
 
                     # Now we check if we want to call a function that isn't that default __call__ method of the class
                     callable_function_name = node_properties.get("callable_function_name")
@@ -122,7 +129,7 @@ class PipelineGraph:
                             else:
                                 patch_call(initialized_node_object,
                                            partial(getattr(initialized_node_object, callable_function_name),
-                                                           **callable_arguments))
+                                                   **callable_arguments))
                         node['output_lookup'] = {
                             output_name: initialized_node_object
                         }
@@ -132,7 +139,7 @@ class PipelineGraph:
                 callable_output = listify(node_callable())
                 node['output_lookup'] = {
                     output_name: callable_output for output_name, callable_output in
-                zip(node['output'], callable_output)
+                    zip(node['output'], callable_output)
                 }
 
 
@@ -192,7 +199,8 @@ def replace_references(graph, arguments):
                     reference_node_name = list(node_reference.keys())[0]
                     reference_node_output_name = list(node_reference.values())[0]
                     try:
-                        referenced_argument_values.append(graph[reference_node_name]['output_lookup'][reference_node_output_name])
+                        referenced_argument_values.append(
+                            graph[reference_node_name]['output_lookup'][reference_node_output_name])
                     except KeyError as e:
                         print(f"KeyError: {e}")
                         print(f"Reference node name: {reference_node_name}")

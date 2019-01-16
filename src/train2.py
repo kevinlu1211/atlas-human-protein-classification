@@ -81,14 +81,14 @@ def load_testing_data(root_image_paths):
 
 
 def create_data_bunch(train_idx, val_idx, train_X, train_y, test_X, train_ds, train_bs, val_ds, val_bs, test_ds,
-                      test_bs, sampler, **kwargs):
+                      test_bs, sampler, num_workers):
     sampler = sampler(y=train_y[train_idx])
     train_ds = train_ds(inputs=train_X[train_idx], labels=train_y[train_idx])
     val_ds = val_ds(inputs=train_X[val_idx], labels=train_y[val_idx])
     test_ds = test_ds(inputs=test_X),
     return DataBunch.create(train_ds, val_ds, test_ds,
                             train_bs=train_bs, val_bs=val_bs, test_bs=test_bs,
-                            collate_fn=train_ds.collate_fn, sampler=sampler, **kwargs)
+                            collate_fn=train_ds.collate_fn, sampler=sampler, num_workers=num_workers)
 
 
 def create_sampler(y=None, sampler_fn=None):
@@ -101,48 +101,63 @@ def create_sampler(y=None, sampler_fn=None):
     return sampler
 
 
-def create_learner(model_creator, data_bunch_creator, data_splitter_iterable, metrics, loss_funcs, callbacks,
-                   callback_fns):
-    for train_idx, test_idx in data_splitter_iterable():
-        model = model_creator()
-        data = data_bunch_creator(train_idx, test_idx)
+def create_callbacks(callback_references):
+    callbacks = []
+    for cb_ref in callback_references:
+        callbacks.append(cb_ref())
+    return callbacks
 
-        learner = Learner(data,
-                          model=model,
-                          loss_func=LossWrapper(loss_funcs),
-                          callbacks=callbacks,
-                          callback_fns=callback_fns,
-                          metrics=metrics)
+def create_learner_callbacks(learner_callback_references):
+    callback_fns = []
+    for learn_cb_ref in learner_callback_references:
+        try:
+            callback_fns.append(learn_cb_ref())
+        except TypeError:
+            callback_fns.append(learn_cb_ref)
+    return callback_fns
 
 
-    return learner
-
-def create_learner(data, model_creator, metrics, loss_funcs, callbacks, callback_fns):
+def create_learner(data, model_creator, callbacks_creator, callback_fns_creator, metrics, loss_funcs):
     model = model_creator()
+    callbacks = callbacks_creator()
+    callback_fns = callback_fns_creator()
     learner = Learner(data,
                       model=model,
                       loss_func=LossWrapper(loss_funcs),
+                      metrics=metrics,
                       callbacks=callbacks,
-                      callback_fns=callback_fns,
-                      metrics=metrics)
+                      callback_fns=callback_fns)
     return learner
 
-# def training(learner_creator, data_bunch_creator, data_spliter_iterable):
+
+def training_loop(create_learner, data_bunch_creator, data_splitter_iterable, **state_dict):
+    for i, (train_idx, val_idx) in enumerate(data_splitter_iterable()):
+        state_dict["current_fold"] = i
+        data = data_bunch_creator(train_idx, val_idx)
+        learner = create_learner(data)
+        learner.lr_find()
+        print("please?")
+
+
+def create_time_stamped_save_path(save_path, **state_dict):
+    current_time = state_dict.get("start_time")
+    if current_time is None:
+         current_time = f"{time.strftime('%Y%m%d-%H%M%S')}"
+         state_dict["start_time"] = current_time
+    current_fold = state_dict.get("current_fold")
+    path = Path(save_path, current_time)
+    if current_fold is not None:
+        path = path / f"Fold_{current_fold}"
+    return path
 
 
 
+def create_output_recorder(save_path_creator, denormalize_fn):
+    return partial(OutputRecorder, save_path=save_path_creator(), save_img_fn=partial(tensor2img, denormalize_fn=denormalize_fn))
 
 
-def create_time_stamped_save_path(save_path):
-    return Path(save_path, f"{time.strftime('%Y%m%d-%H%M%S')}")
-
-
-def create_output_recorder(save_path, denormalize_fn):
-    return partial(OutputRecorder, save_path=save_path, save_img_fn=partial(tensor2img, denormalize_fn=denormalize_fn)),
-
-
-def create_csv_logger(save_path):
-    return partial(CSVLogger, filename=str(save_path / 'history'))
+def create_csv_logger(save_path_creator):
+    return partial(CSVLogger, filename=str(save_path_creator() / 'history'))
 
 
 learner_callback_lookup = {
@@ -171,6 +186,9 @@ lookups = {
     "create_sampler": create_sampler,
     "create_learner": create_learner,
     "create_time_stamped_save_path": create_time_stamped_save_path,
+    "create_callbacks": create_callbacks,
+    'create_learner_callbacks': create_learner_callbacks,
+    "training_loop": training_loop
 }
 
 

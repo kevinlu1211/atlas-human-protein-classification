@@ -12,15 +12,15 @@ CreateDataBunch:
       test_X:
         Ref:
           LoadTestingData: test_X
-      train_bs: 32
+      train_bs: 16
       train_ds:
         Ref:
           CreateTrainingDataset: TrainingDataset
-      test_bs: 64
+      test_bs: 32
       test_ds:
         Ref:
           CreateTestingDataset: TestingDataset
-      val_bs: 64
+      val_bs: 32
       val_ds:
         Ref:
           CreateValidationDataset: ValidationDataset
@@ -68,18 +68,28 @@ CreateDataSplitter:
     partial_callable: true
   type: MultilabelStratifiedShuffleSplit
 
-CreateLearner:
+RunTrainingLoop:
+  type: training_loop
   properties:
     callable_arguments:
-      model_creator:
+      create_learner:
         Ref:
-          CreateModel: Model
+          CreateLearner: LearnerCreator
       data_bunch_creator:
         Ref:
           CreateDataBunch: DataBunch
       data_splitter_iterable:
         Ref:
           CreateDataSplitter: DataSplitter
+
+CreateLearner:
+  type: create_learner
+  properties:
+    partial_callable: true
+    callable_arguments:
+      model_creator:
+        Ref:
+          CreateModel: Model
       metrics:
         Ref:
           - CreateAccuracyMetric: AccuracyMetric
@@ -87,24 +97,47 @@ CreateLearner:
       loss_funcs:
         Ref:
           - CreateFocalLoss: FocalLoss
-      callbacks:
+      callbacks_creator:
+        Ref:
+          CreateCallbacks: CallbacksCreator
+      callback_fns_creator:
+        Ref:
+          CreateLearnerCallbacks: LearnerCallbacksCreator
+  output:
+    - LearnerCreator
+
+CreateCallbacks:
+  type: create_callbacks
+  properties:
+    partial_callable: true
+    callable_arguments:
+      callback_references:
         Ref:
           - CreateNameExtractionCallback: NameExtractionCallback
-      callback_fns:
+  output:
+    - CallbacksCreator
+
+CreateLearnerCallbacks:
+  type: create_learner_callbacks
+  properties:
+    partial_callable: true
+    callable_arguments:
+      learner_callback_references:
         Ref:
           - CreateCSVLoggerLearnerCallback: CSVLoggerLearnerCallback
           - CreateOutputRecorderLearnerCallback: OutputRecorderLearnerCallback
           - CreateGradientClippingLearnerCallback: GradientClippingLearnerCallback
-  output: Learner
-  type: create_learner
+  output:
+    - LearnerCallbacksCreator
 
 CreateTimeStampedSavePath:
   type: create_time_stamped_save_path
   properties:
+    partial_callable: true
     callable_arguments:
       save_path: /media/hd/Kaggle/human-protein-image-classification/results
   output:
-    - SavePath
+    - SavePathCreator
 
 CreateNameExtractionCallback:
   type: NameExtractionTrainer
@@ -119,9 +152,9 @@ CreateCSVLoggerLearnerCallback:
   properties:
     partial_callable: true
     callable_arguments:
-      save_path:
+      save_path_creator:
         Ref:
-          CreateTimeStampedSavePath: SavePath
+          CreateTimeStampedSavePath: SavePathCreator
   output:
     - CSVLoggerLearnerCallback
 
@@ -130,9 +163,9 @@ CreateOutputRecorderLearnerCallback:
   properties:
     partial_callable: true
     callable_arguments:
-      save_path:
+      save_path_creator:
         Ref:
-          CreateTimeStampedSavePath: SavePath
+          CreateTimeStampedSavePath: SavePathCreator
       denormalize_fn:
         Ref:
           CreateDenormalizeFunction: DenormalizeFunction
