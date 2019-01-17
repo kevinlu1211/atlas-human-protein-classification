@@ -294,6 +294,7 @@ LoadTestingData:
   properties:
     callable_arguments:
       root_image_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/test_combined
+      use_n_samples: 100
   type: load_testing_data
 
 LoadTrainingData:

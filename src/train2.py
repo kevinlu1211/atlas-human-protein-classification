@@ -80,8 +80,10 @@ def load_training_data(root_image_paths, root_label_paths, use_n_samples=None):
     return np.array(X), np.array(y), np.array(y_one_hot)
 
 
-def load_testing_data(root_image_paths):
+def load_testing_data(root_image_paths, use_n_samples=None):
     X = sorted(list(Path(root_image_paths).glob("*")), key=lambda p: p.stem)
+    if use_n_samples:
+        X = X[:use_n_samples]
     return np.array(X)
 
 
@@ -165,8 +167,7 @@ class ResultRecorder(fastai.Callback):
                 self.phase = 'TEST'
                 #         inputs = tensor2img(last_input, denorm_fn=image_net_denormalize)
                 #         self.inputs.extend(inputs)
-        print([last_target['name'][0].split("_crop")[0]])
-        self.names.extend([last_target['name'][0].split("_crop")[0]])
+        self.names.extend(last_target['name'])
         if self.phase == 'TRAIN' or self.phase == 'VAL':
             label = to_numpy(last_target['label'])
             self.targets.extend(label)
@@ -199,7 +200,7 @@ def record_results(learner, result_recorder_creator, save_path_creator):
     res_recorder = result_recorder_creator()
     learner.predict_on_dl(dl=learner.data.test_dl, callbacks=[res_recorder])
     names = np.stack(res_recorder.names)
-    pred_probs = np.stack(res_recorder.pred_probs)
+    pred_probs = np.stack(res_recorder.prob_preds)
     predicted = []
     predicted_optimal = []
     for pred in pred_probs:
@@ -219,7 +220,7 @@ def record_results(learner, result_recorder_creator, save_path_creator):
     submission_df.to_csv(save_path / "submission.csv", index=False)
     optimal_submission_df = pd.DataFrame({
         "Id": names,
-        "Predicted": predicted
+        "Predicted": predicted_optimal
     })
     optimal_submission_df.to_csv(save_path / "submission_optimal_threshold.csv", index=False)
 
