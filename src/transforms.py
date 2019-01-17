@@ -96,9 +96,12 @@ def simple_aug_lower_prob(p=1, height=None, width=None):
         return Compose([Resize(height=height, width=width, always_apply=True)] + augs, p=p)
 
 
-def resize_aug(p=1, height=None, width=None):
-    return Compose([Resize(height=height, width=width)], p=p)
-
+def resize_aug(p=1, height=None, width=None, with_image_wrapper=False):
+    augs = Compose([Resize(height=height, width=width)], p=p)
+    if with_image_wrapper:
+        return partial(albumentations_transform_wrapper, augment_fn=augs)
+    else:
+        return augs
 
 def albumentations_transform_wrapper(image, augment_fn):
     augmentation = augment_fn(image=image.px)

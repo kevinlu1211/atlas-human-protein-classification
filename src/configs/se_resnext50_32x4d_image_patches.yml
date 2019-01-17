@@ -1,6 +1,5 @@
 CreateDataBunch:
-  output:
-  - DataBunch
+  output: DataBunch
   properties:
     callable_arguments:
       train_X:
@@ -13,34 +12,33 @@ CreateDataBunch:
         Ref:
           LoadTestingData: test_X
       train_bs: 16
+      test_bs: 16
+      val_bs: 16
       train_ds:
         Ref:
           CreateTrainingDataset: TrainingDataset
-      test_bs: 32
       test_ds:
         Ref:
           CreateTestingDataset: TestingDataset
-      val_bs: 32
       val_ds:
         Ref:
           CreateValidationDataset: ValidationDataset
       sampler:
         Ref:
           CreateSampler: Sampler
-      num_workers: 28
+      num_workers: 0
     partial_callable: true
   type: create_data_bunch
 
+# Samplers
 CreateSamplerFunction:
-  output:
-    - SamplerFunction
+  output: SamplerFunction
   properties:
     partial_callable: true
   type: mean_proportion_class_weights
 
 CreateSampler:
-  output:
-    - Sampler
+  output: Sampler
   type: create_sampler
   properties:
     callable_arguments:
@@ -49,9 +47,9 @@ CreateSampler:
           CreateSamplerFunction: SamplerFunction
     partial_callable: true
 
+# Data Splitting
 CreateDataSplitter:
-  output:
-  - DataSplitter
+  output: DataSplitter
   properties:
     callable_arguments:
       X:
@@ -68,6 +66,7 @@ CreateDataSplitter:
     partial_callable: true
   type: MultilabelStratifiedShuffleSplit
 
+# Training
 RunTrainingLoop:
   type: training_loop
   properties:
@@ -78,10 +77,59 @@ RunTrainingLoop:
       data_bunch_creator:
         Ref:
           CreateDataBunch: DataBunch
+      config_saver:
+        Ref:
+          SaveConfiguration: ConfigSaver
       data_splitter_iterable:
         Ref:
           CreateDataSplitter: DataSplitter
+      training_scheme:
+        Ref:
+          CreateTrainingScheme: TrainingScheme
+      record_results:
+        Ref:
+          RunRecordResults: ResultRecorder
 
+CreateTrainingScheme:
+  type: training_scheme_se_resnext50_32x4d
+  properties:
+    callable_arguments:
+      epochs: 1
+      lr: 1e-04
+    partial_callable: true
+  output: TrainingScheme
+
+SaveConfiguration:
+  type: save_config
+  properties:
+    callable_arguments:
+      save_path_creator:
+        Ref:
+          CreateTimeStampedSavePath: SavePathCreator
+    partial_callable: true
+  output: ConfigSaver
+
+# Testing
+CreateResultRecorder:
+  type: ResultRecorder
+  properties:
+    partial_initialization: true
+  output: ResultRecorderCreator
+
+RunRecordResults:
+  type: record_results
+  properties:
+    callable_arguments:
+      result_recorder_creator:
+        Ref:
+          CreateResultRecorder: ResultRecorderCreator
+      save_path_creator:
+        Ref:
+          CreateTimeStampedSavePath: SavePathCreator
+    partial_callable: true
+  output: ResultRecorder
+
+# Learner
 CreateLearner:
   type: create_learner
   properties:
@@ -103,8 +151,7 @@ CreateLearner:
       callback_fns_creator:
         Ref:
           CreateLearnerCallbacks: LearnerCallbacksCreator
-  output:
-    - LearnerCreator
+  output: LearnerCreator
 
 CreateCallbacks:
   type: create_callbacks
@@ -114,8 +161,7 @@ CreateCallbacks:
       callback_references:
         Ref:
           - CreateNameExtractionCallback: NameExtractionCallback
-  output:
-    - CallbacksCreator
+  output: CallbacksCreator
 
 CreateLearnerCallbacks:
   type: create_learner_callbacks
@@ -127,8 +173,7 @@ CreateLearnerCallbacks:
           - CreateCSVLoggerLearnerCallback: CSVLoggerLearnerCallback
           - CreateOutputRecorderLearnerCallback: OutputRecorderLearnerCallback
           - CreateGradientClippingLearnerCallback: GradientClippingLearnerCallback
-  output:
-    - LearnerCallbacksCreator
+  output: LearnerCallbacksCreator
 
 CreateTimeStampedSavePath:
   type: create_time_stamped_save_path
@@ -136,15 +181,13 @@ CreateTimeStampedSavePath:
     partial_callable: true
     callable_arguments:
       save_path: /media/hd/Kaggle/human-protein-image-classification/results
-  output:
-    - SavePathCreator
+  output: SavePathCreator
 
 CreateNameExtractionCallback:
   type: NameExtractionTrainer
   properties:
     partial_initialization: true
-  output:
-    - NameExtractionCallback
+  output: NameExtractionCallback
 
 
 CreateCSVLoggerLearnerCallback:
@@ -155,8 +198,7 @@ CreateCSVLoggerLearnerCallback:
       save_path_creator:
         Ref:
           CreateTimeStampedSavePath: SavePathCreator
-  output:
-    - CSVLoggerLearnerCallback
+  output: CSVLoggerLearnerCallback
 
 CreateOutputRecorderLearnerCallback:
   type: create_output_recorder
@@ -169,8 +211,7 @@ CreateOutputRecorderLearnerCallback:
       denormalize_fn:
         Ref:
           CreateDenormalizeFunction: DenormalizeFunction
-  output:
-    - OutputRecorderLearnerCallback
+  output: OutputRecorderLearnerCallback
 
 CreateGradientClippingLearnerCallback:
   type: GradientClipping
@@ -178,8 +219,7 @@ CreateGradientClippingLearnerCallback:
     partial_initialization: true
     initialization_arguments:
       clip: 1.0
-  output:
-    - GradientClippingLearnerCallback
+  output: GradientClippingLearnerCallback
 
 CreateModel:
   type: se_resnext50_32x4d_four_channel_input
@@ -187,39 +227,36 @@ CreateModel:
     callable_arguments:
       pretrained: false
     partial_callable: true
-  output:
-    - Model
+  output: Model
 
+# Loss / Metrics
 CreateAccuracyMetric:
   type: accuracy
   properties:
     partial_callable: true
-  output:
-    - AccuracyMetric
+  output: AccuracyMetric
 
 CreateF1SoftMetric:
   type: f1_soft
   properties:
     partial_callable: true
-  output:
-    - F1SoftMetric
+  output: F1SoftMetric
 
 CreateFocalLoss:
   type: FocalLoss
   properties:
     initialization_arguments:
       gamma: 0
-  output:
-    - FocalLoss
+  output: FocalLoss
 
+# Image / Augmentation
 CreateOpenImageFunction:
   type: open_numpy
   properties:
     callable_arguments:
       with_image_wrapper: true
     partial_callable: true
-  output:
-    - OpenImageFunction
+  output: OpenImageFunction
 
 CreateAugmentationFunction:
   type: very_simple_aug_with_elastic_transform
@@ -228,40 +265,51 @@ CreateAugmentationFunction:
       height: 512
       width: 512
       with_image_wrapper: true
-  output:
-    - AugmentationFunction
+  output: AugmentationFunction
+
+CreateTestAugmentationFunction:
+  type: resize_aug
+  properties:
+    callable_arguments:
+      height: 512
+      width: 512
+      with_image_wrapper: true
+  output: TestAugmentationFunction
 
 CreateNormalizeFunction:
   type: identity
   properties:
     partial_callable: true
-  output:
-    - NormalizeFunction
+  output: NormalizeFunction
 
 CreateDenormalizeFunction:
   type: identity
   properties:
     partial_callable: true
-  output:
-    - DenormalizeFunction
+  output: DenormalizeFunction
 
-CreateTestingDataset:
-  output:
-  - TestingDataset
+# Data
+LoadTestingData:
+  output: test_X
   properties:
-    partial_initialization: true
-    initialization_arguments:
-      open_image_fn:
-        Ref:
-          CreateOpenImageFunction: OpenImageFunction
-      normalize_fn:
-        Ref:
-          CreateNormalizeFunction: NormalizeFunction
-  type: ProteinClassificationDataset
+    callable_arguments:
+      root_image_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/test_combined
+  type: load_testing_data
+
+LoadTrainingData:
+  type: load_training_data
+  properties:
+    callable_arguments:
+      root_image_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined
+      root_label_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train.csv
+      use_n_samples: 100
+  output:
+      - train_X
+      - train_y
+      - train_y_one_hot
 
 CreateTrainingDataset:
-  output:
-  - TrainingDataset
+  output: TrainingDataset
   properties:
     partial_initialization: true
     initialization_arguments:
@@ -277,35 +325,34 @@ CreateTrainingDataset:
   type: ProteinClassificationDataset
 
 CreateValidationDataset:
-  output:
-  - ValidationDataset
+  type: ProteinClassificationDataset
   properties:
     partial_initialization: true
     initialization_arguments:
+      augment_fn:
+        Ref:
+          CreateTestAugmentationFunction: TestAugmentationFunction
       open_image_fn:
         Ref:
           CreateOpenImageFunction: OpenImageFunction
       normalize_fn:
         Ref:
           CreateNormalizeFunction: NormalizeFunction
+  output: ValidationDataset
+
+CreateTestingDataset:
   type: ProteinClassificationDataset
-
-
-LoadTestingData:
-  output:
-  - test_X
   properties:
-    callable_arguments:
-      root_image_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/test_combined
-  type: load_testing_data
+    partial_initialization: true
+    initialization_arguments:
+      augment_fn:
+        Ref:
+          CreateTestAugmentationFunction: TestAugmentationFunction
+      open_image_fn:
+        Ref:
+          CreateOpenImageFunction: OpenImageFunction
+      normalize_fn:
+        Ref:
+          CreateNormalizeFunction: NormalizeFunction
+  output: TestingDataset
 
-LoadTrainingData:
-  output:
-  - train_X
-  - train_y
-  - train_y_one_hot
-  properties:
-    callable_arguments:
-      root_image_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined
-      root_label_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train.csv
-  type: load_training_data
