@@ -1,3 +1,4 @@
+import copy
 import types
 import collections
 import inspect
@@ -16,9 +17,12 @@ def listify(x):
 
 class PipelineGraph:
 
-    def __init__(self, graph):
+    def __init__(self, graph, config):
         self.graph = graph
-        self.state_dict = {}
+        self.config = config
+        self.state_dict = {
+            "config": copy.deepcopy(config)
+        }
 
     def ___getitem__(self, item):
         try:
@@ -38,7 +42,7 @@ class PipelineGraph:
             refer_to_nodes = list(set(list(ref.keys())[0] for ref in attributes['references']))
             for refer_to_node in refer_to_nodes:
                 pipeline_graph.add_edge(refer_to_node, node)
-        return PipelineGraph(graph=pipeline_graph)
+        return PipelineGraph(graph=pipeline_graph, config=config)
 
     @property
     def sorted_node_names(self):
@@ -55,7 +59,7 @@ class PipelineGraph:
                 continue
             node_config = node['config']
             node_references = node.get('references')
-            node_output = node_config.get('output', [])
+            node_output = node_config.get('output')
 
             node_properties = node_config.get("properties")
             node_callable = reference_lookup[node_config['type']]
@@ -83,42 +87,49 @@ class PipelineGraph:
                 # 3. Initialize the callables accordingly
                 node['callable'] = node_callable
                 node['output'] = node_output
+                needs_state_dict = "state_dict" in inspect.signature(node_callable).parameters
+                only_one_return_value = isinstance(node_output, str)
                 if is_function:
                     # Make sure that if the callable is a function then there are no initialization arguments
                     assert len(
                         initialization_arguments) == 0, f"Function: {node_callable.__name__} cannot have initialization arguments: {initialization_arguments}, only callable arguments"
 
                     if partial_callable:
-                        assert len(
-                            node_output) <= 1, 'If this is a partial callable, then there should be one or less output for this step'
-                        if len(node_output) == 0:
-                            continue
-                        output_name = node_output[0]
-                        node['output_lookup'] = {
-                            output_name: partial(node_callable, **callable_arguments,
-                                                 **self.state_dict if needs_state_dict else {})
-                        }
+                        assert not len(node_output) == 1, 'If this is a partial callable, then there should be one output for this step'
+                        if needs_state_dict:
+                            node['output_lookup'] = {
+                                node_output: partial(node_callable, **callable_arguments,
+                                                     state_dict=self.state_dict)
+                            }
+                        else:
+                            node['output_lookup'] = {
+                                node_output: partial(node_callable, **callable_arguments)
+                            }
+
                     else:
-                        needs_state_dict = "state_dict" in inspect.signature(node_callable).parameters
-                        callable_output = listify(
-                            node_callable(**callable_arguments, **self.state_dict if needs_state_dict else {}))
-                        node['output_lookup'] = {
-                            output_name: callable_output for output_name, callable_output in
-                            zip(node['output'], callable_output)
-                        }
+                        if needs_state_dict:
+                            callable_output = node_callable(**callable_arguments, state_dict=self.state_dict)
+                        else:
+                            callable_output = node_callable(**callable_arguments)
+                        if node_output is None:
+                            continue
+                        if not only_one_return_value:
+                            node['output_lookup'] = {
+                                output_name: output for output_name, output in
+                                zip(node['output'], callable_output)
+                            }
+                        else:
+                            node['output_lookup'] = {node_output: callable_output}
                 else:
-                    assert (
-                                       partial_initialization and partial_callable) is False, "Can't make both the initialization of a class and it's __call__ method both partial"
-                    assert len(
-                        node_output) == 1, 'If this is a step to initialize an object, then there should only be one output, the object itself'
+                    assert (partial_initialization and partial_callable) is False, "Can't make both the initialization of a class and it's __call__ method both partial"
+
 
                     # Now we check if we want to call a function that isn't that default __call__ method of the class
                     callable_function_name = node_properties.get("callable_function_name")
-                    output_name = node_output[0]
 
                     if partial_initialization:
                         node['output_lookup'] = {
-                            output_name: partial(node_callable, **initialization_arguments)
+                            node_output: partial(node_callable, **initialization_arguments)
                         }
                     else:
                         initialized_node_object = node_callable(**initialization_arguments)
@@ -130,17 +141,20 @@ class PipelineGraph:
                                 patch_call(initialized_node_object,
                                            partial(getattr(initialized_node_object, callable_function_name),
                                                    **callable_arguments))
-                        node['output_lookup'] = {
-                            output_name: initialized_node_object
-                        }
-
-            else:
-                node['callable'] = node_callable
-                callable_output = listify(node_callable())
-                node['output_lookup'] = {
-                    output_name: callable_output for output_name, callable_output in
-                    zip(node['output'], callable_output)
-                }
+                            node['output_lookup'] = {
+                                node_output: initialized_node_object
+                            }
+                        else:
+                            callable_output = node_callable()
+                            if node_output is None:
+                                continue
+                            if not only_one_return_value:
+                                node['output_lookup'] = {
+                                    output_name: output for output_name, output in
+                                    zip(node['output'], callable_output)
+                                }
+                            else:
+                                node['output_lookup'] = {node['output']: callable_output}
 
 
 def find_references_from_arguments(arg_values):
