@@ -44,19 +44,19 @@ class PipelineGraph:
                 pipeline_graph.add_edge(refer_to_node, node)
         return PipelineGraph(graph=pipeline_graph, config=config)
 
+    def get_node(self, name):
+        return self.graph.nodes(data=True)[name]
+
     @property
     def sorted_node_names(self):
         return list(nx.algorithms.dag.topological_sort(self.graph))
 
-    def run_graph(self, reference_lookup, force_run=False):
+    def run(self, reference_lookup, to_node=None):
         sorted_node_names = self.sorted_node_names
 
         for name in sorted_node_names:
             logging.info(f"Currently running step: {name}")
-            node = self.graph.nodes(data=True)[name]
-            node_output_lookup = node.get('output_lookup')
-            if not force_run and node_output_lookup is not None:
-                continue
+            node = self.get_node(name)
             node_config = node['config']
             node_references = node.get('references')
             node_output = node_config.get('output')
@@ -155,7 +155,8 @@ class PipelineGraph:
                                 }
                             else:
                                 node['output_lookup'] = {node['output']: callable_output}
-
+            if to_node is not None and name == to_node:
+                break
 
 def find_references_from_arguments(arg_values):
     referenced_argument_values = []
