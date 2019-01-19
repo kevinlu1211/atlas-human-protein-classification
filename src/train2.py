@@ -87,11 +87,11 @@ def load_testing_data(root_image_paths, use_n_samples=None):
     return np.array(X)
 
 
-def create_data_bunch(train_idx, val_idx, train_X, train_y, test_X, train_ds, train_bs, val_ds, val_bs, test_ds,
+def create_data_bunch(train_idx, val_idx, train_X, train_y_one_hot, train_y, test_X, train_ds, train_bs, val_ds, val_bs, test_ds,
                       test_bs, sampler, num_workers):
     sampler = sampler(y=train_y[train_idx])
-    train_ds = train_ds(inputs=train_X[train_idx], labels=train_y[train_idx])
-    val_ds = val_ds(inputs=train_X[val_idx], labels=train_y[val_idx])
+    train_ds = train_ds(inputs=train_X[train_idx], labels=train_y_one_hot[train_idx])
+    val_ds = val_ds(inputs=train_X[val_idx], labels=train_y_one_hot[val_idx])
     test_ds = test_ds(inputs=test_X)
     return DataBunch.create(train_ds, val_ds, test_ds,
                             train_bs=train_bs, val_bs=val_bs, test_bs=test_bs,
@@ -102,9 +102,23 @@ def create_sampler(y=None, sampler_fn=None):
     sampler = None
     if sampler_fn is not None:
         weights = np.array(sampler_fn(y))
+
         sampler = WeightedRandomSampler(weights=weights, num_samples=len(weights))
     else:
         pass
+
+    if sampler is not None:
+        label_cnt = Counter()
+        n_samples = len(weights)
+        for idx in np.random.choice(len(y), n_samples, p=weights / weights.sum()):
+            labels = y[idx]
+            for l in labels:
+                label_cnt[l] += 1
+        print("Weighted sampled proportions:")
+        pprint(sorted({k: v / sum(label_cnt.values()) for k, v in label_cnt.items()}.items()))
+        # pprint(sorted({k: v for k, v in name_cnt.items()}.items(), key=lambda x: x[1]))
+    else:
+        print("No weighted sampling")
     return sampler
 
 

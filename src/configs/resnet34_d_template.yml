@@ -5,9 +5,12 @@ CreateDataBunch:
       train_X:
         Ref:
           LoadTrainingData: train_X
-      train_y:
+      train_y_one_hot:
         Ref:
           LoadTrainingData: train_y_one_hot
+      train_y:
+        Ref:
+          LoadTrainingData: train_y
       test_X:
         Ref:
           LoadTestingData: test_X
@@ -26,16 +29,16 @@ CreateDataBunch:
       sampler:
         Ref:
           CreateSampler: Sampler
-      num_workers: 0
+      num_workers: 28
     partial_callable: true
   type: create_data_bunch
 
 # Samplers
 CreateSamplerFunction:
-  output: SamplerFunction
+  type: mean_proportion_class_weights
   properties:
     partial_callable: true
-  type: mean_proportion_class_weights
+  output: SamplerFunction
 
 CreateSampler:
   output: Sampler
@@ -59,7 +62,7 @@ CreateDataSplitter:
         Ref:
           LoadTrainingData: train_y_one_hot
     initialization_arguments:
-      n_splits: 1
+      n_splits: 5
       test_size: 0.1
       random_state: 42
     callable_function_name: split
@@ -91,11 +94,11 @@ RunTrainingLoop:
           RunRecordResults: ResultRecorder
 
 CreateTrainingScheme:
-  type: training_scheme_se_resnext50_32x4d
+  type: training_scheme_one_cycle
   properties:
     callable_arguments:
-      epochs: 1
-      lr: 1e-04
+      epochs: 60
+      lr: 3e-3
     partial_callable: true
   output: TrainingScheme
 
@@ -222,7 +225,7 @@ CreateGradientClippingLearnerCallback:
   output: GradientClippingLearnerCallback
 
 CreateModel:
-  type: se_resnext50_32x4d_four_channel_input
+  type: resnet34_d_four_channel_input_one_fc
   properties:
     callable_arguments:
       pretrained: false
@@ -294,7 +297,6 @@ LoadTestingData:
   properties:
     callable_arguments:
       root_image_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/test_combined
-      use_n_samples: 100
   type: load_testing_data
 
 LoadTrainingData:
@@ -303,7 +305,6 @@ LoadTrainingData:
     callable_arguments:
       root_image_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined
       root_label_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train.csv
-      use_n_samples: 100
   output:
       - train_X
       - train_y

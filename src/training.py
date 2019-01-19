@@ -79,6 +79,11 @@ def training_scheme_4(learner, lr=2e-3, epochs=50, div_factor=25.):
     learner.unfreeze()
     learner.fit_one_cycle(cyc_len=epochs, max_lr=lrs, div_factor=div_factor)
 
+def training_scheme_one_cycle(learner, lr, epochs, div_factor=25):
+    lr = float(lr)
+    learner.unfreeze()
+    learner.fit_one_cycle(cyc_len=epochs, max_lr=lr, div_factor=div_factor)
+
 def training_scheme_gapnet_1(learner, lr, epochs, div_factor=25.):
     lr = float(lr)
     learner.unfreeze()
@@ -111,6 +116,7 @@ def training_scheme_se_resnext50_32x4d(learner, lr, epochs=50, div_factor=25):
 
 training_scheme_lookup = {
     "iafoss_training_scheme": iafoss_training_scheme,
+    "training_scheme_one_cycle": training_scheme_one_cycle,
     "training_scheme_1": training_scheme_1,
     "training_scheme_1_1": training_scheme_1_1,
     "training_scheme_2": training_scheme_2,
