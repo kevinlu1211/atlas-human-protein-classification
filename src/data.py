@@ -52,19 +52,9 @@ class DataPaths:
     ROOT_DATA_PATH = Path(__file__).parent.parent / 'data'
     TRAIN_IMAGES = Path(ROOT_DATA_PATH, "train")
     TRAIN_COMBINED_IMAGES = Path(ROOT_DATA_PATH, "train_combined")
-    TRAIN_RGBY_IMAGES = Path(ROOT_DATA_PATH, "train_rgby")
-    TRAIN_RGBY_IMAGES_HPA_V18 = Path(ROOT_DATA_PATH, "train_rgby_HPAv18")
-    TRAIN_COMBINED_HPA_V18_IMAGES = Path(ROOT_DATA_PATH, "train_combined_HPAv18")
-    TRAIN_ALL_COMBINED_IMAGES = Path(ROOT_DATA_PATH, "train_all_combined")
-    TRAIN_LABELS = Path(ROOT_DATA_PATH, "train.csv")
-    TRAIN_ALL_LABELS = Path(ROOT_DATA_PATH, "train_all.csv")
-    TRAIN_HPA_V18_LABELS = Path(ROOT_DATA_PATH, "HPAv18RBGY_wodpl.csv")
-    TRAIN_HPA_KAGGLE_THRESH_0_02_COMBINED_IMAGES = Path(ROOT_DATA_PATH, 'train_hpa_kaggle_thresh_0_02')
-    TRAIN_HPA_KAGGLE_THRESH_0_02_LABELS = Path(ROOT_DATA_PATH, 'train_hpa_kaggle_thresh_0_02.csv')
-    VAL_HPA_KAGGLE_THRESH_0_02_COMBINED_IMAGES = Path(ROOT_DATA_PATH, 'val_hpa_kaggle_thresh_0_02')
-    VAL_HPA_KAGGLE_THRESH_0_02_LABELS = Path(ROOT_DATA_PATH, 'val_hpa_kaggle_thresh_0_02.csv')
     TEST_IMAGES = Path(ROOT_DATA_PATH, "test")
     TEST_COMBINED_IMAGES = Path(ROOT_DATA_PATH, "test_combined")
+    TRAIN_RGBY_IMAGES = Path(ROOT_DATA_PATH, "train_rgby")
 
 
 def open_rgby(path, with_image_wrapper=True):  # a function that reads RGBY image
