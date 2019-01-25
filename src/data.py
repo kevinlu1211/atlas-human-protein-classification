@@ -52,6 +52,9 @@ class DataPaths:
     ROOT_DATA_PATH = Path(__file__).parent.parent / 'data'
     TRAIN_IMAGES = Path(ROOT_DATA_PATH, "train")
     TRAIN_COMBINED_IMAGES = Path(ROOT_DATA_PATH, "train_combined")
+    TRAIN_LABELS = Path(ROOT_DATA_PATH, "train.csv")
+    TRAIN_LABELS_HPAv18 = Path(ROOT_DATA_PATH, "HPAv18RBGY_wodpl.csv")
+    TRAIN_COMBINED_IMAGES_HPAv18 = Path(ROOT_DATA_PATH, "train_combined_HPAv18")
     TEST_IMAGES = Path(ROOT_DATA_PATH, "test")
     TEST_COMBINED_IMAGES = Path(ROOT_DATA_PATH, "test_combined")
     TRAIN_RGBY_IMAGES = Path(ROOT_DATA_PATH, "train_rgby")

@@ -23,6 +23,7 @@ model_lookup = {
     "gapnet2_resnet34_four_channel_input_backbone": gapnet2_resnet34_four_channel_input_backbone,
     "gapnet2_resnet34_d_four_channel_input_backbone": gapnet2_resnet34_d_four_channel_input_backbone,
     "se_resnext50_32x4d_four_channel_input": se_resnext50_32x4d_four_channel_input,
+    "se_resnext50_32x4d_four_channel_input_two_fc": se_resnext50_32x4d_four_channel_input_two_fc,
     "debug_cnn": debug_cnn
 }
 
