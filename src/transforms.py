@@ -26,12 +26,26 @@ def very_simple_aug(p=0.5, height=None, width=None):
     return Compose([Resize(height=height, width=width, always_apply=True)] + augs, p=1)
 
 
-def very_simple_aug_with_elastic_transform(p=0.25, height=None, width=None, with_image_wrapper=False):
+def crop_rotate_flip(crop_height, crop_width, with_image_wrapper=False):
     augs = [
-        RandomRotate90(p=0.25),
-        Flip(p=0.25),
-        RandomBrightnessContrast(brightness_limit=3, contrast_limit=0.5, p=0.25),
-        ElasticTransform(sigma=50, alpha_affine=50, p=0.25)
+        RandomCrop(crop_height, crop_width),
+        Flip(),
+        RandomRotate90(),
+        RandomBrightnessContrast(brightness_limit=3, contrast_limit=0.5)
+    ]
+    if with_image_wrapper:
+        return partial(albumentations_transform_wrapper, augment_fn=augs)
+    else:
+        return augs
+
+
+def very_simple_aug_with_elastic_transform(p=1, height=None, width=None, with_image_wrapper=False):
+    augs = [
+        Flip(),
+        RandomRotate90(),
+        RandomBrightnessContrast(brightness_limit=3, contrast_limit=0.5),
+        ElasticTransform(sigma=50, alpha_affine=50),
+
     ]
     if height is None and width is None:
         augs = Compose(augs, p=p)
@@ -47,15 +61,27 @@ def very_simple_aug_with_elastic_transform(p=0.25, height=None, width=None, with
         return augs
 
 
-def very_simple_aug_with_elastic_transform_and_crop(height, width):
+def very_simple_aug_with_elastic_transform_and_crop(height=None, width=None,
+                                                   crop_height=None, crop_width=None, with_image_wrapper=False):
     augs = [
         RandomRotate90(),
         Flip(),
         RandomBrightnessContrast(brightness_limit=3, contrast_limit=0.5),
         ElasticTransform(sigma=50, alpha_affine=50, p=0.5),
-        RandomCrop(height, width)
+        RandomCrop(crop_height, crop_width)
     ]
-    return Compose(augs, p=1)
+    if height is None and width is None:
+        augs = Compose(augs, p=p)
+    else:
+        if height is not None and width is None:
+            width = height
+        if width is not None and height is None:
+            height = width
+        augs = Compose([Resize(height=height, width=width, always_apply=True)] + augs, p=1)
+    if with_image_wrapper:
+        return partial(albumentations_transform_wrapper, augment_fn=augs)
+    else:
+        return augs
 
 
 def simple_aug(p=1, height=None, width=None):
@@ -103,6 +129,13 @@ def resize_aug(p=1, height=None, width=None, with_image_wrapper=False):
     else:
         return augs
 
+def identity_aug(with_image_wrapper=False):
+    augs = lambda image: {"image": image}
+    if with_image_wrapper:
+        return partial(albumentations_transform_wrapper, augment_fn=augs)
+    else:
+        return augs
+
 def albumentations_transform_wrapper(image, augment_fn):
     augmentation = augment_fn(image=image.px)
     return augmentation['image']
@@ -115,4 +148,5 @@ augment_fn_lookup = {
     "simple_aug": simple_aug,
     "simple_aug_lower_prob": simple_aug_lower_prob,
     "resize_aug": resize_aug,
+    "identity_aug": identity_aug
 }

@@ -14,9 +14,9 @@ CreateDataBunch:
       test_X:
         Ref:
           LoadTestingData: test_X
-      train_bs: 16
-      test_bs: 16
-      val_bs: 16
+      train_bs: 18
+      test_bs: 8
+      val_bs: 8
       train_ds:
         Ref:
           CreateTrainingDataset: TrainingDataset
@@ -62,9 +62,9 @@ CreateDataSplitter:
         Ref:
           LoadTrainingData: train_y_one_hot
     initialization_arguments:
-      n_splits: 5
+      n_splits: 3
       test_size: 0.1
-      random_state: 42
+      random_state: 4233
     callable_function_name: split
     partial_callable: true
   type: MultilabelStratifiedShuffleSplit
@@ -97,8 +97,8 @@ CreateTrainingScheme:
   type: training_scheme_one_cycle
   properties:
     callable_arguments:
-      epochs: 60
-      lr: 3e-3
+      epochs: 100
+      lr: 3e-2
     partial_callable: true
   output: TrainingScheme
 
@@ -265,17 +265,15 @@ CreateAugmentationFunction:
   type: very_simple_aug_with_elastic_transform
   properties:
     callable_arguments:
-      height: 512
-      width: 512
+      crop_height: 512
+      crop_width: 512
       with_image_wrapper: true
   output: AugmentationFunction
 
 CreateTestAugmentationFunction:
-  type: resize_aug
+  type: identity_aug
   properties:
     callable_arguments:
-      height: 512
-      width: 512
       with_image_wrapper: true
   output: TestAugmentationFunction
 

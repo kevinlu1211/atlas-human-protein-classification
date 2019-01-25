@@ -107,18 +107,18 @@ def create_sampler(y=None, sampler_fn=None):
     else:
         pass
 
-    # if sampler is not None:
-    #     label_cnt = Counter()
-    #     n_samples = len(weights)
-    #     for idx in np.random.choice(len(y), n_samples, p=weights / weights.sum()):
-    #         labels = y[idx]
-    #         for l in labels:
-    #             label_cnt[l] += 1
-    #     print("Weighted sampled proportions:")
-    #     pprint(sorted({k: v / sum(label_cnt.values()) for k, v in label_cnt.items()}.items()))
-    #     # pprint(sorted({k: v for k, v in name_cnt.items()}.items(), key=lambda x: x[1]))
-    # else:
-    #     print("No weighted sampling")
+    if sampler is not None:
+        label_cnt = Counter()
+        n_samples = len(weights)
+        for idx in np.random.choice(len(y), n_samples, p=weights / weights.sum()):
+            labels = y[idx]
+            for l in labels:
+                label_cnt[l] += 1
+        print("Weighted sampled proportions:")
+        pprint(sorted({k: v / sum(label_cnt.values()) for k, v in label_cnt.items()}.items()))
+        # pprint(sorted({k: v for k, v in name_cnt.items()}.items(), key=lambda x: x[1]))
+    else:
+        print("No weighted sampling")
     return sampler
 
 
@@ -139,7 +139,7 @@ def create_learner_callbacks(learner_callback_references):
     return callback_fns
 
 
-def create_learner(data, model_creator, callbacks_creator, callback_fns_creator, metrics, loss_funcs):
+def create_learner(data, model_creator, callbacks_creator, callback_fns_creator, metrics, loss_funcs, to_fp16=False):
     model = model_creator()
     callbacks = callbacks_creator()
     callback_fns = callback_fns_creator()
@@ -149,6 +149,8 @@ def create_learner(data, model_creator, callbacks_creator, callback_fns_creator,
                       metrics=metrics,
                       callbacks=callbacks,
                       callback_fns=callback_fns)
+    if to_fp16:
+        learner = learner.to_fp16()
     return learner
 
 

@@ -5,15 +5,18 @@ CreateDataBunch:
       train_X:
         Ref:
           LoadTrainingData: train_X
-      train_y:
+      train_y_one_hot:
         Ref:
           LoadTrainingData: train_y_one_hot
+      train_y:
+        Ref:
+          LoadTrainingData: train_y
       test_X:
         Ref:
           LoadTestingData: test_X
-      train_bs: 16
-      test_bs: 16
-      val_bs: 16
+      train_bs: 18
+      test_bs: 5
+      val_bs: 5
       train_ds:
         Ref:
           CreateTrainingDataset: TrainingDataset
@@ -32,10 +35,10 @@ CreateDataBunch:
 
 # Samplers
 CreateSamplerFunction:
-  output: SamplerFunction
+  type: uniform_weights
   properties:
     partial_callable: true
-  type: mean_proportion_class_weights
+  output: SamplerFunction
 
 CreateSampler:
   output: Sampler
@@ -59,9 +62,9 @@ CreateDataSplitter:
         Ref:
           LoadTrainingData: train_y_one_hot
     initialization_arguments:
-      n_splits: 5
+      n_splits: 3
       test_size: 0.1
-      random_state: 42
+      random_state: 4233
     callable_function_name: split
     partial_callable: true
   type: MultilabelStratifiedShuffleSplit
@@ -91,11 +94,11 @@ RunTrainingLoop:
           RunRecordResults: ResultRecorder
 
 CreateTrainingScheme:
-  type: training_scheme_se_resnext50_32x4d
+  type: training_scheme_one_cycle
   properties:
     callable_arguments:
-      epochs: 30
-      lr: 1e-04
+      epochs: 100
+      lr: 5e-5
     partial_callable: true
   output: TrainingScheme
 
@@ -246,7 +249,7 @@ CreateFocalLoss:
   type: FocalLoss
   properties:
     initialization_arguments:
-      gamma: 0
+      gamma: 3
   output: FocalLoss
 
 # Image / Augmentation

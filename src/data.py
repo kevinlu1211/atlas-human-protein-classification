@@ -135,15 +135,13 @@ class ProteinClassificationDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, i):
         ret = {}
-        prob_zero_green_channel = 1
 
         if self.image_cached:
             img = self.inputs[i]
         else:
             img = self.open_image_fn(self.inputs[i])
+
         if self.augment_fn is not None:
-            if prob_zero_green_channel < 0.5:
-                img.px[:, :, 1] = 0
             img.px = self.augment_fn(img)
 
         img_tensor = img.tensor
@@ -155,10 +153,7 @@ class ProteinClassificationDataset(torch.utils.data.Dataset):
         ret['name'] = img.name
 
         if self.labels is not None:
-            if prob_zero_green_channel < 0.5 and self.augment_fn is not None:
-                ret['label'] = np.zeros_like(self.labels[i])
-            else:
-                ret['label'] = self.labels[i]
+            ret['label'] = self.labels[i]
         return ret
 
 
@@ -206,6 +201,9 @@ def mean_proportion_class_weights(all_labels):
         all_weights.append(weights)
     return all_weights
 
+def uniform_weights(all_labels):
+    return [1 for _ in all_labels]
+
 
 def create_sample_weights(all_labels, method="MEAN"):
     all_weights = []
@@ -222,7 +220,8 @@ def create_sample_weights(all_labels, method="MEAN"):
 
 sampler_weight_lookup = {
     "mean_proportion_class_weights": mean_proportion_class_weights,
-    "create_sample_weights": create_sample_weights
+    "create_sample_weights": create_sample_weights,
+    "uniform_weights": uniform_weights
 }
 
 dataset_lookup = {
