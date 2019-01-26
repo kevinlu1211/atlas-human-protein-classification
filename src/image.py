@@ -66,7 +66,9 @@ def plot_rgb(image):
 
 
 def get_image_with_id(image_id):
-    paths = list(DataPaths.TRAIN_ALL_COMBINED_IMAGES.glob("*")) + list(DataPaths.TEST_COMBINED_IMAGES.glob("*"))
+    paths = list(DataPaths.TRAIN_COMBINED_IMAGES_HPAv18.glob("*")) + \
+            list(DataPaths.TRAIN_COMBINED_IMAGES.glob("*")) + \
+            list(DataPaths.TEST_COMBINED_IMAGES.glob("*"))
     path, = [p for p in paths if p.stem == image_id]
     return open_numpy(path, with_image_wrapper=False)['image']
 

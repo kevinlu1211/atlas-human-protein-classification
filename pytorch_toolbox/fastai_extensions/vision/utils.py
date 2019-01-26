@@ -122,6 +122,7 @@ normalize_fn_lookup = {
     "image_net_normalize": image_net_normalize,
     "four_channel_image_net_normalize": four_channel_image_net_normalize,
     "four_channel_pnasnet5large_normalize": four_channel_image_net_normalize,
+    "normalize": normalize,
     "identity": lambda x: x
 }
 
@@ -129,5 +130,6 @@ denormalize_fn_lookup = {
     "image_net_denormalize": image_net_denormalize,
     "four_channel_image_net_denormalize": four_channel_image_net_denormalize,
     "four_channel_pnasnet5large_denormalize": four_channel_image_net_denormalize,
+    "denormalize": denormalize,
     "identity": lambda x: x
 }

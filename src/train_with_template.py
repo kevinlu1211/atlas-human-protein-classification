@@ -9,24 +9,23 @@ if not sys.warnoptions:
 
 
 import time
-import pickle
-from pathlib import Path
 from functools import partial
 import logging
-from collections import defaultdict, Counter
 from pprint import pprint
+from typing import List, Union, Tuple
+from functools import reduce
+from pathlib import Path
+from operator import add
+from collections import Counter
+
 
 import click
 import yaml
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-from tqdm import tqdm_notebook
 import torch
 import torch.utils.data
 from torch.utils.data import WeightedRandomSampler
-import torch.nn as nn
-from torchsummary import summary
 from sklearn.metrics import f1_score
 import scipy.optimize as opt
 
@@ -65,19 +64,31 @@ def set_logger(log_level):
     )
 
 
-def load_training_data(root_image_paths, root_label_paths, use_n_samples=None):
-    X = sorted(list(Path(root_image_paths).glob("*")), key=lambda p: p.stem)
+def load_training_data(root_image_paths: Union[List[str], List[List[str]]], root_label_paths: List[str],
+                       use_n_samples: Union[None, int] = None) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     labels_df = pd.read_csv(root_label_paths)
     labels_df['Target'] = [[int(i) for i in s.split()] for s in labels_df['Target']]
-    labels_df = labels_df.sort_values(["Id"], ascending=[True])
+    image_id_with_labels = labels_df['Id']
+    image_id_with_labels_lookup = Counter(image_id_with_labels)
+
+    root_image_paths_is_nested_lists = isinstance(root_image_paths[0], list)
+    merged_image_paths = reduce(add, root_image_paths if root_image_paths_is_nested_lists else [root_image_paths])
+    merged_image_paths = [Path(p) for p in merged_image_paths]
+    image_paths_used_for_training = [p for p in merged_image_paths if
+                                     image_id_with_labels_lookup.get(p.stem) is not None]
+
+    sorted_labels_df = labels_df.sort_values(["Id"], ascending=[True])
+    sorted_image_paths_used_for_training = sorted(image_paths_used_for_training, key=lambda x: x.stem)
+    assert np.all(np.array([p.stem for p in sorted_image_paths_used_for_training]) == sorted_labels_df["Id"])
+
     if use_n_samples is not None:
-        sampled_idx = np.random.choice(len(X), size=(use_n_samples)).flatten()
-        X = np.array(X)[sampled_idx]
+        sampled_idx = np.random.choice(len(sorted_image_paths_used_for_training), size=(use_n_samples)).flatten()
+        sorted_image_paths_used_for_training = np.array(sorted_image_paths_used_for_training)[sampled_idx]
         labels_df = labels_df.iloc[sampled_idx]
-    y = labels_df['Target'].values
-    y_one_hot = make_one_hot(y, n_classes=28)
-    assert np.all(np.array([p.stem for p in X]) == labels_df["Id"])
-    return np.array(X), np.array(y), np.array(y_one_hot)
+
+    labels = labels_df['Target'].values
+    labels_one_hot = make_one_hot(labels, n_classes=28)
+    return np.array(sorted_image_paths_used_for_training), np.array(labels), np.array(labels_one_hot)
 
 
 def load_testing_data(root_image_paths, use_n_samples=None):
