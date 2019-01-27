@@ -14,7 +14,7 @@ CreateDataBunch:
       test_X:
         Ref:
           LoadTestingData: test_X
-      train_bs: 18
+      train_bs: 16
       test_bs: 4
       val_bs: 4
       train_ds:
@@ -97,8 +97,8 @@ CreateTrainingScheme:
   type: training_scheme_one_cycle
   properties:
     callable_arguments:
-      epochs: 100
-      lr: 1e-3
+      epochs: 45
+      lr: 1e-4
     partial_callable: true
   output: TrainingScheme
 
@@ -154,7 +154,7 @@ CreateLearner:
       callback_fns_creator:
         Ref:
           CreateLearnerCallbacks: LearnerCallbacksCreator
-      to_fp16: true
+      to_fp16: false
   output: LearnerCreator
 
 CreateCallbacks:
@@ -250,7 +250,7 @@ CreateFocalLoss:
   type: FocalLoss
   properties:
     initialization_arguments:
-      gamma: 2
+      gamma: 3
   output: FocalLoss
 
 # Image / Augmentation
@@ -304,7 +304,10 @@ LoadTrainingData:
   type: load_training_data
   properties:
     callable_arguments:
-      root_image_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined
+      root_image_paths:
+        - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined
+#        - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined_HPAv18
+#      root_label_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_all_no_dupe.csv
       root_label_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train.csv
   output:
       - train_X

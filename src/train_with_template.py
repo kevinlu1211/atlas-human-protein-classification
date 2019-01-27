@@ -39,7 +39,7 @@ from src.transforms import augment_fn_lookup
 from src.callbacks import OutputRecorder
 
 import pytorch_toolbox.fastai.fastai as fastai
-from pytorch_toolbox.utils.core import to_numpy
+from pytorch_toolbox.utils import to_numpy, listify
 from pytorch_toolbox.fastai_extensions.vision.utils import denormalize_fn_lookup, normalize_fn_lookup, tensor2img
 from pytorch_toolbox.fastai.fastai.callbacks import CSVLogger
 from pytorch_toolbox.fastai_extensions.basic_train import Learner
@@ -64,29 +64,30 @@ def set_logger(log_level):
     )
 
 
-def load_training_data(root_image_paths: Union[List[str], List[List[str]]], root_label_paths: List[str],
+def load_training_data(root_image_paths: Union[List[str], str], root_label_paths: List[str],
                        use_n_samples: Union[None, int] = None) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     labels_df = pd.read_csv(root_label_paths)
     labels_df['Target'] = [[int(i) for i in s.split()] for s in labels_df['Target']]
     image_id_with_labels = labels_df['Id']
     image_id_with_labels_lookup = Counter(image_id_with_labels)
 
-    root_image_paths_is_nested_lists = isinstance(root_image_paths[0], list)
-    merged_image_paths = reduce(add, root_image_paths if root_image_paths_is_nested_lists else [root_image_paths])
-    merged_image_paths = [Path(p) for p in merged_image_paths]
-    image_paths_used_for_training = [p for p in merged_image_paths if
-                                     image_id_with_labels_lookup.get(p.stem) is not None]
+    image_paths = []
+    for p in listify(root_image_paths):
+        image_paths.extend(Path(p).glob("*"))
+
+    image_paths_used_for_training = [Path(p) for p in image_paths if
+                                     image_id_with_labels_lookup.get(Path(p).stem) is not None]
 
     sorted_labels_df = labels_df.sort_values(["Id"], ascending=[True])
     sorted_image_paths_used_for_training = sorted(image_paths_used_for_training, key=lambda x: x.stem)
     assert np.all(np.array([p.stem for p in sorted_image_paths_used_for_training]) == sorted_labels_df["Id"])
 
     if use_n_samples is not None:
-        sampled_idx = np.random.choice(len(sorted_image_paths_used_for_training), size=(use_n_samples)).flatten()
+        sampled_idx = np.random.choice(len(sorted_image_paths_used_for_training), size=use_n_samples).flatten()
         sorted_image_paths_used_for_training = np.array(sorted_image_paths_used_for_training)[sampled_idx]
-        labels_df = labels_df.iloc[sampled_idx]
+        sorted_labels_df = sorted_labels_df.iloc[sampled_idx]
 
-    labels = labels_df['Target'].values
+    labels = sorted_labels_df['Target'].values
     labels_one_hot = make_one_hot(labels, n_classes=28)
     return np.array(sorted_image_paths_used_for_training), np.array(labels), np.array(labels_one_hot)
 

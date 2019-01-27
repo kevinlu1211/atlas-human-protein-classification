@@ -64,14 +64,14 @@ def very_simple_aug_with_elastic_transform(p=1, height=None, width=None, with_im
 def very_simple_aug_with_elastic_transform_and_crop(height=None, width=None,
                                                    crop_height=None, crop_width=None, with_image_wrapper=False):
     augs = [
+        RandomCrop(crop_height, crop_width),
         RandomRotate90(),
         Flip(),
         RandomBrightnessContrast(brightness_limit=3, contrast_limit=0.5),
         ElasticTransform(sigma=50, alpha_affine=50, p=0.5),
-        RandomCrop(crop_height, crop_width)
     ]
     if height is None and width is None:
-        augs = Compose(augs, p=p)
+        augs = Compose(augs, p=1)
     else:
         if height is not None and width is None:
             width = height

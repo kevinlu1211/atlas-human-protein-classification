@@ -1,18 +1,10 @@
 import copy
 import types
-import collections
 import inspect
 from functools import partial
 import logging
 
 import networkx as nx
-
-
-def listify(x):
-    if not isinstance(x, collections.Iterable):
-        return [x]
-    else:
-        return x
 
 
 class PipelineGraph:
@@ -46,6 +38,9 @@ class PipelineGraph:
 
     def get_node(self, name):
         return self.graph.nodes(data=True)[name]
+
+    def leaf_nodes(self):
+        return [x for x in self.graph.nodes() if self.graph.out_degree(x) == 0 and self.graph.in_degree(x) == 1]
 
     @property
     def sorted_node_names(self):
