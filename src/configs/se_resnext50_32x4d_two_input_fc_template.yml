@@ -306,9 +306,8 @@ LoadTrainingData:
     callable_arguments:
       root_image_paths:
         - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined
-#        - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined_HPAv18
-#      root_label_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_all_no_dupe.csv
-      root_label_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train.csv
+        - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined_HPAv18
+      root_label_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_all_no_dupe.csv
   output:
       - train_X
       - train_y
