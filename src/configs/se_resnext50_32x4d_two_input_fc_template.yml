@@ -97,8 +97,8 @@ CreateTrainingScheme:
   type: training_scheme_one_cycle
   properties:
     callable_arguments:
-      epochs: 45
-      lr: 1e-4
+      epochs: 60
+      lr: 5e-4
     partial_callable: true
   output: TrainingScheme
 
@@ -147,7 +147,9 @@ CreateLearner:
           - CreateF1SoftMetric: F1SoftMetric
       loss_funcs:
         Ref:
+          - CreateLovaszHingeFlatLoss: LovaszHingeFlatLoss
           - CreateFocalLoss: FocalLoss
+#          - CreateSoftF1Loss: SoftF1Loss
       callbacks_creator:
         Ref:
           CreateCallbacks: CallbacksCreator
@@ -252,6 +254,14 @@ CreateFocalLoss:
     initialization_arguments:
       gamma: 3
   output: FocalLoss
+
+CreateSoftF1Loss:
+  type: SoftF1Loss
+  output: SoftF1Loss
+
+CreateLovaszHingeFlatLoss:
+  type: LovaszHingeFlatLoss
+  output: LovaszHingeFlatLoss
 
 # Image / Augmentation
 CreateOpenImageFunction:

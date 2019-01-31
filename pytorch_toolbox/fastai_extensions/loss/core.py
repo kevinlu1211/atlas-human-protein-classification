@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 
+from .lovasz_loss import lovasz_hinge_flat
 from fastai import *
 import fastai
 
@@ -56,6 +57,15 @@ class SoftF1Loss:
         f1_soft_loss = calculate_f1_soft_loss(prediction, target)
         self.loss = f1_soft_loss
         return f1_soft_loss.mean()
+
+class LovaszHingeFlatLoss:
+    def __call__(self, out, *yb):
+        prediction = out
+        target = yb[0]
+        lovasz_loss = lovasz_hinge_flat(prediction.flatten(), target.flatten(), reduce=False)
+        self.loss = lovasz_loss
+        return lovasz_loss.sum()
+
 
 
 class LossWrapper(nn.Module):
@@ -157,7 +167,6 @@ def calculate_focal_loss(input, target, gamma=2):
     return loss
 
 
-# Referenced from
 def calculate_f1_soft_loss(logits, labels):
     """
     logits: B x N_classes
