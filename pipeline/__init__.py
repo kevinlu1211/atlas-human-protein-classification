@@ -151,7 +151,7 @@ class PipelineGraph:
                                 node['output_lookup'] = {node['output']: callable_output}
             else:
                 node['output_lookup'] = {
-                    node_output: node_callable
+                    node_output: node_callable()
                 }
             if to_node is not None and name == to_node:
                 break
