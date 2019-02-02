@@ -60,61 +60,38 @@ class PipelineGraph:
     def sorted_node_names(self):
         return list(nx.algorithms.dag.topological_sort(self.graph))
 
-    def replace_references(graph, arguments):
-        for arg_name, arg_values in arguments.items():
-            if isinstance(arg_values, dict) and arg_values.get("Ref") is not None:
-                node_references = arg_values.get("Ref")
-                if isinstance(node_references, list):
-                    referenced_argument_values = []
-                    for node_reference in node_references:
-                        reference_node_name = list(node_reference.keys())[0]
-                        reference_node_output_name = list(node_reference.values())[0]
-                        try:
-                            referenced_argument_values.append(
-                                graph[reference_node_name]['output_lookup'][reference_node_output_name])
-                        except KeyError as e:
-                            print(f"KeyError: {e}")
-                            print(f"Reference node name: {reference_node_name}")
-                            print(f"Reference node output lookup: {graph[reference_node_name]['output_lookup']}")
-                    arguments[arg_name] = referenced_argument_values
-                else:
-                    reference_node_name = list(node_references.keys())[0]
-                    reference_node_output_name = list(node_references.values())[0]
-                    try:
-                        arguments[arg_name] = graph[reference_node_name]['output_lookup'][reference_node_output_name]
-                    except KeyError as e:
-                        print(f"KeyError: {e}")
-                        print(f"Reference node name: {reference_node_name}")
-                        print(f"Reference node output lookup: {graph[reference_node_name]['output_lookup']}")
-        return arguments
+    def _find_references_for_argument(self, node_reference):
+        graph = self.graph.nodes(data=True)
+        reference_node_name = list(node_reference.keys())[0]
+        reference_node_output_name = list(node_reference.values())[0]
+        try:
+            return graph[reference_node_name]['output_lookup'][reference_node_output_name]
+        except KeyError as e:
+            print(f"KeyError: {e}")
+            print(f"Reference node name: {reference_node_name}")
+            print(f"Reference node output lookup: {graph[reference_node_name]['output_lookup']}")
+
+    def _find_references_for_argument_that_is_a_list(self, node_references):
+        referenced_argument_values = []
+        for node_reference in node_references:
+            referenced_argument_values.append(self._find_references_for_argument(node_reference))
+        return referenced_argument_values
+
+    def _argument_value_has_references(self, argument_value):
+        return isinstance(argument_value, dict) and argument_value.get("Ref") is not None
+
+    def _node_has_references(self, node_references):
+        return len(node_references) > 0
 
     def _replace_references(self, arguments):
-        graph = self.graph.nodes(data=True)
-        for arg_name, arg_values in arguments.items():
-            if isinstance(arg_values, dict) and arg_values.get("Ref") is not None:
-                node_references = arg_values.get("Ref")
+        for arg_name, arg_value in arguments.items():
+            if self._argument_value_has_references(arg_value):
+                node_references = arg_value.get("Ref")
                 if isinstance(node_references, list):
-                    referenced_argument_values = []
-                    for node_reference in node_references:
-                        reference_node_name = list(node_reference.keys())[0]
-                        reference_node_output_name = list(node_reference.values())[0]
-                        try:
-                            referenced_argument_values.append(
-                                graph[reference_node_name]['output_lookup'][reference_node_output_name])
-                        except KeyError as e:
-                            print(f"KeyError: {e}")
-                            print(f"Reference node name: {reference_node_name}")
-                            print(f"Reference node output lookup: {graph[reference_node_name]['output_lookup']}")
+                    referenced_argument_values = self._find_references_for_argument_that_is_a_list(node_references)
                     arguments[arg_name] = referenced_argument_values
                 else:
-                    reference_node_name = list(node_references.keys())[0]
-                    reference_node_output_name = list(node_references.values())[0]
-                    try:
-                        arguments[arg_name] = graph[reference_node_name]['output_lookup'][reference_node_output_name]
-                    except KeyError as e:
-                        print(f"KeyError: {e}")
-                        print(f"Reference node name: {reference_node_name}")
-                        print(f"Reference node output lookup: {graph[reference_node_name]['output_lookup']}")
+                    arguments[arg_name] = self._find_references_for_argument(node_references)
         return arguments
 
     def _replace_argument_references_for_node(self, node):
@@ -123,8 +100,7 @@ class PipelineGraph:
         initialization_arguments = node_properties.get("initialization_arguments", dict())
         callable_arguments = node_properties.get("callable_arguments", dict())
 
-        has_references = len(node_references) > 0
-        if has_references:
+        if self._node_has_references(node_references):
             # replace the reference values in the arguments
             initialization_arguments = self._replace_references(initialization_arguments)
             callable_arguments = self._replace_references(callable_arguments)
@@ -138,7 +114,6 @@ class PipelineGraph:
             logging.info(f"Currently running step: {name}")
             node = self.get_node(name)
             node_config = node['config']
-            node_references = node.get('references')
             node_output = node_config.get('output')
 
             node_properties = node_config.get("properties")
@@ -189,7 +164,8 @@ class PipelineGraph:
                         else:
                             node['output_lookup'] = {node_output: callable_output}
                 else:
-                    assert (partial_initialization and partial_callable) is False, "Can't make both the initialization of a class and it's __call__ method both partial"
+                    assert (
+                                       partial_initialization and partial_callable) is False, "Can't make both the initialization of a class and it's __call__ method both partial"
 
                     # Now we check if we want to call a function that isn't that default __call__ method of the class
                     callable_function_name = node_properties.get("callable_function_name")
