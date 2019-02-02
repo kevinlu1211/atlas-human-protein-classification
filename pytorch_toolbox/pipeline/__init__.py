@@ -39,12 +39,96 @@ class PipelineGraph:
     def get_node(self, name):
         return self.graph.nodes(data=True)[name]
 
+    def get_node_output_lookup(self, name):
+        return self.get_node(name).get('output_lookup')
+
+    def get_node_output(self, name, output_lookup_key=None):
+        output_lookup = self.get_node_output_lookup(name)
+        if output_lookup is None:
+            return None
+
+        if output_lookup_key is None and len(output_lookup) == 1:
+            output = list(output_lookup.values())[0]
+            return output
+        else:
+            return output_lookup[output_lookup_key]
+
     def leaf_nodes(self):
         return [x for x in self.graph.nodes() if self.graph.out_degree(x) == 0 and self.graph.in_degree(x) == 1]
 
     @property
     def sorted_node_names(self):
         return list(nx.algorithms.dag.topological_sort(self.graph))
+
+    def replace_references(graph, arguments):
+        for arg_name, arg_values in arguments.items():
+            if isinstance(arg_values, dict) and arg_values.get("Ref") is not None:
+                node_references = arg_values.get("Ref")
+                if isinstance(node_references, list):
+                    referenced_argument_values = []
+                    for node_reference in node_references:
+                        reference_node_name = list(node_reference.keys())[0]
+                        reference_node_output_name = list(node_reference.values())[0]
+                        try:
+                            referenced_argument_values.append(
+                                graph[reference_node_name]['output_lookup'][reference_node_output_name])
+                        except KeyError as e:
+                            print(f"KeyError: {e}")
+                            print(f"Reference node name: {reference_node_name}")
+                            print(f"Reference node output lookup: {graph[reference_node_name]['output_lookup']}")
+                    arguments[arg_name] = referenced_argument_values
+                else:
+                    reference_node_name = list(node_references.keys())[0]
+                    reference_node_output_name = list(node_references.values())[0]
+                    try:
+                        arguments[arg_name] = graph[reference_node_name]['output_lookup'][reference_node_output_name]
+                    except KeyError as e:
+                        print(f"KeyError: {e}")
+                        print(f"Reference node name: {reference_node_name}")
+                        print(f"Reference node output lookup: {graph[reference_node_name]['output_lookup']}")
+        return arguments
+
+    def _replace_references(self, arguments):
+        graph = self.graph.nodes(data=True)
+        for arg_name, arg_values in arguments.items():
+            if isinstance(arg_values, dict) and arg_values.get("Ref") is not None:
+                node_references = arg_values.get("Ref")
+                if isinstance(node_references, list):
+                    referenced_argument_values = []
+                    for node_reference in node_references:
+                        reference_node_name = list(node_reference.keys())[0]
+                        reference_node_output_name = list(node_reference.values())[0]
+                        try:
+                            referenced_argument_values.append(
+                                graph[reference_node_name]['output_lookup'][reference_node_output_name])
+                        except KeyError as e:
+                            print(f"KeyError: {e}")
+                            print(f"Reference node name: {reference_node_name}")
+                            print(f"Reference node output lookup: {graph[reference_node_name]['output_lookup']}")
+                    arguments[arg_name] = referenced_argument_values
+                else:
+                    reference_node_name = list(node_references.keys())[0]
+                    reference_node_output_name = list(node_references.values())[0]
+                    try:
+                        arguments[arg_name] = graph[reference_node_name]['output_lookup'][reference_node_output_name]
+                    except KeyError as e:
+                        print(f"KeyError: {e}")
+                        print(f"Reference node name: {reference_node_name}")
+                        print(f"Reference node output lookup: {graph[reference_node_name]['output_lookup']}")
+        return arguments
+
+    def _replace_argument_references_for_node(self, node):
+        node_references = node['references']
+        node_properties = node['config']['properties']
+        initialization_arguments = node_properties.get("initialization_arguments", dict())
+        callable_arguments = node_properties.get("callable_arguments", dict())
+
+        has_references = len(node_references) > 0
+        if has_references:
+            # replace the reference values in the arguments
+            initialization_arguments = self._replace_references(initialization_arguments)
+            callable_arguments = self._replace_references(callable_arguments)
+        return initialization_arguments, callable_arguments
 
     # TODO: refactor this beast of a function
     def run(self, reference_lookup, to_node=None):
@@ -60,18 +144,7 @@ class PipelineGraph:
             node_properties = node_config.get("properties")
             node_callable = reference_lookup[node_config['type']]
             if node_properties is not None:
-
-                # 1. Replace the properties that reference values from another node with the actual values
-                initialization_arguments = node_properties.get("initialization_arguments", dict())
-                callable_arguments = node_properties.get("callable_arguments", dict())
-
-                has_references = len(node_references) > 0
-                if has_references:
-                    # replace the reference values in the arguments
-                    initialization_arguments = replace_references(self.graph.nodes(data=True), initialization_arguments)
-                    callable_arguments = replace_references(self.graph.nodes(data=True), callable_arguments)
-                else:
-                    pass
+                initialization_arguments, callable_arguments = self._replace_argument_references_for_node(node)
 
                 # 2. Check if the callable of the node is a function or a class
                 is_function = isinstance(node_callable, types.FunctionType)

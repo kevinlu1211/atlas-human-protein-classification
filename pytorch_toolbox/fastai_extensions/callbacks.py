@@ -7,7 +7,7 @@ import pytorch_toolbox.fastai.fastai as fastai
 from dataclasses import dataclass
 
 @dataclass
-class NameExtractionTrainer(fastai.Callback):
+class LabelExtractorCallback(fastai.Callback):
     label_key: str = 'label'
     def on_batch_begin(self, last_input, last_target, **kwargs):
         label = last_target.get(self.label_key)
@@ -42,5 +42,5 @@ class MixedPrecision(fastai.callbacks.MixedPrecision):
         return
 
 callback_lookup = {
-    "NameExtractionTrainer": NameExtractionTrainer
+    "LabelExtractorCallback": LabelExtractorCallback
 }

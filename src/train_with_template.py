@@ -109,6 +109,11 @@ def create_data_bunch(train_idx, val_idx, train_X, train_y_one_hot, train_y, tes
                             train_bs=train_bs, val_bs=val_bs, test_bs=test_bs,
                             collate_fn=train_ds.collate_fn, sampler=sampler, num_workers=num_workers)
 
+def create_data_bunch_for_inference(X_test, ds):
+    train_ds = ds(inputs=X_test, image_cached=True)
+    val_ds = ds(inputs=X_test, image_cached=True)
+    test_ds = ds(inputs=X_test, image_cached=True)
+    return DataBunch.create(train_ds, val_ds, test_ds)
 
 def create_sampler(y=None, sampler_fn=None):
     sampler = None
@@ -151,10 +156,11 @@ def create_learner_callbacks(learner_callback_references):
     return callback_fns
 
 
-def create_learner(data, model_creator, callbacks_creator, callback_fns_creator, metrics, loss_funcs, to_fp16=False):
+def create_learner(data, model_creator, loss_funcs=[], metrics=None,
+                   callbacks_creator=None, callback_fns_creator=None, to_fp16=False):
     model = model_creator()
-    callbacks = callbacks_creator()
-    callback_fns = callback_fns_creator()
+    callbacks = callbacks_creator() if callbacks_creator is not None else None
+    callback_fns = callback_fns_creator() if callback_fns_creator is not None else None
     learner = Learner(data,
                       model=model,
                       loss_func=LossWrapper(loss_funcs),
@@ -323,6 +329,7 @@ lookups = {
     "load_training_data": load_training_data,
     "load_testing_data": load_testing_data,
     "create_data_bunch": create_data_bunch,
+    "create_data_bunch_for_inference": create_data_bunch_for_inference,
     "create_sampler": create_sampler,
     "create_learner": create_learner,
     "create_time_stamped_save_path": create_time_stamped_save_path,
@@ -344,6 +351,8 @@ def main(config_file_path, log_level):
     pipeline_graph = PipelineGraph.create_pipeline_graph_from_config(config)
     print(pipeline_graph.sorted_node_names)
     pipeline_graph.run(reference_lookup=lookups)
+  
+
 
 
 if __name__ == '__main__':
