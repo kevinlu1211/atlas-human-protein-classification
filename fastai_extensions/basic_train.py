@@ -39,8 +39,8 @@ class Learner(fastai.Learner):
 
     def predict_on_test_dl(self, pbar=None, callbacks=None, metrics=None):
         """Test with callbacks"""
-        dl = ifnone(dl, self.data.test_dl)
-        predict_on_dl(dl, pbar, callbacks, metrics)
+        dl = self.data.test_dl
+        self.predict_on_dl(dl, pbar, callbacks, metrics)
 
     def freeze_layer_groups(self, layer_group_idxs):
         if not is_listy(layer_group_idxs): layer_group_idxs = [layer_group_idxs]
