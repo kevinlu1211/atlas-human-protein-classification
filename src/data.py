@@ -222,6 +222,11 @@ def create_sample_weights(all_labels, method="MEAN"):
         all_weights.append(weights)
     return all_weights
 
+def match_prediction_probs_with_labels(prediction_probs):
+    assert prediction_probs.shape == (1, 28)
+    matched = {name: prob for name, prob in zip(label_to_string.values(), prediction_probs[0])}
+    return sorted(matched.items(), key=lambda x: x[1], reverse=True)
+
 
 sampler_weight_lookup = {
     "mean_proportion_class_weights": mean_proportion_class_weights,

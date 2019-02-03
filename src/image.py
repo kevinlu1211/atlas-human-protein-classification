@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import random
 
 from .data import open_numpy, DataPaths, label_to_string, string_to_label
 
@@ -88,7 +89,7 @@ def convert_to_labels(class_labels):
 
 def get_image_from_class(class_labels, n_samples=1):
     converted_labels = convert_to_labels(class_labels)
-    df = pd.read_csv(DataPaths.TRAIN_ALL_LABELS)
+    df = pd.read_csv(DataPaths.TRAIN_LABELS_ALL_NO_DUPES)
     df['Sorted Target'] = df['Target'].map(lambda t: np.array(sorted([int(l) for l in t.split()])))
     filtered_df = df[df['Sorted Target'].map(lambda x: np.all(converted_labels == x))]
     if len(filtered_df) == 0:
@@ -97,3 +98,13 @@ def get_image_from_class(class_labels, n_samples=1):
     sampled_ids = samples['Id']
     sampled_images = [get_image_with_id(image_id) for image_id in sampled_ids.values]
     return sampled_images
+
+def get_unique_classes(k=10):
+    df = pd.read_csv(DataPaths.TRAIN_LABELS_ALL_NO_DUPES)
+    df['Target'] = df['Target'].map(lambda t: np.array(sorted([int(l) for l in t.split()])))
+    df['Target String'] = df['Target'].map(lambda t: tuple([label_to_string[l] for l in t]))
+    unique_classes = [ts for ts in df['Target String'].unique()]
+    if k is None:
+        return unique_classes
+    return random.sample(unique_classes, k)
+

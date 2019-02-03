@@ -364,7 +364,7 @@ def main(config_file_path, log_level):
         config = yaml.load(f)
     pipeline_graph = PipelineGraph.create_pipeline_graph_from_config(config)
     print(pipeline_graph.sorted_node_names)
-    # pipeline_graph.run(reference_lookup=lookups)
+    pipeline_graph.run(reference_lookup=lookups)
     pipeline_graph.run(reference_lookup=lookups, to_node="CreateInference")
     create_inference_fn = pipeline_graph.get_node_output("CreateInference")
     image = np.ones((1024, 1024, 4))
