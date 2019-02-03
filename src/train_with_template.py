@@ -6,8 +6,6 @@ import warnings
 if not sys.warnoptions:
     warnings.simplefilter("ignore")
 
-
-
 import time
 from functools import partial
 import logging
@@ -17,7 +15,6 @@ from functools import reduce
 from pathlib import Path
 from operator import add
 from collections import Counter
-
 
 import click
 import yaml
@@ -30,9 +27,8 @@ from sklearn.metrics import f1_score
 import scipy.optimize as opt
 
 sys.path.append("../..")
-from src.data import DataPaths, create_image_label_set, make_one_hot, open_rgby
-from src.data import ProteinClassificationDataset, open_numpy, mean_proportion_class_weights, dataset_lookup, \
-    sampler_weight_lookup, split_method_lookup, single_class_counter
+from src.data import make_one_hot, open_numpy, dataset_lookup, \
+    sampler_weight_lookup, split_method_lookup, Image
 from src.training import training_scheme_lookup
 from src.models import model_lookup
 from src.transforms import augment_fn_lookup
@@ -99,7 +95,8 @@ def load_testing_data(root_image_paths, use_n_samples=None):
     return np.array(X)
 
 
-def create_data_bunch(train_idx, val_idx, train_X, train_y_one_hot, train_y, test_X, train_ds, train_bs, val_ds, val_bs, test_ds,
+def create_data_bunch(train_idx, val_idx, train_X, train_y_one_hot, train_y, test_X, train_ds, train_bs, val_ds, val_bs,
+                      test_ds,
                       test_bs, sampler, num_workers):
     sampler = sampler(y=train_y[train_idx])
     train_ds = train_ds(inputs=train_X[train_idx], labels=train_y_one_hot[train_idx])
@@ -109,11 +106,13 @@ def create_data_bunch(train_idx, val_idx, train_X, train_y_one_hot, train_y, tes
                             train_bs=train_bs, val_bs=val_bs, test_bs=test_bs,
                             collate_fn=train_ds.collate_fn, sampler=sampler, num_workers=num_workers)
 
-def create_data_bunch_for_inference(X_test, ds):
+
+def create_data_bunch_for_inference(X_test, ds, num_workers):
     train_ds = ds(inputs=X_test, image_cached=True)
     val_ds = ds(inputs=X_test, image_cached=True)
     test_ds = ds(inputs=X_test, image_cached=True)
-    return DataBunch.create(train_ds, val_ds, test_ds)
+    return DataBunch.create(train_ds, val_ds, test_ds, num_workers=num_workers, collate_fn=test_ds.collate_fn)
+
 
 def create_sampler(y=None, sampler_fn=None):
     sampler = None
@@ -157,7 +156,7 @@ def create_learner_callbacks(learner_callback_references):
 
 
 def create_learner(data, model_creator, loss_funcs=[], metrics=None,
-                   callbacks_creator=None, callback_fns_creator=None, to_fp16=False):
+                   callbacks_creator=None, callback_fns_creator=None, to_fp16=False, model_path=None):
     model = model_creator()
     callbacks = callbacks_creator() if callbacks_creator is not None else None
     callback_fns = callback_fns_creator() if callback_fns_creator is not None else None
@@ -167,12 +166,15 @@ def create_learner(data, model_creator, loss_funcs=[], metrics=None,
                       metrics=metrics,
                       callbacks=callbacks,
                       callback_fns=callback_fns)
+    if model_path is not None:
+        learner.load_from_path(model_path)
     if to_fp16:
         learner = learner.to_fp16()
     return learner
 
 
-def training_loop(create_learner, data_bunch_creator, config_saver, data_splitter_iterable, training_scheme, record_results, state_dict):
+def training_loop(create_learner, data_bunch_creator, config_saver, data_splitter_iterable, training_scheme,
+                  record_results, state_dict):
     for i, (train_idx, val_idx) in enumerate(data_splitter_iterable(), 1):
         state_dict["current_fold"] = i
         config_saver()
@@ -210,11 +212,13 @@ class ResultRecorder(fastai.Callback):
         prob_pred = to_numpy(torch.sigmoid(last_output))
         self.prob_preds.extend(prob_pred)
 
+
 def save_config(save_path_creator, state_dict):
     save_path = save_path_creator()
     save_path.mkdir(parents=True, exist_ok=True)
     with (save_path / "config.yml").open('w') as yaml_file:
         yaml.dump(state_dict["config"], yaml_file, default_flow_style=False)
+
 
 def record_results(learner, result_recorder_creator, save_path_creator):
     save_path = save_path_creator()
@@ -300,6 +304,15 @@ def fit_val(x, y):
     return p
 
 
+def create_inference(image, inference_data_bunch_creator, inference_learner_creator, result_recorder_creator):
+    inference_data_bunch = inference_data_bunch_creator([Image(image)])
+    inference_learner = inference_learner_creator(inference_data_bunch)
+    result_recorder = result_recorder_creator()
+    inference_learner.predict_on_test_dl(callbacks=[result_recorder])
+    return np.stack(result_recorder.names), np.stack(result_recorder.prob_preds)
+
+
+
 learner_callback_lookup = {
     "create_output_recorder": create_output_recorder,
     "create_csv_logger": create_csv_logger,
@@ -337,7 +350,8 @@ lookups = {
     'create_learner_callbacks': create_learner_callbacks,
     "training_loop": training_loop,
     "record_results": record_results,
-    "save_config": save_config
+    "save_config": save_config,
+    "create_inference": create_inference
 }
 
 
@@ -350,11 +364,14 @@ def main(config_file_path, log_level):
         config = yaml.load(f)
     pipeline_graph = PipelineGraph.create_pipeline_graph_from_config(config)
     print(pipeline_graph.sorted_node_names)
-    pipeline_graph.run(reference_lookup=lookups)
-  
-
+    # pipeline_graph.run(reference_lookup=lookups)
+    pipeline_graph.run(reference_lookup=lookups, to_node="CreateInference")
+    create_inference_fn = pipeline_graph.get_node_output("CreateInference")
+    image = np.ones((1024, 1024, 4))
+    names, prediction_probs = create_inference_fn(image)
+    print("WOW")
+    # image of shape: (B x H x W x C)
 
 
 if __name__ == '__main__':
     main()
-

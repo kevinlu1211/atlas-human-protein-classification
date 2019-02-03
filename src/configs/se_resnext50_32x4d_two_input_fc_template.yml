@@ -405,8 +405,9 @@ CreateLearnerForInference:
       #          - CreateSoftF1Loss: SoftF1Loss
       callbacks_creator:
         Ref:
-          CreateCallbacks: CallbacksCreator
+          CreateCallbacksForInference: CallbacksCreator
       to_fp16: false
+      model_path: /media/hd/Kaggle/human-protein-image-classification/results/saved_results/se_resnext_50_2_fc_lovasz_loss_20190201-102757/Fold_1/model_checkpoints/cycle_0_epoch_56.pth
 
   output: LearnerCreator
 
@@ -420,18 +421,6 @@ CreateCallbacksForInference:
           - CreateLabelExtractorCallback: LabelExtractorCallback
   output: CallbacksCreator
 
-CreateLearnerCallbacksForInference:
-  type: create_learner_callbacks
-  properties:
-    partial_callable: true
-    callable_arguments:
-      learner_callback_references:
-        Ref:
-          - CreateCSVLoggerLearnerCallback: CSVLoggerLearnerCallback
-          - CreateOutputRecorderLearnerCallback: OutputRecorderLearnerCallback
-          - CreateGradientClippingLearnerCallback: GradientClippingLearnerCallback
-  output: LearnerCallbacksCreator
-
 CreateDataBunchForInference:
   type: create_data_bunch_for_inference
   properties:
@@ -439,5 +428,23 @@ CreateDataBunchForInference:
       ds:
         Ref:
           CreateTestingDataset: TestingDataset
+      num_workers: 0
     partial_callable: true
-  output: DataBunch
+  output: DataBunchCreator
+
+CreateInference:
+  type: create_inference
+  properties:
+    partial_callable: true
+    callable_arguments:
+      inference_data_bunch_creator:
+        Ref:
+          CreateDataBunchForInference: DataBunchCreator
+      inference_learner_creator:
+        Ref:
+          CreateLearnerForInference: LearnerCreator
+      result_recorder_creator:
+        Ref:
+          CreateResultRecorder: ResultRecorderCreator
+  output: Inference
+

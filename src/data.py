@@ -2,6 +2,7 @@ import random
 from pathlib import Path
 from collections import Counter
 
+import uuid
 import torch
 import torch.utils.data
 import cv2
@@ -91,7 +92,7 @@ class Image:
     def __init__(self, px, name=None):
         self._px = px
         self._tensor = None
-        self.name = name
+        self.name = str(uuid.uuid4()) if name is None else name
 
     @property
     def px(self):
