@@ -60,22 +60,41 @@ def set_logger(log_level):
     )
 
 
-def load_training_data(root_image_paths: Union[List[str], str], root_label_paths: List[str],
-                       use_n_samples: Union[None, int] = None) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    labels_df = pd.read_csv(root_label_paths)
+def load_training_labels(training_labels_path):
+    labels_df = pd.read_csv(training_labels_path)
     labels_df['Target'] = [[int(i) for i in s.split()] for s in labels_df['Target']]
+    return labels_df
+
+
+def create_image_id_lookups(labels_df):
     image_id_with_labels = labels_df['Id']
     image_id_with_labels_lookup = Counter(image_id_with_labels)
+    return image_id_with_labels_lookup
 
+
+def load_training_images(training_images_path):
     image_paths = []
-    for p in listify(root_image_paths):
+    for p in listify(training_images_path):
         image_paths.extend(Path(p).glob("*"))
+    return image_paths
 
+
+def filter_image_paths_with_labels(image_paths, labels_df):
+    # We use a Counter to filter in O(n) instead of O(n^2) time
+    image_id_with_labels_lookup = create_image_id_lookups(labels_df)
     image_paths_used_for_training = [Path(p) for p in image_paths if
                                      image_id_with_labels_lookup.get(Path(p).stem) is not None]
+    return image_paths_used_for_training
+
+
+def load_training_data(root_image_paths: Union[List[str], str], root_label_paths: List[str],
+                       use_n_samples: Union[None, int] = None) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    labels_df = load_training_labels(root_label_paths)
+    image_paths = load_training_images(root_image_paths)
+    image_paths_with_labels = filter_image_paths_with_labels(image_paths, labels_df)
 
     sorted_labels_df = labels_df.sort_values(["Id"], ascending=[True])
-    sorted_image_paths_used_for_training = sorted(image_paths_used_for_training, key=lambda x: x.stem)
+    sorted_image_paths_used_for_training = sorted(image_paths_with_labels, key=lambda x: x.stem)
     assert np.all(np.array([p.stem for p in sorted_image_paths_used_for_training]) == sorted_labels_df["Id"])
 
     if use_n_samples is not None:
@@ -310,7 +329,6 @@ def create_inference(image, inference_data_bunch_creator, inference_learner_crea
     result_recorder = result_recorder_creator()
     inference_learner.predict_on_test_dl(callbacks=[result_recorder])
     return np.stack(result_recorder.names), np.stack(result_recorder.prob_preds)
-
 
 
 learner_callback_lookup = {

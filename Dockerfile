@@ -27,12 +27,13 @@ RUN conda env create -f /tmp/environment.yml
 COPY . /code
 WORKDIR /
 RUN chmod 777 -R /code
-WORKDIR /code/applications/strax_worker
+WORKDIR /code/src
 
 # Set interpreter path to our conda environment
-ENV PATH /opt/conda/envs/strax-worker-env/bin:$PATH
+ENV PATH /opt/conda/envs/human-protein-image-classification/bin:$PATH
 ENV PYTHONPATH /code:$PYTHONPATH
 ENV LC_ALL C.UTF-8
 ENV LANG C.UTF-8
 
-ENTRYPOINT ["python"]
+EXPOSE 8888
+ENTRYPOINT ["bash"]
