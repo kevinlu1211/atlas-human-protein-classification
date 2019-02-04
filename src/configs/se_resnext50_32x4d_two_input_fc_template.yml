@@ -17,7 +17,6 @@ LoadTrainingData:
         - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined
         - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined_HPAv18
       root_label_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_all_no_dupe.csv
-      use_n_samples: 500
   output:
     - train_X
     - train_y
@@ -211,7 +210,7 @@ CreateTrainingScheme:
   type: training_scheme_one_cycle
   properties:
     callable_arguments:
-      epochs: 60
+      epochs: 40
       lr: 5e-4
     partial_callable: true
   output: TrainingScheme
@@ -236,7 +235,7 @@ CreateLearner:
         Ref:
           - CreateLovaszHingeFlatLoss: LovaszHingeFlatLoss
           - CreateFocalLoss: FocalLoss
-      #          - CreateSoftF1Loss: SoftF1Loss
+          - CreateSoftF1Loss: SoftF1Loss
       callbacks_creator:
         Ref:
           CreateCallbacks: CallbacksCreator
