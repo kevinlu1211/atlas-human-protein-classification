@@ -15,3 +15,10 @@ are used have 4 color channels and it's faster to load them when they are in one
 combined image are stored
 6. To run the training loop: `src/train_with_template.py -cfg src/configs/resnet34_d_template.yml`
 
+### How to run with Docker?
+
+1. Clone this repo and `cd` to it
+2. Download Docker from [here](https://docs.docker.com/install/linux/docker-ce/ubuntu/) if you don't have it
+3. Build the Docker image, this will take a while due to the dependencies, and the model weight. `docker build --tag human-protein-image-classification . `
+4. To have a look at the notebooks: `docker container run -p 8888:8888 human-protein-image-classification scripts/notebooks.sh` these notebooks are self-contained so there is no need to download anything
+5. To train a model from scratch it is more complicated. Instructions to come!
