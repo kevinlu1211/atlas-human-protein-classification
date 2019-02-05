@@ -52,14 +52,15 @@ string_to_label = {
 class DataPaths:
     ROOT_DATA_PATH = Path(__file__).parent.parent / 'data'
     TRAIN_IMAGES = Path(ROOT_DATA_PATH, "train")
+    TRAIN_IMAGES_HPAv18 = Path(ROOT_DATA_PATH, "train_HPAv18")
     TRAIN_COMBINED_IMAGES = Path(ROOT_DATA_PATH, "train_combined")
+    TRAIN_COMBINED_IMAGES_HPAv18 = Path(ROOT_DATA_PATH, "train_combined_HPAv18")
     TRAIN_LABELS = Path(ROOT_DATA_PATH, "train.csv")
+
     TRAIN_LABELS_HPAv18 = Path(ROOT_DATA_PATH, "HPAv18RBGY_wodpl.csv")
     TRAIN_LABELS_ALL_NO_DUPES = Path(ROOT_DATA_PATH, "train_all_no_dupe.csv")
-    TRAIN_COMBINED_IMAGES_HPAv18 = Path(ROOT_DATA_PATH, "train_combined_HPAv18")
     TEST_IMAGES = Path(ROOT_DATA_PATH, "test")
     TEST_COMBINED_IMAGES = Path(ROOT_DATA_PATH, "test_combined")
-    TRAIN_RGBY_IMAGES = Path(ROOT_DATA_PATH, "train_rgby")
 
 
 def open_rgby(path, with_image_wrapper=True):  # a function that reads RGBY image
