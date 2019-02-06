@@ -1,21 +1,10 @@
-import sys
-from collections import Counter, Iterable
-from typing import List, Union, Tuple
-from functools import reduce
-from pathlib import Path
-from operator import add
-
 from miniutils.progress_bar import parallel_progbar, progbar
 import numpy as np
 import pandas as pd
-import seaborn as sns
 import imagehash
 from PIL import Image
 
-from src.data import make_one_hot
-from src.train_with_template import load_training_data
-from src.image import get_image_with_id, plot_rgb, plot_rgby
-from src.data import DataPaths, open_numpy, label_to_string
+from src.data import DataPaths, open_numpy
 
 
 def load_names_and_image_paths():
@@ -58,7 +47,7 @@ def create_phash_similarity_df():
                     "compared_image_name": name_of_image_compared,
                     "similarity": similarity
                 })
-    return pd.DataFrame(phash_df_data).sort_values(['similarity'], asecnding=[False])
+    return pd.DataFrame(phash_df_data).sort_values(['similarity'], ascending=[False])
 
 
 similarity_df = create_phash_similarity_df()

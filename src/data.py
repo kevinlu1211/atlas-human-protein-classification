@@ -50,7 +50,7 @@ string_to_label = {
 
 
 class DataPaths:
-    ROOT_DATA_PATH = Path(__file__).parent.parent / 'data'
+    ROOT_DATA_PATH = Path(__file__).parent.parent / 'data_test'
     TRAIN_IMAGES = Path(ROOT_DATA_PATH, "train")
     TRAIN_IMAGES_HPAv18 = Path(ROOT_DATA_PATH, "train_HPAv18")
     TRAIN_COMBINED_IMAGES = Path(ROOT_DATA_PATH, "train_combined")
@@ -58,7 +58,7 @@ class DataPaths:
     TRAIN_LABELS = Path(ROOT_DATA_PATH, "train.csv")
 
     TRAIN_LABELS_HPAv18 = Path(ROOT_DATA_PATH, "HPAv18RBGY_wodpl.csv")
-    TRAIN_LABELS_ALL_NO_DUPES = Path(ROOT_DATA_PATH, "train_all_no_dupe.csv")
+    TRAIN_LABELS_ALL_NO_DUPES = Path(ROOT_DATA_PATH, "train_all_no_dupes.csv")
     TEST_IMAGES = Path(ROOT_DATA_PATH, "test")
     TEST_COMBINED_IMAGES = Path(ROOT_DATA_PATH, "test_combined")
 

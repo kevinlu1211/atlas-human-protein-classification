@@ -1,8 +1,3 @@
-import sys
-from multiprocessing import Pool
-from pathlib import Path
-
-from progress.bar import Bar
 import requests
 import pandas as pd
 from miniutils.progress_bar import parallel_progbar, progbar

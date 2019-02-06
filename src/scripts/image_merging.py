@@ -1,4 +1,3 @@
-import sys
 import numpy as np
 import cv2
 import os
@@ -13,7 +12,7 @@ from src.image import plot_rgby
 from src.data import open_numpy, DataPaths
 
 COLORS = ['red', 'green', 'blue', 'yellow']
-KAGGLE_IMAGE_EXTENSION = "tif"
+KAGGLE_IMAGE_EXTENSION = "png"
 HPAV18_IMAGE_EXTENSION = "jpg"
 
 
@@ -57,27 +56,42 @@ def save_img(data):
     np.save(img_path, channels, allow_pickle=True)
 
 
-print("Combining HPAv18 images")
-root_dir = DataPaths.TRAIN_IMAGES_HPAv18
-save_dir = DataPaths.TRAIN_COMBINED_IMAGES_HPAv18
-save_dir.mkdir(parents=True, exist_ok=True)
-print("Creating image paths")
-img_ids = get_image_ids_HPAv18(root_dir)
-SIZE = (1024, 1024)
-n_samples = len(img_ids)
-img_details = zip([root_dir] * n_samples,
-                [save_dir] * n_samples,
-                img_ids,
-                [HPAV18_IMAGE_EXTENSION] * n_samples,
-                [SIZE] * n_samples)
-parallel_progbar(save_img, img_details)
+# print("Combining HPAv18 images")
+# root_dir = DataPaths.TRAIN_IMAGES_HPAv18
+# save_dir = DataPaths.TRAIN_COMBINED_IMAGES_HPAv18
+# save_dir.mkdir(parents=True, exist_ok=True)
+# print("Creating image paths")
+# img_ids = get_image_ids_HPAv18(root_dir)
+# SIZE = (1024, 1024)
+# n_samples = len(img_ids)
+# img_details = zip([root_dir] * n_samples,
+#                 [save_dir] * n_samples,
+#                 img_ids,
+#                 [HPAV18_IMAGE_EXTENSION] * n_samples,
+#                 [SIZE] * n_samples)
+# parallel_progbar(save_img, img_details)
+#
+# print("Combining Kaggle training images")
+# root_dir = DataPaths.TRAIN_IMAGES
+# save_dir = DataPaths.TRAIN_COMBINED_IMAGES
+# save_dir.mkdir(parents=True, exist_ok=True)
+# print("Creating image paths")
+# img_ids = get_image_ids(root_dir)
+# SIZE = (1024, 1024)
+# n_samples = len(img_ids)
+# img_details = zip([root_dir] * n_samples,
+#                 [save_dir] * n_samples,
+#                 img_ids,
+#                 [KAGGLE_IMAGE_EXTENSION] * n_samples,
+#                 [SIZE] * n_samples)
+# parallel_progbar(save_img, img_details)
 
-print("Combining Kaggle images")
-root_dir = DataPaths.TRAIN_IMAGES
-save_dir = DataPaths.TRAIN_COMBINED_IMAGES
+print("Combining Kaggle testing images")
+root_dir = DataPaths.TEST_IMAGES
+save_dir = DataPaths.TEST_COMBINED_IMAGES
 save_dir.mkdir(parents=True, exist_ok=True)
 print("Creating image paths")
-img_ids = get_image_ids_HPAv18(root_dir)
+img_ids = get_image_ids(root_dir)
 SIZE = (1024, 1024)
 n_samples = len(img_ids)
 img_details = zip([root_dir] * n_samples,
