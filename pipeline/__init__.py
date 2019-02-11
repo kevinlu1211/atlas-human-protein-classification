@@ -122,7 +122,7 @@ class PipelineGraph:
                 initialization_arguments, callable_arguments = self._replace_argument_references_for_node(node)
 
                 # 2. Check if the callable of the node is a function or a class
-                is_function = isinstance(node_callable, types.FunctionType)
+                is_function = isinstance(node_callable, types.FunctionType) or hasattr(node_callable, "func")
                 partial_initialization = node_properties.get("partial_initialization", False)
                 partial_callable = node_properties.get("partial_callable", False)
 
@@ -138,7 +138,7 @@ class PipelineGraph:
 
                     if partial_callable:
                         assert not len(
-                            node_output) == 1, 'If this is a partial callable, then there should be one output for this step'
+                            node_output) == 1, 'If this is a partial callable, then there should be one output for this step, please specift a value for the output key, or check the spelling for the output key'
                         if needs_state_dict:
                             node['output_lookup'] = {
                                 node_output: partial(node_callable, **callable_arguments,
