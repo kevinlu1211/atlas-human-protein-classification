@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 from ...utils import to_numpy
-from ..loss.core import calculate_f1_soft_loss
+from ..loss.core import calculate_f1_soft_loss, calculate_focal_loss
 
 # Referenced from https://www.kaggle.com/iafoss/pretrained-resnet34-with-rgby-0-460-public-lb
 def sigmoid_np(x):
@@ -29,7 +29,12 @@ def f1_soft(preds,targs,th=0.5,d=50.0):
         score = 2.0*(preds*targs).sum(axis=0)/((preds+targs).sum(axis=0) + 1e-6)
         return score
 
+def focal_loss(preds, targs, gamma=2):
+    focal_loss = calculate_focal_loss(preds, targs, gamma=gamma)
+    return focal_loss.mean()
+
 metric_lookup = {
     "accuracy": accuracy,
-    "f1_soft": f1_soft
+    "f1_soft": f1_soft,
+    "focal_loss": focal_loss
 }

@@ -11,9 +11,7 @@ from functools import partial
 import logging
 from pprint import pprint
 from typing import List, Union, Tuple
-from functools import reduce
 from pathlib import Path
-from operator import add
 from collections import Counter
 
 import click
@@ -58,6 +56,19 @@ def set_logger(log_level):
     logging.basicConfig(
         level=log_levels.get(log_level, logging.INFO),
     )
+
+@click.command()
+@click.option('-cfg', '--config_file_path')
+@click.option('-log-lvl', '--log_level', default="INFO")
+def main(config_file_path, log_level):
+    set_logger(log_level)
+    with Path(config_file_path).open("r") as f:
+        config = yaml.load(f)
+    pipeline_graph = PipelineGraph.create_pipeline_graph_from_config(config)
+    print(pipeline_graph.sorted_node_names)
+    pipeline_graph.run(reference_lookup=lookups)
+
+
 
 
 def load_training_labels(training_labels_path):
@@ -160,7 +171,10 @@ def create_sampler(y=None, sampler_fn=None):
 def create_callbacks(callback_references):
     callbacks = []
     for cb_ref in callback_references:
-        callbacks.append(cb_ref())
+        try:
+            callbacks.append(cb_ref())
+        except TypeError:
+            callbacks.append(cb_ref)
     return callbacks
 
 
@@ -204,7 +218,7 @@ def training_loop(create_learner, data_bunch_creator, config_saver, data_splitte
 
 
 class ResultRecorder(fastai.Callback):
-    _order = -0.5
+    _order = -10
 
     def __init__(self):
         self.names = []
@@ -373,22 +387,6 @@ lookups = {
 }
 
 
-@click.command()
-@click.option('-cfg', '--config_file_path')
-@click.option('-log-lvl', '--log_level', default="INFO")
-def main(config_file_path, log_level):
-    set_logger(log_level)
-    with Path(config_file_path).open("r") as f:
-        config = yaml.load(f)
-    pipeline_graph = PipelineGraph.create_pipeline_graph_from_config(config)
-    print(pipeline_graph.sorted_node_names)
-    pipeline_graph.run(reference_lookup=lookups)
-    pipeline_graph.run(reference_lookup=lookups, to_node="CreateInference")
-    create_inference_fn = pipeline_graph.get_node_output("CreateInference")
-    image = np.ones((1024, 1024, 4))
-    names, prediction_probs = create_inference_fn(image)
-    print("WOW")
-    # image of shape: (B x H x W x C)
 
 
 if __name__ == '__main__':

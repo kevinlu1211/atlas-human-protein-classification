@@ -50,7 +50,7 @@ string_to_label = {
 
 
 class DataPaths:
-    ROOT_DATA_PATH = Path(__file__).parent.parent / 'data_test'
+    ROOT_DATA_PATH = Path(__file__).parent.parent / 'data'
     TRAIN_IMAGES = Path(ROOT_DATA_PATH, "train")
     TRAIN_IMAGES_HPAv18 = Path(ROOT_DATA_PATH, "train_HPAv18")
     TRAIN_COMBINED_IMAGES = Path(ROOT_DATA_PATH, "train_combined")
@@ -128,13 +128,14 @@ class ProteinClassificationDataset(torch.utils.data.Dataset):
         return x, y
 
     def __init__(self, inputs, open_image_fn=open_numpy, image_cached=False, augment_fn=None, normalize_fn=None,
-                 labels=None):
+                 labels=None, tta_fn=None):
         self.inputs = inputs
         self.open_image_fn = open_image_fn
         self.image_cached = image_cached
         self.augment_fn = augment_fn
         self.normalize_fn = normalize_fn
         self.labels = labels
+        self.tta_fn = tta_fn
 
     def __len__(self):
         return len(self.inputs)
@@ -154,6 +155,9 @@ class ProteinClassificationDataset(torch.utils.data.Dataset):
 
         if self.normalize_fn is not None:
             img_tensor = self.normalize_fn(img_tensor)
+
+        if self.tta_fn is not None:
+            img_tensor = self.tta_fn(img_tensor)
 
         ret['input'] = img_tensor
         ret['name'] = img.name
@@ -207,6 +211,7 @@ def mean_proportion_class_weights(all_labels):
         all_weights.append(weights)
     return all_weights
 
+
 def uniform_weights(all_labels):
     return [1 for _ in all_labels]
 
@@ -222,6 +227,7 @@ def create_sample_weights(all_labels, method="MEAN"):
             weights = np.array([weight_lookup[l] for l in labels]).max()
         all_weights.append(weights)
     return all_weights
+
 
 def match_prediction_probs_with_labels(prediction_probs):
     assert prediction_probs.shape == (1, 28)

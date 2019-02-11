@@ -13,10 +13,13 @@ LoadTrainingData:
   type: load_training_data
   properties:
     callable_arguments:
+#      root_image_paths:
+#        - /home/kevin/Documents/Kaggle/human-protein-image-classification/data_test/train_combined
+#        - /home/kevin/Documents/Kaggle/human-protein-image-classification/data_test/train_combined_HPAv18
+#      root_label_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data_test/train_all_no_dupes.csv
       root_image_paths:
-        - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined
-        - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined_HPAv18
-      root_label_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_all_no_dupe.csv
+        - /home/kevin/Documents/Kaggle/human-protein-image-classification/data_test/train_combined
+      root_label_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data_test/train.csv
   output:
     - train_X
     - train_y
@@ -52,6 +55,9 @@ CreateValidationDataset:
       normalize_fn:
         Ref:
           CreateNormalizeFunction: NormalizeFunction
+      tta_fn:
+        Ref:
+          CreateFiveCropTTAFunction: FiveCropTTAFunction
   output: ValidationDataset
 
 CreateTestingDataset:
@@ -68,9 +74,14 @@ CreateTestingDataset:
       normalize_fn:
         Ref:
           CreateNormalizeFunction: NormalizeFunction
+      tta_fn:
+        Ref:
+          CreateFiveCropTTAFunction: FiveCropTTAFunction
   output: TestingDataset
 
 # Image / Augmentation
+
+
 
 CreateOpenImageFunction:
   type: open_numpy
@@ -81,11 +92,13 @@ CreateOpenImageFunction:
   output: OpenImageFunction
 
 CreateAugmentationFunction:
-  type: very_simple_aug_with_elastic_transform
+  type: very_simple_aug_with_elastic_transform_and_crop
   properties:
     callable_arguments:
-      height: 512
-      width: 512
+      height: 768
+      width: 768
+      crop_height: 512
+      crop_width: 512
       with_image_wrapper: true
   output: AugmentationFunction
 
@@ -93,10 +106,19 @@ CreateTestAugmentationFunction:
   type: resize_aug
   properties:
     callable_arguments:
-      height: 512
-      width: 512
+      height: 768
+      width: 768
       with_image_wrapper: true
   output: TestAugmentationFunction
+
+CreateFiveCropTTAFunction:
+  type: five_crop_tta_transform
+  properties:
+    partial_callable: true
+    callable_arguments:
+      crop_height: 512
+      crop_width: 512
+  output: FiveCropTTAFunction
 
 CreateNormalizeFunction:
   type: identity
@@ -130,8 +152,8 @@ CreateDataBunch:
         Ref:
           LoadTestingData: test_X
       train_bs: 16
-      test_bs: 4
-      val_bs: 4
+      test_bs: 6
+      val_bs: 6
       train_ds:
         Ref:
           CreateTrainingDataset: TrainingDataset
@@ -231,6 +253,7 @@ CreateLearner:
         Ref:
           - CreateAccuracyMetric: AccuracyMetric
           - CreateF1SoftMetric: F1SoftMetric
+          - CreateFocalLossMetric: FocalLossMetric
       loss_funcs:
         Ref:
           - CreateLovaszHingeFlatLoss: LovaszHingeFlatLoss
@@ -242,7 +265,7 @@ CreateLearner:
       callback_fns_creator:
         Ref:
           CreateLearnerCallbacks: LearnerCallbacksCreator
-      to_fp16: false
+      to_fp16: true
   output: LearnerCreator
 
 CreateCallbacks:
@@ -253,6 +276,7 @@ CreateCallbacks:
       callback_references:
         Ref:
           - CreateLabelExtractorCallback: LabelExtractorCallback
+          - CreateFiveCropTTAPredictionCallback: FiveCropTTAPredictionCallback
   output: CallbacksCreator
 
 CreateLearnerCallbacks:
@@ -316,6 +340,13 @@ CreateGradientClippingLearnerCallback:
       clip: 1.0
   output: GradientClippingLearnerCallback
 
+CreateFiveCropTTAPredictionCallback:
+  type: FiveCropTTAPredictionCallback
+  properties:
+    initialization_arguments:
+      aggregate_mode: MAX
+  output: FiveCropTTAPredictionCallback
+
 SaveConfiguration:
   type: save_config
   properties:
@@ -366,6 +397,14 @@ CreateF1SoftMetric:
   properties:
     partial_callable: true
   output: F1SoftMetric
+
+CreateFocalLossMetric:
+  type: focal_loss
+  properties:
+    partial_callable: true
+    callable_arguments:
+      gamma: 2
+  output: FocalLossMetric
 
 CreateFocalLoss:
   type: FocalLoss

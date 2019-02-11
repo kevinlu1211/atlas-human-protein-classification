@@ -1,5 +1,8 @@
 from functools import partial
 
+import torch
+import torchvision
+from torchvision.transforms import FiveCrop, ToTensor, Lambda
 from albumentations import (
     HorizontalFlip, IAAPerspective, ShiftScaleRotate, CLAHE, RandomRotate90,
     Transpose, ShiftScaleRotate, Blur, OpticalDistortion, GridDistortion, HueSaturationValue,
@@ -62,7 +65,7 @@ def very_simple_aug_with_elastic_transform(p=1, height=None, width=None, with_im
 
 
 def very_simple_aug_with_elastic_transform_and_crop(height=None, width=None,
-                                                   crop_height=None, crop_width=None, with_image_wrapper=False):
+                                                    crop_height=None, crop_width=None, with_image_wrapper=False):
     augs = [
         RandomCrop(crop_height, crop_width),
         RandomRotate90(),
@@ -129,6 +132,7 @@ def resize_aug(p=1, height=None, width=None, with_image_wrapper=False):
     else:
         return augs
 
+
 def identity_aug(with_image_wrapper=False):
     augs = lambda image: {"image": image}
     if with_image_wrapper:
@@ -136,9 +140,24 @@ def identity_aug(with_image_wrapper=False):
     else:
         return augs
 
+
 def albumentations_transform_wrapper(image, augment_fn):
     augmentation = augment_fn(image=image.px)
     return augmentation['image']
+
+
+def five_crop_tta_transform(img_tensor, crop_height, crop_width):
+    assert len(img_tensor.shape) == 3
+    width, height = img_tensor.shape[1:]
+    top_left = img_tensor[:, 0:crop_height, 0:crop_width]
+    top_right = img_tensor[:, 0:crop_height, width - crop_width:width]
+    bottom_left = img_tensor[:, height - crop_height: height, 0: crop_width]
+    bottom_right = img_tensor[:, height - crop_height: height, width - crop_width: width]
+    height_margin = (height - crop_height) // 2
+    width_margin = (width - crop_width) // 2
+    center = img_tensor[:, height_margin: height - height_margin, width_margin: width - width_margin]
+    return torch.stack([top_left, top_right, bottom_left, bottom_right, center])
+
 
 
 augment_fn_lookup = {
@@ -148,5 +167,6 @@ augment_fn_lookup = {
     "simple_aug": simple_aug,
     "simple_aug_lower_prob": simple_aug_lower_prob,
     "resize_aug": resize_aug,
-    "identity_aug": identity_aug
+    "identity_aug": identity_aug,
+    "five_crop_tta_transform": five_crop_tta_transform
 }

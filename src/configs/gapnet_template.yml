@@ -13,13 +13,10 @@ LoadTrainingData:
   type: load_training_data
   properties:
     callable_arguments:
-#      root_image_paths:
-#        - /home/kevin/Documents/Kaggle/human-protein-image-classification/data_test/train_combined
-#        - /home/kevin/Documents/Kaggle/human-protein-image-classification/data_test/train_combined_HPAv18
-#      root_label_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data_test/train_all_no_dupes.csv
       root_image_paths:
         - /home/kevin/Documents/Kaggle/human-protein-image-classification/data_test/train_combined
-      root_label_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data_test/train.csv
+        - /home/kevin/Documents/Kaggle/human-protein-image-classification/data_test/train_combined_HPAv18
+      root_label_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data_test/train_all_no_dupes.csv
   output:
     - train_X
     - train_y
@@ -213,8 +210,8 @@ CreateTrainingScheme:
   type: training_scheme_one_cycle
   properties:
     callable_arguments:
-      epochs: 60
-      lr: 8e-4
+      epochs: 50
+      lr: 1e-3
     partial_callable: true
   output: TrainingScheme
 
@@ -234,7 +231,6 @@ CreateLearner:
         Ref:
           - CreateAccuracyMetric: AccuracyMetric
           - CreateF1SoftMetric: F1SoftMetric
-          - CreateFocalLossMetric: FocalLossMetric
       loss_funcs:
         Ref:
           - CreateLovaszHingeFlatLoss: LovaszHingeFlatLoss
@@ -246,7 +242,7 @@ CreateLearner:
       callback_fns_creator:
         Ref:
           CreateLearnerCallbacks: LearnerCallbacksCreator
-      to_fp16: true
+      to_fp16: false
   output: LearnerCreator
 
 CreateCallbacks:
@@ -350,7 +346,7 @@ RunRecordResults:
   output: ResultRecorder
 
 CreateModel:
-  type: se_resnext50_32x4d_four_channel_input_two_fc
+  type: gapnet_resnet34_d_four_channel_input_backbone
   properties:
     callable_arguments:
       pretrained: false
@@ -370,14 +366,6 @@ CreateF1SoftMetric:
   properties:
     partial_callable: true
   output: F1SoftMetric
-
-CreateFocalLossMetric:
-  type: focal_loss
-  properties:
-    partial_callable: true
-    callable_arguments:
-      gamma: 2
-  ouptut: FocalLossMetric
 
 CreateFocalLoss:
   type: FocalLoss
@@ -411,9 +399,9 @@ CreateLearnerForInference:
           - CreateF1SoftMetric: F1SoftMetric
       loss_funcs:
         Ref:
-          - CreateLovaszHingeFlatLoss: LovaszHingeFlatLoss
+#          - CreateLovaszHingeFlatLoss: LovaszHingeFlatLoss
           - CreateFocalLoss: FocalLoss
-      #          - CreateSoftF1Loss: SoftF1Loss
+          - CreateSoftF1Loss: SoftF1Loss
       callbacks_creator:
         Ref:
           CreateCallbacksForInference: CallbacksCreator

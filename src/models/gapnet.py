@@ -1,3 +1,5 @@
+from torch.nn import functional as F
+
 from .resnet import *
 
 class GapNet(nn.Module):

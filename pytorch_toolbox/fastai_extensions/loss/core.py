@@ -8,6 +8,7 @@ from .lovasz_loss import lovasz_hinge_flat
 from fastai import *
 import fastai
 
+
 class SoftDiceLoss:
     def __init__(self, dice_loss_weights=None, n_classes=2):
         assert n_classes > 1, "Even if it is a binary classification, please use 2 classes instead of one"
@@ -36,14 +37,15 @@ class CELoss:
 
 
 class FocalLoss:
-    def __init__(self, gamma=2):
+    def __init__(self, gamma=2, aggregate_class_losses=True):
         self.gamma = gamma
+        self.aggregate_class_losses = aggregate_class_losses
 
     def __call__(self, out, *yb):
         prediction = out
         target = yb[0]
         # This returns B x ... (same shape as input)
-        focal_loss = calculate_focal_loss(prediction, target, self.gamma).sum(dim=1)
+        focal_loss = calculate_focal_loss(prediction, target, self.gamma, self.aggregate_class_losses)
         self.loss = focal_loss
         return focal_loss.mean()
 
@@ -58,6 +60,7 @@ class SoftF1Loss:
         self.loss = f1_soft_loss
         return f1_soft_loss.mean()
 
+
 class LovaszHingeFlatLoss:
     def __call__(self, out, *yb):
         prediction = out
@@ -65,7 +68,6 @@ class LovaszHingeFlatLoss:
         lovasz_loss = lovasz_hinge_flat(prediction.flatten(), target.flatten(), reduce=False)
         self.loss = lovasz_loss
         return lovasz_loss.sum()
-
 
 
 class LossWrapper(nn.Module):
@@ -78,7 +80,6 @@ class LossWrapper(nn.Module):
     def forward(self, out, *yb):
         total_loss = sum([l(out, *yb) for l in self.losses])
         return total_loss
-
 
 
 def calculate_ce_loss(preds, targets, weight_maps=None, weight=1):
@@ -145,7 +146,7 @@ def dice_loss(inputs, one_hots):
     return 1 - ((2 * intersection + 1.) / (torch.sum(inputs_flat) + torch.sum(one_hots_flat) + 1.))
 
 
-def calculate_focal_loss(input, target, gamma=2):
+def calculate_focal_loss(input, target, gamma=2, aggregate_class_losses=True):
     """
 
     :param input: B x N_classes
@@ -163,7 +164,8 @@ def calculate_focal_loss(input, target, gamma=2):
 
     invprobs = F.logsigmoid(-input * (target * 2.0 - 1.0))
     loss = (invprobs * gamma).exp() * loss
-
+    if aggregate_class_losses:
+        loss = loss.sum(dim=1)
     return loss
 
 
@@ -182,7 +184,6 @@ def calculate_f1_soft_loss(logits, labels):
     soft_tp_plus_fn = torch.sum(labels, 1) + __small_value
     true_positive = torch.sum(labels * probs, 1)
     precision = true_positive / soft_tp_plus_fp
-    recall = true_positive /soft_tp_plus_fn
+    recall = true_positive / soft_tp_plus_fn
     f1_soft = (1 + beta * beta) * precision * recall / (beta * beta * precision + recall + __small_value)
     return 1 - f1_soft
-
