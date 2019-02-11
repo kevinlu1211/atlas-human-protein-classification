@@ -160,11 +160,11 @@ def create_sampler(y=None, sampler_fn=None):
             labels = y[idx]
             for l in labels:
                 label_cnt[l] += 1
-        print("Weighted sampled proportions:")
-        pprint(sorted({k: v / sum(label_cnt.values()) for k, v in label_cnt.items()}.items()))
+        # print("Weighted sampled proportions:")
+        # pprint(sorted({k: v / sum(label_cnt.values()) for k, v in label_cnt.items()}.items()))
         # pprint(sorted({k: v for k, v in name_cnt.items()}.items(), key=lambda x: x[1]))
-    else:
-        print("No weighted sampling")
+    # else:
+    #     print("No weighted sampling")
     return sampler
 
 

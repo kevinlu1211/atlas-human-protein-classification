@@ -137,8 +137,9 @@ class PipelineGraph:
                         initialization_arguments) == 0, f"Function: {node_callable.__name__} cannot have initialization arguments: {initialization_arguments}, only callable arguments"
 
                     if partial_callable:
+                        assert node_output is not None, f"An output for node: {name} was not found, please specify a value for the node, if it is specified check the spelling for the output key"
                         assert not len(
-                            node_output) == 1, 'If this is a partial callable, then there should be one output for this step, please specift a value for the output key, or check the spelling for the output key'
+                            node_output) == 1, f"If this is a partial callable, then there should be one output for this step, please specify a value for the output key"
                         if needs_state_dict:
                             node['output_lookup'] = {
                                 node_output: partial(node_callable, **callable_arguments,
@@ -165,7 +166,7 @@ class PipelineGraph:
                             node['output_lookup'] = {node_output: callable_output}
                 else:
                     assert (
-                                       partial_initialization and partial_callable) is False, "Can't make both the initialization of a class and it's __call__ method both partial"
+                                   partial_initialization and partial_callable) is False, "Can't make both the initialization of a class and it's __call__ method both partial"
 
                     # Now we check if we want to call a function that isn't that default __call__ method of the class
                     callable_function_name = node_properties.get("callable_function_name")

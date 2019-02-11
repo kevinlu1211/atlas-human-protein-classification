@@ -377,7 +377,7 @@ CreateFocalLossMetric:
     partial_callable: true
     callable_arguments:
       gamma: 2
-  ouptut: FocalLossMetric
+  output: FocalLossMetric
 
 CreateFocalLoss:
   type: FocalLoss
