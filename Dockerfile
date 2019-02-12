@@ -32,6 +32,7 @@ WORKDIR /code/src
 
 # Set interpreter path to our conda environment
 ENV PATH /opt/conda/envs/human-protein-image-classification/bin:$PATH
+RUN pip install kaggle
 ENV PYTHONPATH /code:$PYTHONPATH
 ENV LC_ALL C.UTF-8
 ENV LANG C.UTF-8

@@ -1,5 +1,6 @@
 import sys
 from functools import partial
+import logging
 
 sys.path.append("../fastai")
 

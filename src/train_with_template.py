@@ -65,7 +65,6 @@ def main(config_file_path, log_level):
     with Path(config_file_path).open("r") as f:
         config = yaml.load(f)
     pipeline_graph = PipelineGraph.create_pipeline_graph_from_config(config)
-    print(pipeline_graph.sorted_node_names)
     pipeline_graph.run(reference_lookup=lookups)
 
 

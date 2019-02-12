@@ -13,13 +13,13 @@ LoadTrainingData:
   type: load_training_data
   properties:
     callable_arguments:
+      root_image_paths:
+        - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined
+        - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined_HPAv18
+      root_label_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_all_no_dupes.csv
 #      root_image_paths:
 #        - /home/kevin/Documents/Kaggle/human-protein-image-classification/data_test/train_combined
-#        - /home/kevin/Documents/Kaggle/human-protein-image-classification/data_test/train_combined_HPAv18
-#      root_label_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data_test/train_all_no_dupes.csv
-      root_image_paths:
-        - /home/kevin/Documents/Kaggle/human-protein-image-classification/data_test/train_combined
-      root_label_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data_test/train.csv
+#      root_label_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data_test/train.csv
   output:
     - train_X
     - train_y
@@ -152,8 +152,8 @@ CreateDataBunch:
         Ref:
           LoadTestingData: test_X
       train_bs: 16
-      test_bs: 6
-      val_bs: 6
+      test_bs: 4
+      val_bs: 4
       train_ds:
         Ref:
           CreateTrainingDataset: TrainingDataset
@@ -232,8 +232,8 @@ CreateTrainingScheme:
   type: training_scheme_one_cycle
   properties:
     callable_arguments:
-      epochs: 60
-      lr: 5e-4
+      epochs: 50
+      lr: 4e-3
     partial_callable: true
   output: TrainingScheme
 
