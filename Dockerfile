@@ -10,6 +10,8 @@ RUN apt-get update -y -qq && apt-get install -y --no-install-recommends \
  curl \
  libgl1-mesa-glx \
  wget \
+ zip \
+ unzip \
 && apt-get clean \
 && rm -rf /var/lib/apt/lists/*
 

@@ -51,7 +51,6 @@ def create_phash_similarity_df():
 
 
 similarity_df = create_phash_similarity_df()
-get_samples_with_similarity = lambda df, similarity: df['similarity'].map(lambda x: x == similarity)
 get_samples_with_similarity_above_and_equal = lambda df, similarity: df['similarity'].map(lambda x: x >= similarity)
 
 filtered_similarity_df = similarity_df[get_samples_with_similarity_above_and_equal(similarity_df, 0.93750)]
