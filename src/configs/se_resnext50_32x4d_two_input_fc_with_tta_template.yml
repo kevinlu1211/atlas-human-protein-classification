@@ -17,6 +17,7 @@ LoadTrainingData:
         - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined
         - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined_HPAv18
       root_label_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_all_no_dupes.csv
+      use_n_samples: 200
 #      root_image_paths:
 #        - /home/kevin/Documents/Kaggle/human-protein-image-classification/data_test/train_combined
 #      root_label_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data_test/train.csv
@@ -166,7 +167,7 @@ CreateDataBunch:
       sampler:
         Ref:
           CreateSampler: Sampler
-      num_workers: 28
+      num_workers: 0
     partial_callable: true
 
 CreateSamplerFunction:
@@ -289,6 +290,7 @@ CreateLearnerCallbacks:
           - CreateCSVLoggerLearnerCallback: CSVLoggerLearnerCallback
           - CreateOutputRecorderLearnerCallback: OutputRecorderLearnerCallback
           - CreateGradientClippingLearnerCallback: GradientClippingLearnerCallback
+          - CreateSaveModelCallback: SaveModelCallback
   output: LearnerCallbacksCreator
 
 
@@ -308,6 +310,11 @@ CreateLabelExtractorCallback:
     partial_initialization: true
   output: LabelExtractorCallback
 
+CreateSaveModelCallback:
+  type: SaveModelCallback
+  properties:
+    partial_initialization: true
+  output: SaveModelCallback
 
 CreateCSVLoggerLearnerCallback:
   type: create_csv_logger
@@ -457,6 +464,7 @@ CreateCallbacksForInference:
       callback_references:
         Ref:
           - CreateLabelExtractorCallback: LabelExtractorCallback
+          - CreateFiveCropTTAPredictionCallback: FiveCropTTAPredictionCallback
   output: CallbacksCreator
 
 CreateDataBunchForInference:
@@ -466,7 +474,7 @@ CreateDataBunchForInference:
       ds:
         Ref:
           CreateTestingDataset: TestingDataset
-      num_workers: 28
+      num_workers: 0
     partial_callable: true
   output: DataBunchCreator
 

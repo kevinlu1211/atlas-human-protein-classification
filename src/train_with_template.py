@@ -13,7 +13,6 @@ from pprint import pprint
 from typing import List, Union, Tuple
 from pathlib import Path
 from collections import Counter
-
 import click
 import yaml
 import numpy as np
@@ -27,16 +26,17 @@ import scipy.optimize as opt
 sys.path.append("../..")
 from src.data import make_one_hot, open_numpy, dataset_lookup, \
     sampler_weight_lookup, split_method_lookup, Image
+from src.image import get_image_from_class
 from src.training import training_scheme_lookup
 from src.models import model_lookup
 from src.transforms import augment_fn_lookup
-from src.callbacks import OutputRecorder
+from src.callbacks import OutputRecorder, SaveModelCallback, ResultRecorder
 
 import pytorch_toolbox.fastai.fastai as fastai
 from pytorch_toolbox.utils import to_numpy, listify
 from pytorch_toolbox.fastai_extensions.vision.utils import denormalize_fn_lookup, normalize_fn_lookup, tensor2img
 from pytorch_toolbox.fastai.fastai.callbacks import CSVLogger
-from pytorch_toolbox.fastai_extensions.basic_train import Learner
+from pytorch_toolbox.fastai_extensions.basic_train import Learner, Phase, determine_phase
 from pytorch_toolbox.fastai_extensions.loss import LossWrapper, loss_lookup
 from pytorch_toolbox.fastai_extensions.basic_data import DataBunch
 from pytorch_toolbox.fastai_extensions.callbacks import callback_lookup
@@ -57,6 +57,7 @@ def set_logger(log_level):
         level=log_levels.get(log_level, logging.INFO),
     )
 
+
 @click.command()
 @click.option('-cfg', '--config_file_path')
 @click.option('-log-lvl', '--log_level', default="INFO")
@@ -66,8 +67,10 @@ def main(config_file_path, log_level):
         config = yaml.load(f)
     pipeline_graph = PipelineGraph.create_pipeline_graph_from_config(config)
     pipeline_graph.run(reference_lookup=lookups)
-
-
+    # pipeline_graph.run(reference_lookup=lookups, to_node="CreateInference")
+    # create_inference_fn = pipeline_graph.get_node_output("CreateInference")
+    # image = get_image_from_class(('Plasma membrane', 'Cell junctions'))[0]
+    # names, prediction_probs = create_inference_fn(image)
 
 
 def load_training_labels(training_labels_path):
@@ -216,35 +219,6 @@ def training_loop(create_learner, data_bunch_creator, config_saver, data_splitte
         record_results(learner)
 
 
-class ResultRecorder(fastai.Callback):
-    _order = -10
-
-    def __init__(self):
-        self.names = []
-        self.prob_preds = []
-        self.targets = []
-
-    def on_batch_begin(self, last_input, last_target, train, **kwargs):
-        if train:
-            self.phase = 'TRAIN'
-        else:
-            label = last_target.get('label')
-            if label is not None:
-                self.phase = 'VAL'
-            else:
-                self.phase = 'TEST'
-                #         inputs = tensor2img(last_input, denorm_fn=image_net_denormalize)
-                #         self.inputs.extend(inputs)
-        self.names.extend(last_target['name'])
-        if self.phase == 'TRAIN' or self.phase == 'VAL':
-            label = to_numpy(last_target['label'])
-            self.targets.extend(label)
-
-    def on_loss_begin(self, last_output, **kwargs):
-        prob_pred = to_numpy(torch.sigmoid(last_output))
-        self.prob_preds.extend(prob_pred)
-
-
 def save_config(save_path_creator, state_dict):
     save_path = save_path_creator()
     save_path.mkdir(parents=True, exist_ok=True)
@@ -348,6 +322,7 @@ learner_callback_lookup = {
     "create_output_recorder": create_output_recorder,
     "create_csv_logger": create_csv_logger,
     "GradientClipping": fastai.GradientClipping,
+    "SaveModelCallback": SaveModelCallback
 }
 
 callback_lookup = {
@@ -384,9 +359,6 @@ lookups = {
     "save_config": save_config,
     "create_inference": create_inference
 }
-
-
-
 
 if __name__ == '__main__':
     main()

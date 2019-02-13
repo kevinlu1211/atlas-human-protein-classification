@@ -65,8 +65,9 @@ class LovaszHingeFlatLoss:
     def __call__(self, out, *yb):
         prediction = out
         target = yb[0]
+        original_shape = target.shape
         lovasz_loss = lovasz_hinge_flat(prediction.flatten(), target.flatten(), reduce=False)
-        self.loss = lovasz_loss
+        self.loss = lovasz_loss.view(*original_shape).sum(dim=1)
         return lovasz_loss.sum()
 
 
@@ -165,7 +166,7 @@ def calculate_focal_loss(input, target, gamma=2, aggregate_class_losses=True):
     invprobs = F.logsigmoid(-input * (target * 2.0 - 1.0))
     loss = (invprobs * gamma).exp() * loss
     if aggregate_class_losses:
-        loss = loss.sum(dim=1)
+        loss = loss.mean(dim=1)
     return loss
 
 
