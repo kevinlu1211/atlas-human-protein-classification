@@ -9,6 +9,7 @@ from fastai import *
 import fastai
 
 
+# TODO:  Have a super class which wraps all the losses so that we can easily get different ways that the loss can be reduced
 class SoftDiceLoss:
     def __init__(self, dice_loss_weights=None, n_classes=2):
         assert n_classes > 1, "Even if it is a binary classification, please use 2 classes instead of one"
@@ -37,17 +38,21 @@ class CELoss:
 
 
 class FocalLoss:
-    def __init__(self, gamma=2, aggregate_class_losses=True):
+    def __init__(self, gamma=2):
         self.gamma = gamma
-        self.aggregate_class_losses = aggregate_class_losses
+
+    @staticmethod
+    def sum_over_last_dimension(tensor):
+        batch_size = tensor.size(0)
+        return tensor.view(batch_size, -1).sum(dim=1)
 
     def __call__(self, out, *yb):
         prediction = out
         target = yb[0]
         # This returns B x ... (same shape as input)
-        focal_loss = calculate_focal_loss(prediction, target, self.gamma, self.aggregate_class_losses)
-        self.loss = focal_loss
-        return focal_loss.mean()
+        unreduced_focal_loss = calculate_focal_loss(prediction, target, self.gamma)
+        self.loss = unreduced_focal_loss
+        return self.sum_over_last_dimension(unreduced_focal_loss).mean()
 
 
 class SoftF1Loss:
@@ -147,7 +152,7 @@ def dice_loss(inputs, one_hots):
     return 1 - ((2 * intersection + 1.) / (torch.sum(inputs_flat) + torch.sum(one_hots_flat) + 1.))
 
 
-def calculate_focal_loss(input, target, gamma=2, aggregate_class_losses=True):
+def calculate_focal_loss(input, target, gamma=2):
     """
 
     :param input: B x N_classes
@@ -165,8 +170,6 @@ def calculate_focal_loss(input, target, gamma=2, aggregate_class_losses=True):
 
     invprobs = F.logsigmoid(-input * (target * 2.0 - 1.0))
     loss = (invprobs * gamma).exp() * loss
-    if aggregate_class_losses:
-        loss = loss.mean(dim=1)
     return loss
 
 

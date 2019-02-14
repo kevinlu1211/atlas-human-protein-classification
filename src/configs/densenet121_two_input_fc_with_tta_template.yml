@@ -17,7 +17,7 @@ LoadTrainingData:
         - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined
         - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined_HPAv18
       root_label_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_all_no_dupes.csv
-      use_n_samples: 100
+#      use_n_samples: 100
 #      root_image_paths:
 #        - /home/kevin/Documents/Kaggle/human-protein-image-classification/data_test/train_combined
 #      root_label_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data_test/train.csv
@@ -167,7 +167,7 @@ CreateDataBunch:
       sampler:
         Ref:
           CreateSampler: Sampler
-      num_workers: 0
+      num_workers: 28
     partial_callable: true
 
 CreateSamplerFunction:
@@ -234,7 +234,7 @@ CreateTrainingScheme:
   properties:
     callable_arguments:
       epochs: 50
-      lr: 8e-5
+      lr: 8e-4
     partial_callable: true
   output: TrainingScheme
 
@@ -290,7 +290,7 @@ CreateLearnerCallbacks:
           - CreateCSVLoggerLearnerCallback: CSVLoggerLearnerCallback
           - CreateOutputRecorderLearnerCallback: OutputRecorderLearnerCallback
           - CreateGradientClippingLearnerCallback: GradientClippingLearnerCallback
-          - CreateSaveModelCallback: SaveModelCallback
+#          - CreateSaveModelCallback: SaveModelCallback
   output: LearnerCallbacksCreator
 
 
@@ -384,7 +384,7 @@ RunRecordResults:
   output: ResultRecorder
 
 CreateModel:
-  type: se_resnext50_32x4d_four_channel_input_two_fc
+  type: densenet121_four_channel_input_two_fc
   properties:
     callable_arguments:
       pretrained: false

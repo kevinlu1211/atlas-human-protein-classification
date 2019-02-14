@@ -180,7 +180,7 @@ def resnet34_d_four_channel_input_one_fc(pretrained=False):
 
     return model
 
-def resnet34_d_four_channel_input_one_fc(pretrained=False):
+def resnet34_d_four_channel_input_two_fc(pretrained=False):
     from torchvision.models.resnet import ResNet, BasicBlock
     class ResNet_D(ResNet):
         def _make_layer(self, block, planes, blocks, stride=1):
@@ -209,7 +209,12 @@ def resnet34_d_four_channel_input_one_fc(pretrained=False):
         AdaptiveConcatPool2d(),
         Flatten(),
         nn.BatchNorm1d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
-        nn.Linear(in_features=1024, out_features=28, bias=True),
+        nn.Dropout(p=0.5),
+        nn.Linear(in_features=1024, out_features=256),
+        nn.ReLU(),
+        nn.BatchNorm1d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+        nn.Dropout(0.5),
+        nn.Linear(in_features=1024, out_features=28, bias=True)
     )
 
     fc_layers.apply(kaiming_init)

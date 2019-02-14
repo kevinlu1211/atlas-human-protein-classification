@@ -5,6 +5,7 @@ from .gapnet import *
 from .resnet import *
 from .debug_cnn import *
 from .senet import *
+from .densenet import *
 
 model_lookup = {
     "resnet18_four_channel_input": resnet18_four_channel_input,
@@ -24,6 +25,7 @@ model_lookup = {
     "gapnet2_resnet34_d_four_channel_input_backbone": gapnet2_resnet34_d_four_channel_input_backbone,
     "se_resnext50_32x4d_four_channel_input": se_resnext50_32x4d_four_channel_input,
     "se_resnext50_32x4d_four_channel_input_two_fc": se_resnext50_32x4d_four_channel_input_two_fc,
+    "densenet121_four_channel_input_two_fc": densenet121_four_channel_input_two_fc,
     "debug_cnn": debug_cnn
 }
 
