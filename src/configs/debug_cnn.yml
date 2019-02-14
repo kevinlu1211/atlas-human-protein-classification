@@ -17,7 +17,7 @@ LoadTrainingData:
         - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined
         - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined_HPAv18
       root_label_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_all_no_dupes.csv
-#      use_n_samples: 100
+      use_n_samples: 24
 #      root_image_paths:
 #        - /home/kevin/Documents/Kaggle/human-protein-image-classification/data_test/train_combined
 #      root_label_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data_test/train.csv
@@ -96,10 +96,10 @@ CreateAugmentationFunction:
   type: very_simple_aug_with_elastic_transform_and_crop
   properties:
     callable_arguments:
-      height: 768
-      width: 768
-      crop_height: 512
-      crop_width: 512
+      height: 256
+      width: 256
+      crop_height: 192
+      crop_width: 192
       with_image_wrapper: true
   output: AugmentationFunction
 
@@ -107,8 +107,8 @@ CreateTestAugmentationFunction:
   type: resize_aug
   properties:
     callable_arguments:
-      height: 768
-      width: 768
+      height: 256
+      width: 256
       with_image_wrapper: true
   output: TestAugmentationFunction
 
@@ -117,8 +117,8 @@ CreateFiveCropTTAFunction:
   properties:
     partial_callable: true
     callable_arguments:
-      crop_height: 512
-      crop_width: 512
+      crop_height: 192
+      crop_width: 192
   output: FiveCropTTAFunction
 
 CreateNormalizeFunction:
@@ -152,9 +152,9 @@ CreateDataBunch:
       test_X:
         Ref:
           LoadTestingData: test_X
-      train_bs: 16
-      test_bs: 4
-      val_bs: 4
+      train_bs: 5
+      test_bs: 1
+      val_bs: 1
       train_ds:
         Ref:
           CreateTrainingDataset: TrainingDataset
@@ -167,7 +167,7 @@ CreateDataBunch:
       sampler:
         Ref:
           CreateSampler: Sampler
-      num_workers: 28
+      num_workers: 0
     partial_callable: true
 
 CreateSamplerFunction:
@@ -383,10 +383,8 @@ RunRecordResults:
   output: ResultRecorder
 
 CreateModel:
-  type: densenet121_four_channel_input_two_fc
+  type: debug_cnn
   properties:
-    callable_arguments:
-      pretrained: false
     partial_callable: true
   output: Model
 

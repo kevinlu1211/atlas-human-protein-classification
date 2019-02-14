@@ -131,7 +131,19 @@ class TrackerCallback(fastai.LearnerCallback):
     def on_train_begin(self, **kwargs) -> None:
         self.best = float('inf') if self.operator == np.less else -float('inf')
 
-    def get_monitor_value(self):
+    def get_monitor_value(self, epoch):
+        prev_epoch = epoch - 1
+        train_key = (Phase.TRAIN.name, prev_epoch)
+        val_key = (Phase.VAL.name, prev_epoch)
+        recorder = self.learn.recorder
+        values = {}
+        # for loss_name, loss_values in recorder.loss_history[train_key].items():
+        #     values[f"train_{fastai.camel2snake(loss_name)}"] = np.mean(loss_values)
+        # for loss_name, loss_values in recorder.loss_history[val_key].items():
+        #     values[f"val_{fastai.camel2snake(loss_name)}"] = np.mean(loss_values)
+        # for metric_name, metric_values in recorder.metric_history[val_key].items():
+        #     values[f"val_{fastai.camel2snake(metric_values)}"] = np.mean(metric_values)
+        #
         values = {'train_loss': self.learn.recorder.losses[-1:][0].cpu().numpy(),
                   'val_loss': self.learn.recorder.val_losses[-1:][0]}
         for i, name in enumerate(self.learn.recorder.names[3:]):
@@ -155,7 +167,7 @@ class SaveModelCallback(TrackerCallback):
         if self.every == "epoch":
             self.learn.save(f'{self.name}_{epoch}')
         else:  # every="improvement"
-            current = self.get_monitor_value()
+            current = self.get_monitor_value(epoch)
             if current is not None and self.operator(current, self.best):
                 self.best = current
                 self.learn.save(f'{self.name}')
@@ -180,7 +192,7 @@ class ReduceLROnPlateauCallback(TrackerCallback):
         super().on_train_begin(**kwargs)
 
     def on_epoch_end(self, epoch, **kwargs) -> None:
-        current = self.get_monitor_value()
+        current = self.get_monitor_value(epoch)
         if current is None: return
         if self.operator(current - self.min_delta, self.best):
             self.best, self.wait = current, 0
