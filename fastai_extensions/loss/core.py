@@ -52,6 +52,7 @@ class FocalLoss:
         # This returns B x ... (same shape as input)
         unreduced_focal_loss = calculate_focal_loss(prediction, target, self.gamma)
         self.loss = unreduced_focal_loss
+        self.per_sample_loss = self.sum_over_last_dimension(unreduced_focal_loss)
         return self.sum_over_last_dimension(unreduced_focal_loss).mean()
 
 
@@ -62,6 +63,7 @@ class SoftF1Loss:
 
         # This returns B x n_classes
         f1_soft_loss = calculate_f1_soft_loss(prediction, target)
+        self.per_sample_loss = f1_soft_loss
         self.loss = f1_soft_loss
         return f1_soft_loss.mean()
 
@@ -72,8 +74,9 @@ class LovaszHingeFlatLoss:
         target = yb[0]
         original_shape = target.shape
         lovasz_loss = lovasz_hinge_flat(prediction.flatten(), target.flatten(), reduce=False)
-        self.loss = lovasz_loss.view(*original_shape).sum(dim=1)
-        return lovasz_loss.sum()
+        self.per_sample_loss = lovasz_loss.view(*original_shape).sum(dim=1)
+        self.loss = lovasz_loss.view(*original_shape)
+        return lovasz_loss.view(*original_shape).sum(dim=1).mean()
 
 
 class LossWrapper(nn.Module):

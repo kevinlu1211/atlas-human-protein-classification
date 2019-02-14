@@ -114,7 +114,7 @@ class Recorder(fastai.basic_train.Recorder):
     def __init__(self, learn: Learner):
         super().__init__(learn)
         self.loss_history = defaultdict(lambda: defaultdict(list))
-        self.metric_history = defaultdict(list)
+        self.metric_history = defaultdict(lambda: defaultdict(list))
         self.phase = None
 
     @property
@@ -130,7 +130,7 @@ class Recorder(fastai.basic_train.Recorder):
         per_sample_loss_values_for_current_batch = dict()
         for loss in self.learn.loss_func.losses:
             name = loss.__class__.__name__
-            per_sample_loss = loss.loss
+            per_sample_loss = loss.per_sample_loss
             per_sample_loss_values_for_current_batch[f"{name}"] = per_sample_loss
         return per_sample_loss_values_for_current_batch
 
@@ -148,7 +148,7 @@ class Recorder(fastai.basic_train.Recorder):
         if self.phase == Phase.VAL:
             metric_names = self.names[3:]
             for name, metric in zip(metric_names, self.metrics[0]):
-                self.metric_history[self.key] = dict(name=name, value=to_numpy(metric))
+                self.metric_history[self.key][name].append(metric.item())
 
 
 def to_fp16(learn: Learner, loss_scale: float = 512, flat_master: bool = False) -> Learner:
