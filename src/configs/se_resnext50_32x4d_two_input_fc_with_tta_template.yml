@@ -17,7 +17,6 @@ LoadTrainingData:
         - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined
         - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined_HPAv18
       root_label_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_all_no_dupes.csv
-      use_n_samples: 200
 #      root_image_paths:
 #        - /home/kevin/Documents/Kaggle/human-protein-image-classification/data_test/train_combined
 #      root_label_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data_test/train.csv
@@ -167,7 +166,7 @@ CreateDataBunch:
       sampler:
         Ref:
           CreateSampler: Sampler
-      num_workers: 0
+      num_workers: 28
     partial_callable: true
 
 CreateSamplerFunction:
@@ -234,7 +233,7 @@ CreateTrainingScheme:
   properties:
     callable_arguments:
       epochs: 50
-      lr: 8e-4
+      lr: 8e-5
     partial_callable: true
   output: TrainingScheme
 

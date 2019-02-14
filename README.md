@@ -11,14 +11,16 @@ This is the code for the Atlas Human Protein Classification competition that rec
 
 #### Rough outline of problem/solution
 
-In this competition we need to classify protein images from microscope scans, this main issue in this competition is huge class imbalance in the dataset.
+In this competition we need to classify protein images from microscope scans. The main issue is the large imbalance in the classes, below I will roughly describe the solution outline:
 
 Data: Official Kaggle Data, and external data from HPAv18
-Data Preprocessing: Using phash to get rid of duplicate images
-Data Augmentation: Random crop to (512, 512), and random flip, rotate90, random brightness, and elastic transforms
+Data Preprocessing: Use phash to get rid of duplicate images, as microscope scans are made up of a stack of slices, and if the slices are close they will look very similar. This will give a big disparity between the validation set performance, and real world performance
+Validation split: Since this is multi-class classification, we have to do iterative splitting to make sure that our validation set is representative of the test set
+Data Augmentation: Random crop to (512, 512), and random flip, rotate90, random brightness, and elastic transforms, the random crops were very helpful in decreasing the network overfitting
 Loss function: Lovasz loss (experimentally I get better results than Macro Soft F1), and Focal Loss (to deal with class imbalance)
 Model: Squeeze Excitation ResNeXt50 model
-Prediction: 5 Crop TTA with max probs to deal with
+Training: Used a one schedule cycle with LR of 4e-8, this was found experimentally via `lr_find`, an example of this can be seen in `notebook/learning_rate_finder.ipynb`
+Prediction: 5 Crop TTA (top left, top right, bottom left, bottom right, and center) with max probs to deal with the fact that some proteins only appear once in the image. By taking the maximum probability, instead of the average we will be able to capture this information.
 
 Training a
 #### If you want to do a full training run from scratch:
