@@ -22,7 +22,6 @@ Model: Squeeze Excitation ResNeXt50 model
 Training: Used a one schedule cycle with LR of 4e-8, this was found experimentally via `lr_find`, an example of this can be seen in `notebook/learning_rate_finder.ipynb`
 Prediction: 5 Crop TTA (top left, top right, bottom left, bottom right, and center) with max probs to deal with the fact that some proteins only appear once in the image. By taking the maximum probability, instead of the average we will be able to capture this information.
 
-Training a
 #### If you want to do a full training run from scratch:
 
 1. Get Kaggle API Keys for downloading the data
