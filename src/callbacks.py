@@ -1,3 +1,4 @@
+from typing import Callable
 from dataclasses import dataclass
 from collections import defaultdict
 
@@ -136,31 +137,41 @@ class TrackerCallback(fastai.LearnerCallback):
         train_key = (Phase.TRAIN.name, prev_epoch)
         val_key = (Phase.VAL.name, prev_epoch)
         recorder = self.learn.recorder
-        values = {}
-        # for loss_name, loss_values in recorder.loss_history[train_key].items():
-        #     values[f"train_{fastai.camel2snake(loss_name)}"] = np.mean(loss_values)
-        # for loss_name, loss_values in recorder.loss_history[val_key].items():
-        #     values[f"val_{fastai.camel2snake(loss_name)}"] = np.mean(loss_values)
-        # for metric_name, metric_values in recorder.metric_history[val_key].items():
-        #     values[f"val_{fastai.camel2snake(metric_values)}"] = np.mean(metric_values)
-        #
-        values = {'train_loss': self.learn.recorder.losses[-1:][0].cpu().numpy(),
-                  'val_loss': self.learn.recorder.val_losses[-1:][0]}
-        for i, name in enumerate(self.learn.recorder.names[3:]):
-            values[name] = self.learn.recorder.metrics[-1:][0][i]
+        values = defaultdict(float)
+        for loss_name, loss_values in recorder.loss_history[train_key].items():
+            mean_loss = np.mean(loss_values)
+            values[f"train_{fastai.camel2snake(loss_name)}"] += mean_loss
+            values["train_loss"] += mean_loss
+        for loss_name, loss_values in recorder.loss_history[val_key].items():
+            mean_loss = np.mean(loss_values)
+            values[f"val_{fastai.camel2snake(loss_name)}"] += mean_loss
+            values["val_loss"] += mean_loss
+        for metric_name, metric_values in recorder.metric_history[val_key].items():
+            values[f"val_{fastai.camel2snake(metric_name)}"] = np.mean(metric_values)
         return values.get(self.monitor)
+        #
+        # values = {'train_loss': self.learn.recorder.losses[-1:][0].cpu().numpy(),
+        #           'val_loss': self.learn.recorder.val_losses[-1:][0]}
+        # for i, name in enumerate(self.learn.recorder.names[3:]):
+        #     values[name] = self.learn.recorder.metrics[-1:][0][i]
+        # return values.get(self.monitor)
 
 
 @dataclass
 class SaveModelCallback(TrackerCallback):
     "A `TrackerCallback` that saves the model when monitored quantity is best."
     every: str = 'improvement'
-    name: str = 'bestmodel'
+    name: str = 'best_model'
+
+    # need to create a default value to get around the error TypeError: non-default argument 'save_path_creator' follows default argument
+    save_path_creator: Callable = None
 
     def __post_init__(self):
+        assert self.save_path_creator is not None
         if self.every not in ['improvement', 'epoch']:
             warn(f'SaveModel every {self.every} is invalid, falling back to "improvement".')
             self.every = 'improvement'
+        self.save_path = self.save_path_creator()
         super().__post_init__()
 
     def on_epoch_end(self, epoch, **kwargs) -> None:
@@ -170,10 +181,11 @@ class SaveModelCallback(TrackerCallback):
             current = self.get_monitor_value(epoch)
             if current is not None and self.operator(current, self.best):
                 self.best = current
-                self.learn.save(f'{self.name}')
+                self.learn.save(f'{self.save_path / self.name}')
 
     def on_train_end(self, **kwargs):
-        if self.every == "improvement": self.learn.load(f'{self.name}')
+        if self.every == "improvement":
+            self.learn.load(f'{self.save_path / self.name}')
 
 
 @dataclass
