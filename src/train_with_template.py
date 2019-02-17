@@ -9,7 +9,6 @@ if not sys.warnoptions:
 import time
 from functools import partial
 import logging
-from pprint import pprint
 from typing import List, Union, Tuple
 from pathlib import Path
 from collections import Counter
@@ -17,8 +16,6 @@ import click
 import yaml
 import numpy as np
 import pandas as pd
-import torch
-import torch.utils.data
 from torch.utils.data import WeightedRandomSampler
 from sklearn.metrics import f1_score
 import scipy.optimize as opt
@@ -26,11 +23,10 @@ import scipy.optimize as opt
 sys.path.append("../..")
 from src.data import make_one_hot, open_numpy, dataset_lookup, \
     sampler_weight_lookup, split_method_lookup, Image
-from src.image import get_image_from_class
 from src.training import training_scheme_lookup
 from src.models import model_lookup
 from src.transforms import augment_fn_lookup
-from src.callbacks import OutputRecorder, SaveModelCallback, ResultRecorder
+from src.callbacks import OutputRecorder, SaveModelCallback, ResultRecorder, ReduceLROnPlateauCallback
 
 import pytorch_toolbox.fastai.fastai as fastai
 from pytorch_toolbox.utils import to_numpy, listify
@@ -322,7 +318,8 @@ learner_callback_lookup = {
     "create_output_recorder": create_output_recorder,
     "create_csv_logger": create_csv_logger,
     "GradientClipping": fastai.GradientClipping,
-    "SaveModelCallback": SaveModelCallback
+    "SaveModelCallback": SaveModelCallback,
+    "ReduceLROnPlateauCallback": ReduceLROnPlateauCallback
 }
 
 callback_lookup = {

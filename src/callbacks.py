@@ -117,6 +117,7 @@ class OutputRecorder(fastai.LearnerCallback):
         self.history = defaultdict(list)
 
 
+# These classes are derived from fastai's classes
 @dataclass
 class TrackerCallback(fastai.LearnerCallback):
     "A `LearnerCallback` that keeps track of the best value in `monitor`."
@@ -149,12 +150,6 @@ class TrackerCallback(fastai.LearnerCallback):
         for metric_name, metric_values in recorder.metric_history[val_key].items():
             values[f"val_{fastai.camel2snake(metric_name)}"] = np.mean(metric_values)
         return values.get(self.monitor)
-        #
-        # values = {'train_loss': self.learn.recorder.losses[-1:][0].cpu().numpy(),
-        #           'val_loss': self.learn.recorder.val_losses[-1:][0]}
-        # for i, name in enumerate(self.learn.recorder.names[3:]):
-        #     values[name] = self.learn.recorder.metrics[-1:][0][i]
-        # return values.get(self.monitor)
 
 
 @dataclass
