@@ -274,6 +274,7 @@ def create_time_stamped_save_path(save_path, state_dict):
     path = Path(save_path, current_time)
     if current_fold is not None:
         path = path / f"Fold_{current_fold}"
+    logging.info(f"Root path of experiment is: {path.parent}")
     return path
 
 

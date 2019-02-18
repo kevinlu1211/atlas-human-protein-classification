@@ -166,7 +166,7 @@ CreateDataBunch:
       sampler:
         Ref:
           CreateSampler: Sampler
-      num_workers: 0
+      num_workers: 28
     partial_callable: true
 
 CreateSamplerFunction:
@@ -256,7 +256,7 @@ CreateLearner:
           - CreateFocalLossMetric: FocalLossMetric
       loss_funcs:
         Ref:
-          - CreateLovaszHingeFlatLoss: LovaszHingeFlatLoss
+          - CreateSoftF1Loss: SoftF1Loss
           - CreateFocalLoss: FocalLoss
       callbacks_creator:
         Ref:
@@ -313,7 +313,7 @@ CreateSaveModelCallback:
   type: SaveModelCallback
   properties:
     initialization_arguments:
-      monitor: val_focal_loss
+      monitor: val_loss
       save_path_creator:
         Ref:
           CreateTimeStampedSavePath: SavePathCreator
@@ -324,8 +324,9 @@ CreateReduceLROnPlateauCallback:
   type: ReduceLROnPlateauCallback
   properties:
     initialization_arguments:
+      monitor: val_loss
       min_delta: 0.01
-      patience: 5
+      patience: 3
     partial_initialization: true
   output: ReduceLROnPlateauCallback
 
@@ -397,8 +398,10 @@ RunRecordResults:
   output: ResultRecorder
 
 CreateModel:
-  type: debug_cnn
+  type: densenet121_four_channel_input_two_fc
   properties:
+    callable_arguments:
+      pretrained: false
     partial_callable: true
   output: Model
 
