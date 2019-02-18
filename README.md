@@ -1,7 +1,7 @@
 # Atlas Human Protein Classification
 
 ### Introduction
-This is the code for the Atlas Human Protein Classification competition that received top 14% in the final leaderboard
+This is the code for the Atlas Human Protein Classification competition creates a top 6% submission in the final leaderboard. The submission `.csv` file is in the `results/submission_optimal_threshold.csv`
 
 #### Setup
 
@@ -21,6 +21,7 @@ Loss function: Lovasz loss (experimentally I get better results than Macro Soft 
 Model: Squeeze Excitation ResNeXt50 model
 Training: Used a one schedule cycle with LR of 4e-8, this was found experimentally via `lr_find`, an example of this can be seen in `notebook/learning_rate_finder.ipynb`
 Prediction: 5 Crop TTA (top left, top right, bottom left, bottom right, and center) with max probs to deal with the fact that some proteins only appear once in the image. By taking the maximum probability, instead of the average we will be able to capture this information.
+Postprocessing: Due to the imbalance of classes, using a threshold of 0.5 to determine true/false would not be efficient. Instead, these thresholds are determined by optimizing for the best thresholds on the validation set.
 
 #### If you want to do a full training run from scratch:
 
@@ -37,8 +38,8 @@ In the folder there will be subfolders, one for each fold. After training, the f
 - `config.yml` (this is the configuration file that defines the whole training process, so that the experiment is reproducible)
 - `history.csv` (this loss, and metrics recorded after every training epoch)
 - `model_checkpoints` (this folder contains the checkpoints during each epoch)
-- `submission.csv`
-- `submission_optimal_threshold.csv`
+- `submission.csv` results for using thresholds of 0.5
+- `submission_optimal_threshold.csv` thresholds optimized on the
 - `training_logs` (this folder contains two CSV files, one for training, one for validation, each row of the CSV file records the name, prediction, ground truth, and losses associated with one sample, look at `notebook/diagnosis.ipynb` to see how to visualize these training logs)
 
 

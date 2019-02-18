@@ -324,7 +324,7 @@ CreateReduceLROnPlateauCallback:
   type: ReduceLROnPlateauCallback
   properties:
     initialization_arguments:
-      monitor: val_loss
+      monitor: val_lossbut
       min_delta: 0.01
       patience: 3
     partial_initialization: true

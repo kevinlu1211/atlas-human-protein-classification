@@ -281,6 +281,8 @@ CreateSamplerFunction:
 CreateSaveModelCallback:
   output: SaveModelCallback
   properties:
+    initialization_properties:
+      monitor: val_loss
     partial_initialization: true
   type: SaveModelCallback
 CreateSoftF1Loss:

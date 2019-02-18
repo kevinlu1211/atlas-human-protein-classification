@@ -17,7 +17,6 @@ LoadTrainingData:
         - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined
         - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined_HPAv18
       root_label_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_all_no_dupes.csv
-#      use_n_samples: 100
 #      root_image_paths:
 #        - /home/kevin/Documents/Kaggle/human-protein-image-classification/data_test/train_combined
 #      root_label_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data_test/train.csv
@@ -233,7 +232,7 @@ CreateTrainingScheme:
   type: training_scheme_one_cycle
   properties:
     callable_arguments:
-      epochs: 80
+      epochs: 100
       lr: 8e-4
     partial_callable: true
   output: TrainingScheme
@@ -290,7 +289,7 @@ CreateLearnerCallbacks:
           - CreateCSVLoggerLearnerCallback: CSVLoggerLearnerCallback
           - CreateOutputRecorderLearnerCallback: OutputRecorderLearnerCallback
           - CreateGradientClippingLearnerCallback: GradientClippingLearnerCallback
-#          - CreateSaveModelCallback: SaveModelCallback
+          - CreateSaveModelCallback: SaveModelCallback
   output: LearnerCallbacksCreator
 
 
@@ -313,6 +312,11 @@ CreateLabelExtractorCallback:
 CreateSaveModelCallback:
   type: SaveModelCallback
   properties:
+    initialization_arguments:
+      monitor: val_loss
+      save_path_creator:
+        Ref:
+          CreateTimeStampedSavePath: SavePathCreator
     partial_initialization: true
   output: SaveModelCallback
 
