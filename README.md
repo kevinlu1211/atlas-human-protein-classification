@@ -1,7 +1,8 @@
 # Atlas Human Protein Classification
 
 ### Introduction
-This is the code for the Atlas Human Protein Classification competition creates a top 6% submission in the final leaderboard. The submission `.csv` file is in the `results/densenet121_tta/0.51425_submission.csv`
+This is the code for the Atlas Human Protein Classification competition creates a top 6% submission in the final leaderboard. The submission `.csv` file is in the `results/densenet121_tta/0.51425_submission.csv`. The goal of this
+competition is to predict proteins in an image, the metric that is used to score the model is the F1 Macro.
 
 ### Pipeline
 The configuration file is used located in `src/configs/*` is used to define the whole training process. It is similar to the `AWS CloudFormation` template, whereby you define all the resources needed for the training pipeline.
@@ -25,7 +26,7 @@ In this competition we need to classify protein images from microscope scans. Th
 - Validation split: Since this is multi-class classification, we have to do iterative splitting to make sure that our validation set is representative of the test set
 - Data Augmentation: Random crop to (512, 512), and random flip, rotate90, random brightness, and elastic transforms, the random crops were very helpful in decreasing the network overfitting
 - Loss function: Soft F1 loss and Focal Loss (to deal with class imbalance)
-- Model: DenseNet121
+- Model: DenseNet121, during training, the model with the lowest validation Focal Loss value is used, as this has a good correlation with the Macro F1 Score, this is tracked with the `SaveModelCallback` class in `/src/callbacks.py`
 - Training: Used a one schedule cycle with LR of 8e-4, this was found experimentally via `lr_find`, an example of this can be seen in `notebook/learning_rate_finder.ipynb`
 - Prediction: 5 Crop TTA (top left, top right, bottom left, bottom right, and center) with max probs to deal with the fact that some proteins only appear once in the image. By taking the maximum probability, instead of the average we will be able to capture this information.
 - Postprocessing: Due to the imbalance of classes, using a threshold of 0.5 to determine true/false would not have optimal results. Instead, these thresholds are determined by optimizing for the best thresholds on the validation set.
@@ -62,5 +63,5 @@ It would run with `docker container run -t -p 8888:8888 --mount type=bind,source
 Then open the `inference.ipynb` notebook
 
 #### Currently doing:
-1. Refactor the functions in `image.py` and `data.py` to be more cohesive.
+1. Restructure the files and folder of the code e.g. Refactor the functions in `image.py` and `data.py` to be more cohesive.
 2. Metric learning to increase the performance of the model. Right now I'm using a siamese network (trained with the method discussed above) with a triplet loss

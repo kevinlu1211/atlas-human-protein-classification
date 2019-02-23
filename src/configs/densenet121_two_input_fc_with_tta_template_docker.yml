@@ -229,8 +229,8 @@ CreateTrainingScheme:
   type: training_scheme_one_cycle
   properties:
     callable_arguments:
-      epochs: 5
-      lr: 8e-3
+      epochs: 80
+      lr: 8e-4
     partial_callable: true
   output: TrainingScheme
 
