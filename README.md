@@ -45,7 +45,9 @@ In the folder there will be subfolders, one for each fold. After training, the f
 
 #### To have a play around with the pretrained model
 1. `docker container build . --tag human-protein-image-classification`
-2. `docker container run -t -p 8888:8888 --mount type=bind,source="$(pwd)"/data_docker,target=/code/data human-protein-image-classification scripts/notebooks.sh`
+2. `nvidia-docker container run -t -p 8888:8888 --mount type=bind,source="$(pwd)"/data_docker,target=/code/data human-protein-image-classification scripts/notebooks.sh`
+
+It would run with `docker container run -t -p 8888:8888 --mount type=bind,source="$(pwd)"/data_docker,target=/code/data human-protein-image-classification scripts/notebooks.sh` but the inference would be a lot slower
 
 Then open the `inference.ipynb` notebook
 
