@@ -17,8 +17,8 @@ Data: Official Kaggle Data, and external data from HPAv18
 Data Preprocessing: Use phash to get rid of duplicate images, as microscope scans are made up of a stack of slices, and if the slices are close they will look very similar. This will give a big disparity between the validation set performance, and real world performance
 Validation split: Since this is multi-class classification, we have to do iterative splitting to make sure that our validation set is representative of the test set
 Data Augmentation: Random crop to (512, 512), and random flip, rotate90, random brightness, and elastic transforms, the random crops were very helpful in decreasing the network overfitting
-Loss function: Lovasz loss (experimentally I get better results than Macro Soft F1), and Focal Loss (to deal with class imbalance)
-Model: Squeeze Excitation ResNeXt50 model
+Loss function: Soft F1 loss and Focal Loss (to deal with class imbalance)
+Model: DenseNet121
 Training: Used a one schedule cycle with LR of 8e-4, this was found experimentally via `lr_find`, an example of this can be seen in `notebook/learning_rate_finder.ipynb`
 Prediction: 5 Crop TTA (top left, top right, bottom left, bottom right, and center) with max probs to deal with the fact that some proteins only appear once in the image. By taking the maximum probability, instead of the average we will be able to capture this information.
 Postprocessing: Due to the imbalance of classes, using a threshold of 0.5 to determine true/false would not have optimal results. Instead, these thresholds are determined by optimizing for the best thresholds on the validation set.
@@ -45,9 +45,10 @@ In the folder there will be subfolders, one for each fold. After training, the f
 
 
 #### To have a play around with the pretrained model
-`docker container run -t -p 8888:8888 human-protein-image-classification scripts/notebooks.sh`
+1. `docker container build . --tag human-protein-image-classification`
+2. `docker container run -t -p 8888:8888 human-protein-image-classification scripts/notebooks.sh`
 
-Then open the `inference_node.ipynb` notebook
+Then open the `inference.ipynb` notebook
 
 
 #### Currently doing:

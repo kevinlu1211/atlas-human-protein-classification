@@ -376,9 +376,9 @@ LoadTrainingData:
   properties:
     callable_arguments:
       root_image_paths:
-        - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined
-        - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined_HPAv18
-      root_label_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_all_no_dupes.csv
+        - /code/data/train_combined
+        - /code/data/train_combined_HPAv18
+      root_label_paths: /code/data/train_all_no_dupes.csv
   type: load_training_data
 RunRecordResults:
   output: ResultRecorder

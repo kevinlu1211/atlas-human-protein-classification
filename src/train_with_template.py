@@ -106,7 +106,12 @@ def load_training_data(root_image_paths: Union[List[str], str], root_label_paths
 
     sorted_labels_df = labels_df.sort_values(["Id"], ascending=[True])
     sorted_image_paths_used_for_training = sorted(image_paths_with_labels, key=lambda x: x.stem)
-    assert np.all(np.array([p.stem for p in sorted_image_paths_used_for_training]) == sorted_labels_df["Id"])
+
+    if len(sorted_image_paths_used_for_training) != len(sorted_labels_df["Id"]):
+        logging.warning("Number of images don't match up with number of labels")
+    else:
+        if not (np.all(np.array([p.stem for p in sorted_image_paths_used_for_training]) == sorted_labels_df["Id"])):
+            logging.warning("Images and training labels aren't matched up!")
 
     if use_n_samples is not None:
         sampled_idx = np.random.choice(len(sorted_image_paths_used_for_training), size=use_n_samples).flatten()
