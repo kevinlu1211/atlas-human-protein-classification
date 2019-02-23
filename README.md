@@ -13,15 +13,15 @@ This is the code for the Atlas Human Protein Classification competition creates 
 
 In this competition we need to classify protein images from microscope scans. The main issue is the large imbalance in the classes, below I will roughly describe the solution outline:
 
-Data: Official Kaggle Data, and external data from HPAv18
-Data Preprocessing: Use phash to get rid of duplicate images, as microscope scans are made up of a stack of slices, and if the slices are close they will look very similar. This will give a big disparity between the validation set performance, and real world performance
-Validation split: Since this is multi-class classification, we have to do iterative splitting to make sure that our validation set is representative of the test set
-Data Augmentation: Random crop to (512, 512), and random flip, rotate90, random brightness, and elastic transforms, the random crops were very helpful in decreasing the network overfitting
-Loss function: Soft F1 loss and Focal Loss (to deal with class imbalance)
-Model: DenseNet121
-Training: Used a one schedule cycle with LR of 8e-4, this was found experimentally via `lr_find`, an example of this can be seen in `notebook/learning_rate_finder.ipynb`
-Prediction: 5 Crop TTA (top left, top right, bottom left, bottom right, and center) with max probs to deal with the fact that some proteins only appear once in the image. By taking the maximum probability, instead of the average we will be able to capture this information.
-Postprocessing: Due to the imbalance of classes, using a threshold of 0.5 to determine true/false would not have optimal results. Instead, these thresholds are determined by optimizing for the best thresholds on the validation set.
+- Data: Official Kaggle Data, and external data from HPAv18
+- Data Preprocessing: Use phash to get rid of duplicate images, as microscope scans are made up of a stack of slices, and if the slices are close they will look very similar. This will give a big disparity between the validation set performance, and real world performance
+- Validation split: Since this is multi-class classification, we have to do iterative splitting to make sure that our validation set is representative of the test set
+- Data Augmentation: Random crop to (512, 512), and random flip, rotate90, random brightness, and elastic transforms, the random crops were very helpful in decreasing the network overfitting
+- Loss function: Soft F1 loss and Focal Loss (to deal with class imbalance)
+- Model: DenseNet121
+- Training: Used a one schedule cycle with LR of 8e-4, this was found experimentally via `lr_find`, an example of this can be seen in `notebook/learning_rate_finder.ipynb`
+- Prediction: 5 Crop TTA (top left, top right, bottom left, bottom right, and center) with max probs to deal with the fact that some proteins only appear once in the image. By taking the maximum probability, instead of the average we will be able to capture this information.
+- Postprocessing: Due to the imbalance of classes, using a threshold of 0.5 to determine true/false would not have optimal results. Instead, these thresholds are determined by optimizing for the best thresholds on the validation set.
 
 #### If you want to do a full training run from scratch:
 
@@ -50,7 +50,6 @@ In the folder there will be subfolders, one for each fold. After training, the f
 It would run with `docker container run -t -p 8888:8888 --mount type=bind,source="$(pwd)"/data_docker,target=/code/data human-protein-image-classification scripts/notebooks.sh` but the inference would be a lot slower
 
 Then open the `inference.ipynb` notebook
-
 
 #### Currently doing:
 1. Refactor the functions in `image.py` and `data.py` to be more cohesive.
