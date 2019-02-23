@@ -27,8 +27,11 @@ In this competition we need to classify protein images from microscope scans. Th
 
 1. Get Kaggle API Keys for downloading the data
 2. Run this command to set the Kaggle API Keys as environmental variables and also to bind a volume to the Docker image, which will download all the external data, remove duplicates, and convert the images into numpy array (warning the full download and preprocessing is quite big ~400GB):
+
 `docker container run -t --mount type=bind,source="$(pwd)"/data_docker,target=/code/data -e KAGGLE_USERNAME=<YOUR_KAGGLE_USERNAME> -e KAGGLE_KEY=<YOUR_KAGGLE_KEY> human-protein-image-classification scripts/download_and_preprocess_data.sh`
-3. To do the training, first install `nvidia-docker` to utilize the GPU [here](https://github.com/NVIDIA/nvidia-docker)
+
+3. To do the training, first install `nvidia-docker` to utilize the GPU [here](https://github.com/NVIDIA/nvidia-docker):
+
 `mkdir results && docker build --tag human-protein-image-classification . && nvidia-docker container run -t --ipc=host --cpus=28 --mount type=bind,source="$(pwd)"/results,target=/code/results --mount type=bind,source="$(pwd)"/data_docker,target=/code/data  human-protein-image-classification scripts/train.sh`
 
 This will start the training process, and a folder will be created at the position `results/YYYYMMDD-HHMMSS` (this is in UTC time)
