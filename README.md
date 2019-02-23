@@ -64,4 +64,5 @@ Then open the `inference.ipynb` notebook
 
 #### Currently doing:
 1. Restructure the files and folder of the code e.g. Refactor the functions in `image.py` and `data.py` to be more cohesive.
-2. Metric learning to increase the performance of the model. Right now I'm using a siamese network (trained with the method discussed above) with a triplet loss
+2. Finish `ReduceLROnEpochEndCallback` to reduce LR interactively when training, this would be useful when we don't know what the optimal learning rate schedule is and `ReduceLROnPlateauCallback` isn't working well.
+3. Metric learning to increase the performance of the model. Right now I'm using a siamese network (trained with the method discussed above) with a triplet loss
