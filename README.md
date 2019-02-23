@@ -30,7 +30,7 @@ Postprocessing: Due to the imbalance of classes, using a threshold of 0.5 to det
 (warning the full download and preprocessing is quite big ~400GB):
 `docker container run -t --mount type=bind,source="$(pwd)"/data,target=/code/data -e KAGGLE_USERNAME=<YOUR_KAGGLE_USERNAME> -e KAGGLE_KEY=<YOUR_KAGGLE_KEY> human-protein-image-classification scripts/download_and_preprocess_data.sh`
 3. To do the training, first install `nvidia-docker` to utilize the GPU [here](https://github.com/NVIDIA/nvidia-docker)
-`mkdir results && docker build --tag human-protein-image-classification . && nvidia-docker container run -t --ipc=host --cpus=28 --mount type=bind,source="$(pwd)"/results,target=/code/results --mount type=bind,source="$(pwd)"/data,target=/code/data  human-protein-image-classification scripts/train.sh`
+`mkdir results && docker build --tag human-protein-image-classification . && nvidia-docker container run -t --ipc=host --cpus=28 --mount type=bind,source="$(pwd)"/results,target=/code/results --mount type=bind,source="$(pwd)"/data_docker,target=/code/data  human-protein-image-classification scripts/train.sh`
 
 This will start the training process, and a folder will be created at the position `results/YYYYMMDD-HHMMSS` (this is in UTC time)
 In the folder there will be subfolders, one for each fold. After training, the folder will contain:
@@ -46,7 +46,7 @@ In the folder there will be subfolders, one for each fold. After training, the f
 
 #### To have a play around with the pretrained model
 1. `docker container build . --tag human-protein-image-classification`
-2. `docker container run -t -p 8888:8888 human-protein-image-classification scripts/notebooks.sh`
+2. `docker container run -t -p 8888:8888 --mount type=bind,source="$(pwd)"/data_docker,target=/code/data human-protein-image-classification scripts/notebooks.sh`
 
 Then open the `inference.ipynb` notebook
 
