@@ -1,7 +1,14 @@
 # Atlas Human Protein Classification
 
 ### Introduction
-This is the code for the Atlas Human Protein Classification competition creates a top 6% submission in the final leaderboard. The submission `.csv` file is in the `results/submission_optimal_threshold.csv`
+This is the code for the Atlas Human Protein Classification competition creates a top 6% submission in the final leaderboard. The submission `.csv` file is in the `results/densenet121_tta/0.51425_submission.csv`
+
+### Pipeline
+The configuration file is used located in `src/configs/*` is used to define the whole training process. It is similar to the `AWS CloudFormation` template, whereby you define all the resources needed for the training pipeline.
+This allows for reproducible experiments, and also allows a lot of code reuse. For example, different models can be used just by change the `Model` resource in the file. Or, if we wanted to use different loss function, we could easily add
+or remove a loss function to be used without needing to change the code.
+
+The source code of this can be read in `pytorch_toolbox/pipeline/__init__.py` though it is still a work in progress so the code may be a bit hard to read
 
 #### Setup
 
