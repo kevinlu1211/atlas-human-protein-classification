@@ -1,3 +1,4 @@
+import pytorch_toolbox.fastai.fastai as fastai
 from .layers_and_init import *
 
 def debug_cnn():
@@ -9,4 +10,9 @@ def debug_cnn():
         Flatten(),
         nn.Linear(10, 28)
     )
+    n_first_half_layers = len(fastai.flatten_model(model[:3]))
+    # n_second_half_layers = len(fastai.flatten_model(model[3:]))
+    layer_groups = fastai.split_model_idx(model, [n_first_half_layers])
+    model.layer_groups = layer_groups
     return model
+

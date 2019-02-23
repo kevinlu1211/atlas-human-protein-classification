@@ -98,6 +98,16 @@ def convert_to_labels(class_labels):
     return np.array(converted_labels)
 
 
+def convert_to_string(class_labels):
+    converted_labels = []
+    for label in class_labels:
+        if isinstance(label, str):
+            converted_labels.append(label)
+        else:
+            converted_labels.append(label_to_string[label])
+    return np.array(converted_labels)
+
+
 def get_image_from_class(class_labels, n_samples=1):
     converted_labels = convert_to_labels(class_labels)
     df = pd.read_csv(DataPaths.TRAIN_LABELS_ALL_NO_DUPES)
@@ -116,6 +126,6 @@ def get_unique_classes(k=10):
     df['Target'] = df['Target'].map(lambda t: np.array(sorted([int(l) for l in t.split()])))
     df['Target String'] = df['Target'].map(lambda t: tuple([label_to_string[l] for l in t]))
     unique_classes = [ts for ts in df['Target String'].unique()]
-    if k is None:
+    if k == "ALL":
         return unique_classes
     return random.sample(unique_classes, k)

@@ -17,10 +17,10 @@ LoadTrainingData:
         - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined
         - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined_HPAv18
       root_label_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_all_no_dupes.csv
-      use_n_samples: 250
-#      root_image_paths:
-#        - /home/kevin/Documents/Kaggle/human-protein-image-classification/data_test/train_combined
-#      root_label_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data_test/train.csv
+      use_n_samples: 25
+  #      root_image_paths:
+  #        - /home/kevin/Documents/Kaggle/human-protein-image-classification/data_test/train_combined
+  #      root_label_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data_test/train.csv
   output:
     - train_X
     - train_y
@@ -234,7 +234,7 @@ CreateTrainingScheme:
   properties:
     callable_arguments:
       epochs: 50
-      lr: 5e-3
+      lr: [5e-3, 5e-2]
     partial_callable: true
   output: TrainingScheme
 
@@ -290,7 +290,8 @@ CreateLearnerCallbacks:
           - CreateOutputRecorderLearnerCallback: OutputRecorderLearnerCallback
           - CreateGradientClippingLearnerCallback: GradientClippingLearnerCallback
           - CreateSaveModelCallback: SaveModelCallback
-          - CreateReduceLROnPlateauCallback: ReduceLROnPlateauCallback
+#          - CreateReduceLROnPlateauCallback: ReduceLROnPlateauCallback
+          - CreateReduceLROnEpochEndCallback: ReduceLROnEpochEndCallback
   output: LearnerCallbacksCreator
 
 
@@ -329,6 +330,17 @@ CreateReduceLROnPlateauCallback:
       patience: 3
     partial_initialization: true
   output: ReduceLROnPlateauCallback
+
+CreateReduceLROnEpochEndCallback:
+  type: ReduceLROnEpochEndCallback
+  properties:
+    initialization_arguments:
+      save_path_creator:
+        Ref:
+          CreateTimeStampedSavePath: SavePathCreator
+    partial_initialization: true
+  output: ReduceLROnEpochEndCallback
+
 
 CreateCSVLoggerLearnerCallback:
   type: create_csv_logger

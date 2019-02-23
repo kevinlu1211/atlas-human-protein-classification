@@ -19,9 +19,9 @@ Validation split: Since this is multi-class classification, we have to do iterat
 Data Augmentation: Random crop to (512, 512), and random flip, rotate90, random brightness, and elastic transforms, the random crops were very helpful in decreasing the network overfitting
 Loss function: Lovasz loss (experimentally I get better results than Macro Soft F1), and Focal Loss (to deal with class imbalance)
 Model: Squeeze Excitation ResNeXt50 model
-Training: Used a one schedule cycle with LR of 4e-8, this was found experimentally via `lr_find`, an example of this can be seen in `notebook/learning_rate_finder.ipynb`
+Training: Used a one schedule cycle with LR of 8e-4, this was found experimentally via `lr_find`, an example of this can be seen in `notebook/learning_rate_finder.ipynb`
 Prediction: 5 Crop TTA (top left, top right, bottom left, bottom right, and center) with max probs to deal with the fact that some proteins only appear once in the image. By taking the maximum probability, instead of the average we will be able to capture this information.
-Postprocessing: Due to the imbalance of classes, using a threshold of 0.5 to determine true/false would not be efficient. Instead, these thresholds are determined by optimizing for the best thresholds on the validation set.
+Postprocessing: Due to the imbalance of classes, using a threshold of 0.5 to determine true/false would not have optimal results. Instead, these thresholds are determined by optimizing for the best thresholds on the validation set.
 
 #### If you want to do a full training run from scratch:
 
@@ -39,7 +39,8 @@ In the folder there will be subfolders, one for each fold. After training, the f
 - `history.csv` (this loss, and metrics recorded after every training epoch)
 - `model_checkpoints` (this folder contains the checkpoints during each epoch)
 - `submission.csv` results for using thresholds of 0.5
-- `submission_optimal_threshold.csv` thresholds optimized on the
+- `submission_optimal_threshold.csv` thresholds optimized on the validation set
+- `thresholds.p` the thresholds that were used to calculate the `submission_optimal_threshold.csv`
 - `training_logs` (this folder contains two CSV files, one for training, one for validation, each row of the CSV file records the name, prediction, ground truth, and losses associated with one sample, look at `notebook/diagnosis.ipynb` to see how to visualize these training logs)
 
 
@@ -47,3 +48,8 @@ In the folder there will be subfolders, one for each fold. After training, the f
 `docker container run -t -p 8888:8888 human-protein-image-classification scripts/notebooks.sh`
 
 Then open the `inference_node.ipynb` notebook
+
+
+#### Currently doing:
+1. Refactor the functions in `image.py` and `data.py` to be more cohesive.
+2. Metric learning to increase the performance of the model. Right now I'm using a siamese network (trained with the method discussed aboce) with a triplet loss

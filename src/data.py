@@ -229,10 +229,13 @@ def create_sample_weights(all_labels, method="MEAN"):
     return all_weights
 
 
-def match_prediction_probs_with_labels(prediction_probs):
+def match_prediction_probs_with_labels(prediction_probs, sort=True):
     assert prediction_probs.shape == (1, 28)
     matched = {name: prob for name, prob in zip(label_to_string.values(), prediction_probs[0])}
-    return sorted(matched.items(), key=lambda x: x[1], reverse=True)
+    if sort:
+        return sorted(matched.items(), key=lambda x: x[1], reverse=True)
+    else:
+        return matched
 
 
 sampler_weight_lookup = {

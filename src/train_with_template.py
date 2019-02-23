@@ -2,6 +2,7 @@
 
 import sys
 import warnings
+import pickle
 
 if not sys.warnoptions:
     warnings.simplefilter("ignore")
@@ -26,10 +27,11 @@ from src.data import make_one_hot, open_numpy, dataset_lookup, \
 from src.training import training_scheme_lookup
 from src.models import model_lookup
 from src.transforms import augment_fn_lookup
-from src.callbacks import OutputRecorder, SaveModelCallback, ResultRecorder, ReduceLROnPlateauCallback
+from src.callbacks import OutputRecorder, SaveModelCallback, ResultRecorder, ReduceLROnPlateauCallback, \
+    ReduceLROnEpochEndCallback
 
 import pytorch_toolbox.fastai.fastai as fastai
-from pytorch_toolbox.utils import to_numpy, listify
+from pytorch_toolbox.utils import listify
 from pytorch_toolbox.fastai_extensions.vision.utils import denormalize_fn_lookup, normalize_fn_lookup, tensor2img
 from pytorch_toolbox.fastai.fastai.callbacks import CSVLogger
 from pytorch_toolbox.fastai_extensions.basic_train import Learner, Phase, determine_phase
@@ -231,6 +233,7 @@ def record_results(learner, result_recorder_creator, save_path_creator):
     targets = np.stack(res_recorder.targets)
     pred_probs = np.stack(res_recorder.prob_preds)
     th = fit_val(pred_probs, targets)
+    pickle.dump(th, open(save_path / "thresholds.csv", "wb"))
     th[th < 0.1] = 0.1
     print('Thresholds: ', th)
     print('F1 macro: ', f1_score(targets, pred_probs > th, average='macro'))
@@ -320,7 +323,8 @@ learner_callback_lookup = {
     "create_csv_logger": create_csv_logger,
     "GradientClipping": fastai.GradientClipping,
     "SaveModelCallback": SaveModelCallback,
-    "ReduceLROnPlateauCallback": ReduceLROnPlateauCallback
+    "ReduceLROnPlateauCallback": ReduceLROnPlateauCallback,
+    "ReduceLROnEpochEndCallback": ReduceLROnEpochEndCallback
 }
 
 callback_lookup = {

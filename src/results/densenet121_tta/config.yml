@@ -83,7 +83,7 @@ CreateDataBunchForInference:
       ds:
         Ref:
           CreateTestingDataset: TestingDataset
-      num_workers: 0
+      num_workers: 28
     partial_callable: true
   type: create_data_bunch_for_inference
 CreateDataSplitter:
@@ -221,7 +221,7 @@ CreateLearnerForInference:
       model_creator:
         Ref:
           CreateModel: Model
-      model_path: src/results/densenet121_tta/cycle_0_epoch_79.pth
+      model_path: ../results/densenet121_tta/cycle_0_epoch_79.pth
       to_fp16: false
     partial_callable: true
   type: create_learner
