@@ -52,4 +52,4 @@ Then open the `inference.ipynb` notebook
 
 #### Currently doing:
 1. Refactor the functions in `image.py` and `data.py` to be more cohesive.
-2. Metric learning to increase the performance of the model. Right now I'm using a siamese network (trained with the method discussed aboce) with a triplet loss
+2. Metric learning to increase the performance of the model. Right now I'm using a siamese network (trained with the method discussed above) with a triplet loss
