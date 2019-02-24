@@ -19,11 +19,11 @@ class Phase(Enum):
     TEST = 3
 
 
-def determine_phase(train, last_target):
+def determine_phase(train, last_target, label_key="label"):
     if train:
         return Phase.TRAIN
     else:
-        label = last_target.get('label')
+        label = last_target.get(label_key)
         if label is not None:
             return Phase.VAL
         else:
