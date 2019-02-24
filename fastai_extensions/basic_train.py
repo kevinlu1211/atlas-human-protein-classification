@@ -11,7 +11,6 @@ from fastai import *
 import fastai
 
 from pytorch_toolbox.utils import to_numpy
-from .callbacks import MixedPrecision
 
 
 class Phase(Enum):
@@ -153,6 +152,7 @@ class Recorder(fastai.basic_train.Recorder):
 
 def to_fp16(learn: Learner, loss_scale: float = 512, flat_master: bool = False) -> Learner:
     "Transform `learn` in FP16 precision."
+    from .callbacks import MixedPrecision
     learn.model = fastai.model2half(learn.model)
     learn.mp_cb = MixedPrecision(learn, loss_scale=loss_scale, flat_master=flat_master)
     learn.callbacks.append(learn.mp_cb)
