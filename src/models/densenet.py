@@ -34,3 +34,4 @@ def densenet121_four_channel_input_two_fc(pretrained=True):
         *fc_layers
     )
     return model
+

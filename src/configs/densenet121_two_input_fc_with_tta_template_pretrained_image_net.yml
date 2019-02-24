@@ -233,7 +233,7 @@ CreateTrainingScheme:
   properties:
     callable_arguments:
       epochs: 80
-      lr: 8e-4
+      lr: 7e-3
     partial_callable: true
   output: TrainingScheme
 
@@ -265,7 +265,7 @@ CreateLearner:
       callback_fns_creator:
         Ref:
           CreateLearnerCallbacks: LearnerCallbacksCreator
-      to_fp16: false
+      to_fp16: true
   output: LearnerCreator
 
 CreateCallbacks:

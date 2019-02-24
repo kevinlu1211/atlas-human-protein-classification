@@ -63,6 +63,6 @@ It would run with `docker container run -t -p 8888:8888 --mount type=bind,source
 Then open the `inference.ipynb` notebook
 
 #### Currently doing:
-1. Restructure the files and folder of the code e.g. Refactor the functions in `image.py` and `data.py` to be more cohesive.
-2. Finish `ReduceLROnEpochEndCallback` to reduce LR interactively when training, this would be useful when we don't know what the optimal learning rate schedule is and `ReduceLROnPlateauCallback` isn't working well.
-3. Metric learning to increase the performance of the model. Right now I'm using a siamese network (trained with the method discussed above) with a triplet loss
+1. Metric learning with triplet loss to which may increase the performance of the model. The hypothesis is here is that the nearest neighbours of an embedding don't look similar, and a lot of the times don't even have the same class labels.
+2. Restructure the files and folder of the code e.g. Refactor the functions in `image.py` and `data.py` to be more cohesive.
+3. Finish `ReduceLROnEpochEndCallback` to reduce LR interactively when training, this would be useful when we don't know what the optimal learning rate schedule is and `ReduceLROnPlateauCallback` isn't working well.
