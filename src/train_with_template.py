@@ -22,22 +22,22 @@ from sklearn.metrics import f1_score
 import scipy.optimize as opt
 
 sys.path.append("../..")
+
 from src.data import make_one_hot, open_numpy, dataset_lookup, \
     sampler_weight_lookup, split_method_lookup, Image
 from src.training import training_scheme_lookup
 from src.models import model_lookup
 from src.transforms import augment_fn_lookup
-from src.callbacks import OutputRecorder, SaveModelCallback, ResultRecorder, ReduceLROnPlateauCallback, \
-    ReduceLROnEpochEndCallback
+from src.callbacks import OutputRecorder, ResultRecorder
 
 import pytorch_toolbox.fastai.fastai as fastai
 from pytorch_toolbox.utils import listify
 from pytorch_toolbox.fastai_extensions.vision.utils import denormalize_fn_lookup, normalize_fn_lookup, tensor2img
 from pytorch_toolbox.fastai.fastai.callbacks import CSVLogger
-from pytorch_toolbox.fastai_extensions.basic_train import Learner, Phase, determine_phase
+from pytorch_toolbox.fastai_extensions.basic_train import Learner
 from pytorch_toolbox.fastai_extensions.loss import LossWrapper, loss_lookup
 from pytorch_toolbox.fastai_extensions.basic_data import DataBunch
-from pytorch_toolbox.fastai_extensions.callbacks import callback_lookup
+from pytorch_toolbox.fastai_extensions.callbacks import callback_lookup, learner_callback_lookup
 from pytorch_toolbox.fastai_extensions.metrics import metric_lookup
 from pytorch_toolbox.pipeline import PipelineGraph
 
@@ -327,9 +327,7 @@ learner_callback_lookup = {
     "create_output_recorder": create_output_recorder,
     "create_csv_logger": create_csv_logger,
     "GradientClipping": fastai.GradientClipping,
-    "SaveModelCallback": SaveModelCallback,
-    "ReduceLROnPlateauCallback": ReduceLROnPlateauCallback,
-    "ReduceLROnEpochEndCallback": ReduceLROnEpochEndCallback
+    **learner_callback_lookup
 }
 
 callback_lookup = {

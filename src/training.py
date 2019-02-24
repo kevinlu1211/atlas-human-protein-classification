@@ -1,5 +1,4 @@
 from pytorch_toolbox.utils import listify
-# import pytorch_toolbox.fastai.fastai as fastai
 
 
 def training_scheme_one_cycle(learner, lr, epochs, div_factor=25):
