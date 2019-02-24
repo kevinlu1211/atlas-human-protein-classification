@@ -29,7 +29,7 @@ In this competition we need to classify protein images from microscope scans. Th
 - Loss function: Soft F1 loss and Focal Loss (to deal with class imbalance)
 - Model: DenseNet121, during training, the model with the lowest validation Focal Loss value is used, as this has a good correlation with the Macro F1 Score, this is tracked with the `SaveModelCallback` class in `/src/callbacks.py`
 - Training: Used a one schedule cycle with LR of 8e-4, this was found experimentally via `lr_find`, an example of this can be seen in `notebook/learning_rate_finder.ipynb`, there wasn't a huge difference between using a pretrained model, training a model from scratch
-- Prediction: 5 Crop TTA (top left, top right, bottom left, bottom right, and center) with max probs to deal with the fact that some proteins only appear once in the image. By taking the maximum probability, instead of the average we will be able to capture this information.
+- Prediction: 5 Crop TTA (top left, top right, bottom left, bottom right, and center) with max probs to deal with the fact that some proteins only appear once in the image. By taking the maximum probability of the 5 crops, and there is a protein that only appears once in the image, the signal will be captured.
 - Postprocessing: Due to the imbalance of classes, using a threshold of 0.5 to determine true/false would not have optimal results. Instead, these thresholds are determined by optimizing for the best thresholds on the validation set.
 
 #### If you want to do a full training run from scratch:
