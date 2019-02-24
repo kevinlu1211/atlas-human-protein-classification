@@ -43,7 +43,7 @@ In this competition we need to classify protein images from microscope scans. Th
 
 `mkdir results && docker build --tag human-protein-image-classification . && nvidia-docker container run -t --ipc=host --cpus=28 --mount type=bind,source="$(pwd)"/results,target=/code/results --mount type=bind,source="$(pwd)"/data_docker,target=/code/data  human-protein-image-classification scripts/train.sh`
 
-This will start the training process, and a folder will be created at the position `results/YYYYMMDD-HHMMSS` (this is in UTC time)
+This will start the training process, and a folder will be created at the location `results/YYYYMMDD-HHMMSS` (this is in UTC time)
 In the folder there will be subfolders, one for each fold. After training, the folder will contain:
 
 - `config.yml` (this is the configuration file that defines the whole training process, so that the experiment is reproducible)
