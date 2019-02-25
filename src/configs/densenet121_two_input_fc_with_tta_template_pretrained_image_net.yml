@@ -17,9 +17,9 @@ LoadTrainingData:
         - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined
         - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined_HPAv18
       root_label_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_all_no_dupes.csv
-#      root_image_paths:
-#        - /home/kevin/Documents/Kaggle/human-protein-image-classification/data_test/train_combined
-#      root_label_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data_test/train.csv
+  #      root_image_paths:
+  #        - /home/kevin/Documents/Kaggle/human-protein-image-classification/data_test/train_combined
+  #      root_label_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data_test/train.csv
   output:
     - train_X
     - train_y
@@ -233,7 +233,7 @@ CreateTrainingScheme:
   properties:
     callable_arguments:
       epochs: 80
-      lr: 7e-3
+      lr: 2e-3
     partial_callable: true
   output: TrainingScheme
 
@@ -256,7 +256,7 @@ CreateLearner:
           - CreateFocalLossMetric: FocalLossMetric
       loss_funcs:
         Ref:
-#          - CreateLovaszHingeFlatLoss: LovaszHingeFlatLoss
+          #          - CreateLovaszHingeFlatLoss: LovaszHingeFlatLoss
           - CreateSoftF1Loss: SoftF1Loss
           - CreateFocalLoss: FocalLoss
       callbacks_creator:
@@ -265,7 +265,7 @@ CreateLearner:
       callback_fns_creator:
         Ref:
           CreateLearnerCallbacks: LearnerCallbacksCreator
-      to_fp16: true
+      to_fp16: false
   output: LearnerCreator
 
 CreateCallbacks:
