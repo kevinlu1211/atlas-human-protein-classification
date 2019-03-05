@@ -115,11 +115,11 @@ class TrackerCallback(fastai.LearnerCallback):
         values = defaultdict(float)
         for loss_name, loss_values in recorder.loss_history[train_key].items():
             mean_loss = np.mean(loss_values)
-            values[f"train_{fastai.camel2snake(loss_name)}"] += mean_loss
+            values[f"train_{fastai.camel2snake(loss_name)}"] = mean_loss
             values["train_loss"] += mean_loss
         for loss_name, loss_values in recorder.loss_history[val_key].items():
             mean_loss = np.mean(loss_values)
-            values[f"val_{fastai.camel2snake(loss_name)}"] += mean_loss
+            values[f"val_{fastai.camel2snake(loss_name)}"] = mean_loss
             values["val_loss"] += mean_loss
         for metric_name, metric_values in recorder.metric_history[val_key].items():
             values[f"val_{fastai.camel2snake(metric_name)}"] = np.mean(metric_values)

@@ -107,7 +107,9 @@ class Learner(fastai.Learner):
 
 
 class Recorder(fastai.basic_train.Recorder):
-    "A extended recorder which has the ability to record the the losses and metric per epoch, this is so that we can use the average value of the losses to determine whether a model is good, or if and when to do early stopping/reduce LR"
+    """A extended recorder which has the ability to record the the losses and metric per epoch,
+    this is so that we can use the average value of the losses to determine whether a model is good,
+     or if and when to do early stopping/reduce LR"""
     _order = -10
 
     def __init__(self, learn: Learner):

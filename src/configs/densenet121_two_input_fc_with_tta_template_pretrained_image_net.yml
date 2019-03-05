@@ -233,7 +233,7 @@ CreateTrainingScheme:
   properties:
     callable_arguments:
       epochs: 80
-      lr: 2e-3
+      lr: 5e-4
     partial_callable: true
   output: TrainingScheme
 
@@ -313,7 +313,7 @@ CreateSaveModelCallback:
   type: SaveModelCallback
   properties:
     initialization_arguments:
-      monitor: val_focal_loss
+      monitor: val_loss
       save_path_creator:
         Ref:
           CreateTimeStampedSavePath: SavePathCreator

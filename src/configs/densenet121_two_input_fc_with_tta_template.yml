@@ -253,7 +253,7 @@ CreateLearner:
         Ref:
           - CreateAccuracyMetric: AccuracyMetric
           - CreateF1SoftMetric: F1SoftMetric
-          - CreateFocalLossMetric: FocalLossMetric
+#          - CreateFocalLossMetric: FocalLossMetric
       loss_funcs:
         Ref:
 #          - CreateLovaszHingeFlatLoss: LovaszHingeFlatLoss

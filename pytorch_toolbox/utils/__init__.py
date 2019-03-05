@@ -33,5 +33,7 @@ def listify(x):
         return [x]
     elif not isinstance(x, collections.Iterable):
         return [x]
+    elif not isinstance(x, collections.List):
+        return [x]
     else:
         return x
