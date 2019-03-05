@@ -7,11 +7,11 @@ import numpy as np
 
 from fastai import vision
 
-def tensor2img(image_tensor, imtype=np.uint8, denorm_fn=None):
+def tensor2img(image_tensor, imtype=np.uint8, denormalize_fn=None):
     shape = image_tensor.shape
     image_tensor = image_tensor.cpu()
-    if denorm_fn is not None:
-        image_tensor = denorm_fn(image_tensor)
+    if denormalize_fn is not None:
+        image_tensor = denormalize_fn(image_tensor)
     np_img = image_tensor.float().numpy()
     if len(shape) == 4:
         ret = []
@@ -97,5 +97,39 @@ def denormalize(tensor, *, mean, sd):
 IMAGE_NET_STATS = {'mean': [0.485, 0.456, 0.406],
                    'sd': [0.229, 0.224, 0.225]}
 
+
+FOUR_CHANNEL_PNASNET5LARGE_STATS = {
+    'mean': [0.5, 0.5, 0.5, 0.5],
+    'sd': [0.5, 0.5, 0.5, 0.5]
+}
+
+FOUR_CHANNEL_IMAGE_NET_STATS = {
+    'mean': [0.485, 0.456, 0.406, 0.485],
+    'sd': [0.229, 0.224, 0.224, 0.229]
+}
 image_net_normalize = partial(normalize, **IMAGE_NET_STATS)
 image_net_denormalize = partial(denormalize, **IMAGE_NET_STATS)
+
+
+four_channel_image_net_normalize = partial(normalize, **FOUR_CHANNEL_IMAGE_NET_STATS)
+four_channel_image_net_denormalize = partial(denormalize, **FOUR_CHANNEL_IMAGE_NET_STATS)
+
+
+four_channel_pnasnet5large_normalize = partial(normalize, **FOUR_CHANNEL_PNASNET5LARGE_STATS)
+four_channel_pnasnet5large_denormalize = partial(denormalize, **FOUR_CHANNEL_PNASNET5LARGE_STATS)
+
+normalize_fn_lookup = {
+    "image_net_normalize": image_net_normalize,
+    "four_channel_image_net_normalize": four_channel_image_net_normalize,
+    "four_channel_pnasnet5large_normalize": four_channel_image_net_normalize,
+    "normalize": normalize,
+    "identity": lambda x: x
+}
+
+denormalize_fn_lookup = {
+    "image_net_denormalize": image_net_denormalize,
+    "four_channel_image_net_denormalize": four_channel_image_net_denormalize,
+    "four_channel_pnasnet5large_denormalize": four_channel_image_net_denormalize,
+    "denormalize": denormalize,
+    "identity": lambda x: x
+}

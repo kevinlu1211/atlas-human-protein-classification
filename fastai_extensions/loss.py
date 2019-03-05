@@ -40,15 +40,18 @@ class FocalLoss:
     def __call__(self, out, *yb):
         prediction = out
         target = yb[0]
-        focal_loss = calculate_focal_loss(prediction, target, self.gamma)
+        # This returns B x ... (same shape as input)
+        focal_loss = calculate_focal_loss(prediction, target, self.gamma).sum(dim=1)
         self.loss = focal_loss
-        return focal_loss.sum(dim=1).mean()
+        return focal_loss.mean()
 
 
 class SoftF1Loss:
     def __call__(self, out, *yb):
         prediction = out
         target = yb[0]
+
+        # This returns B x n_classes
         f1_soft_loss = calculate_f1_soft_loss(prediction, target)
         self.loss = f1_soft_loss
         return f1_soft_loss.mean()
@@ -65,3 +68,7 @@ class LossWrapper(nn.Module):
         total_loss = sum([l(out, *yb) for l in self.losses])
         return total_loss
 
+loss_lookup = {
+    "FocalLoss": FocalLoss,
+    "SoftF1Loss": SoftF1Loss
+}
