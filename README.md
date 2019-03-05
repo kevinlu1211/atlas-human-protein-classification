@@ -4,7 +4,7 @@
 This is the code for the Atlas Human Protein Classification competition creates a top 6% submission in the final leaderboard. The submission `.csv` file is in the `results/densenet121_tta/0.51425_submission.csv`. The goal of this
 competition is to predict proteins in an image, the metric that is used to score the model is the F1 Macro.
 
-#### Configuration file and pippeline
+#### Configuration file and pipeline
 The configuration file is used located in `src/configs/*` is used to define the whole training process. It is similar to the `AWS CloudFormation` template, whereby you define all the functions needed for the training pipeline.
 This creates a dependency graph from which a DAG can be constructed where the nodes are the functions and the edges are the input/outputs of the function.
 This allows for reproducible experiments, and also allows a lot of code reuse. For example, different models can be used just by change the `Model` resource in the file. Or, if we wanted to use different loss function, we could easily add
