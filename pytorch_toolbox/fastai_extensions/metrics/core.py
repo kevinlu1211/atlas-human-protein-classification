@@ -30,7 +30,7 @@ def f1_soft(preds,targs,th=0.5,d=50.0):
         return score
 
 def focal_loss(preds, targs, gamma=2):
-    focal_loss = FocalLoss.sum_over_last_dimension(calculate_focal_loss(preds, targs, gamma=gamma))
+    focal_loss = FocalLoss.reshape_to_batch_x_minus_one_and_sum_over_last_dimension(calculate_focal_loss(preds, targs, gamma=gamma))
     return focal_loss.mean()
 
 metric_lookup = {

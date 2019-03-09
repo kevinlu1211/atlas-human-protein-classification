@@ -34,7 +34,7 @@ import pytorch_toolbox.fastai.fastai as fastai
 from pytorch_toolbox.utils import listify
 from pytorch_toolbox.fastai_extensions.vision.utils import denormalize_fn_lookup, normalize_fn_lookup, tensor2img
 from pytorch_toolbox.fastai.fastai.callbacks import CSVLogger
-from pytorch_toolbox.fastai_extensions.basic_train import Learner
+from pytorch_toolbox.fastai_extensions.basic_train import LearnerWrapper
 from pytorch_toolbox.fastai_extensions.loss import LossWrapper, loss_lookup
 from pytorch_toolbox.fastai_extensions.basic_data import DataBunch
 from pytorch_toolbox.fastai_extensions.callbacks import callback_lookup, learner_callback_lookup
@@ -198,17 +198,26 @@ def create_learner(data, model_creator, loss_funcs=[], metrics=None,
     model = model_creator()
     callbacks = callbacks_creator() if callbacks_creator is not None else None
     callback_fns = callback_fns_creator() if callback_fns_creator is not None else None
-    learner = Learner(data,
-                      model=model,
-                      loss_func=LossWrapper(loss_funcs),
-                      metrics=metrics,
-                      callbacks=callbacks,
-                      callback_fns=callback_fns)
+
+    learner = LearnerWrapper.create(data=data,
+                                    model=model,
+                                    layer_groups=get_layer_groups(model),
+                                    loss_func=LossWrapper(loss_funcs),
+                                    metrics=metrics,
+                                    callbacks=callbacks,
+                                    callback_fns=callback_fns)
     if model_path is not None:
         learner.load_from_path(model_path)
     if to_fp16:
         learner = learner.to_fp16()
     return learner
+
+
+def get_layer_groups(model):
+    try:
+        return model.layer_groups
+    except AttributeError:
+        return None
 
 
 def training_loop(create_learner, data_bunch_creator, config_saver, data_splitter_iterable, training_scheme,
@@ -319,7 +328,7 @@ def create_inference(image, inference_data_bunch_creator, inference_learner_crea
     inference_data_bunch = inference_data_bunch_creator([Image(image)])
     inference_learner = inference_learner_creator(inference_data_bunch)
     result_recorder = result_recorder_creator()
-    inference_learner.predict_on_test_dl(callbacks=[result_recorder])
+    inference_learner.predict_on_dl(dl=inference_learner.data.test_dl, callbacks=[result_recorder])
     return np.stack(result_recorder.names), np.stack(result_recorder.prob_preds)
 
 

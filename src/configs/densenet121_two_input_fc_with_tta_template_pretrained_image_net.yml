@@ -257,7 +257,7 @@ CreateLearner:
       loss_funcs:
         Ref:
           #          - CreateLovaszHingeFlatLoss: LovaszHingeFlatLoss
-          - CreateSoftF1Loss: SoftF1Loss
+#          - CreateSoftF1Loss: SoftF1Loss
           - CreateFocalLoss: FocalLoss
       callbacks_creator:
         Ref:

@@ -17,7 +17,7 @@ LoadTrainingData:
         - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined
         - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined_HPAv18
       root_label_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_all_no_dupes.csv
-      use_n_samples: 25
+      use_n_samples: 2500
   #      root_image_paths:
   #        - /home/kevin/Documents/Kaggle/human-protein-image-classification/data_test/train_combined
   #      root_label_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data_test/train.csv
@@ -234,7 +234,7 @@ CreateTrainingScheme:
   properties:
     callable_arguments:
       epochs: 50
-      lr: [5e-3, 5e-2]
+      lr: [5e-2, 5e-1]
     partial_callable: true
   output: TrainingScheme
 
@@ -257,7 +257,7 @@ CreateLearner:
           - CreateFocalLossMetric: FocalLossMetric
       loss_funcs:
         Ref:
-          - CreateLovaszHingeFlatLoss: LovaszHingeFlatLoss
+#          - CreateLovaszHingeFlatLoss: LovaszHingeFlatLoss
           - CreateFocalLoss: FocalLoss
       callbacks_creator:
         Ref:
@@ -291,7 +291,7 @@ CreateLearnerCallbacks:
           - CreateGradientClippingLearnerCallback: GradientClippingLearnerCallback
           - CreateSaveModelCallback: SaveModelCallback
 #          - CreateReduceLROnPlateauCallback: ReduceLROnPlateauCallback
-          - CreateReduceLROnEpochEndCallback: ReduceLROnEpochEndCallback
+#          - CreateReduceLROnEpochEndCallback: ReduceLROnEpochEndCallback
   output: LearnerCallbacksCreator
 
 
