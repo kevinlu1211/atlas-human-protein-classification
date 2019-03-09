@@ -1,4 +1,5 @@
 import abc
+from abc import abstractmethod
 from collections import defaultdict
 
 import torch
@@ -20,18 +21,18 @@ class BaseLoss:
         batch_size = tensor.size(0)
         return tensor.view(batch_size, -1).sum(dim=1)
 
-    @abc.abstractmethod
     @property
+    @abstractmethod
     def unreduced_loss(self):
         pass
 
-    @abc.abstractmethod
     @property
+    @abstractmethod
     def per_sample_loss(self):
         pass
 
-    @abc.abstractmethod
     @property
+    @abstractmethod
     def reduced_loss(self):
         pass
 
@@ -63,7 +64,7 @@ class FocalLoss(BaseLoss):
         return self._reduced_loss
 
 
-def calculate_focal_loss(input, target, gamma=2):
+def calculate_focal_loss(logits, target, gamma=2):
     """
 
     :param input: B x N_classes for classification, or B x H x W for segmentation
@@ -71,15 +72,15 @@ def calculate_focal_loss(input, target, gamma=2):
     :param gamma: the higher the value, the greater the loss for uncertain classes
     :return:
     """
-    if not (target.size() == input.size()):
-        raise ValueError("Target size ({}) must be the same as input size ({})"
-                         .format(target.size(), input.size()))
+    if not (target.size() == logits.size()):
+        raise ValueError("Target size ({}) must be the same as logits size ({})"
+                         .format(target.size(), logits.size()))
 
-    max_val = (-input).clamp(min=0)
-    loss = input - input * target + max_val + \
-           ((-max_val).exp() + (-input - max_val).exp()).log()
+    max_val = (-logits).clamp(min=0)
+    loss = logits - logits * target + max_val + \
+           ((-max_val).exp() + (-logits - max_val).exp()).log()
 
-    invprobs = F.logsigmoid(-input * (target * 2.0 - 1.0))
+    invprobs = F.logsigmoid(-logits * (target * 2.0 - 1.0))
     loss = (invprobs * gamma).exp() * loss
     return loss
 

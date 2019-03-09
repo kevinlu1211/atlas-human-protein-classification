@@ -30,6 +30,52 @@ def determine_phase(train, last_target, label_key="label"):
             return Phase.TEST
 
 
+class LearnerWrapper:
+    """
+    This class serves to create the boundary between the fastai library and the pytorch_toolbox. By creating this class,
+    any breaking changes in the fastai Learner class would mean that only this class would need to be changed.
+    """
+    EXPOSED_ATTRIBUTES_FOR_LEARNER = ["model"]
+
+    @staticmethod
+    def create(*args, **kwargs):
+        learner = Learner(*args, **kwargs)
+        return LearnerWrapper(learner)
+
+    def __init__(self, learner):
+        self.learner = learner
+
+    def __getattr__(self, item):
+        if item in self.EXPOSED_ATTRIBUTES_FOR_LEARNER:
+            return getattr(self.learner, item)
+        else:
+            return getattr(self, item)
+
+    def model_gradients(self):
+        self.learner.model_gradients()
+
+    def unfreeze(self):
+        self.learner.unfreeze()
+
+    def freeze_layer_groups(self, layer_groups_idx):
+        self.learner.freeze_layer_groups(layer_groups_idx)
+
+    def unfreeze_layer_groups(self, layer_groups_idx):
+        self.learner.unfreeze_layer_groups(layer_groups_idx)
+
+    def predict_on_dl(self, dl, callbacks, callback_fns, metrics):
+        self.learner.predict_on_dl(dl, callbacks=callbacks, callback_fns=callback_fns, metrics=metrics)
+
+    def fit(self, *args, **kwargs):
+        self.learner.fit(*args, **kwargs)
+
+    def fit_one_cycle(self, *args, **kwargs):
+        self.learner.fit_one_cycle(*args, **kwargs)
+
+    def load_from_path(self, path, device=None):
+        self.learner.load_from_path(path, device)
+
+
 @dataclass
 class Learner(fastai.Learner):
     def __init__(self, *args, **kwargs):
@@ -63,6 +109,23 @@ class Learner(fastai.Learner):
                     print(p.shape)
                     print(p.requires_grad)
 
+    def freeze_layer_groups(self, layer_group_idxs):
+        if not is_listy(layer_group_idxs): layer_group_idxs = [layer_group_idxs]
+        super().unfreeze()
+        for i in layer_group_idxs:
+            for l in self.layer_groups[i]:
+                if not self.train_bn or not isinstance(l, bn_types):
+                    requires_grad(l, False)
+
+    def unfreeze_layer_groups(self, layer_group_idxs):
+        if not is_listy(layer_group_idxs): layer_group_idxs = [layer_group_idxs]
+        layer_group_idxs_to_freeze = list(set(list(range(len(self.layer_groups)))) - set(layer_group_idxs))
+        self.freeze_layer_groups(layer_group_idxs_to_freeze)
+
+    def load_from_path(self, path, device=None):
+        if device is None: device = self.data.device
+        self.model.load_state_dict(torch.load(path, map_location=device))
+
     def predict_on_dl(self, dl, pbar=None, callbacks=None, callback_fns=None, metrics=None):
         assert dl is not None
         metrics = ifnone(metrics, self.metrics)
@@ -77,27 +140,6 @@ class Learner(fastai.Learner):
                 out = self.model(*xb)
                 _ = cb_handler.on_loss_begin(out)
 
-    def predict_on_test_dl(self, pbar=None, callbacks=None, metrics=None):
-        """Test with callbacks"""
-        dl = self.data.test_dl
-        self.predict_on_dl(dl, pbar, callbacks, metrics)
-
-    def freeze_layer_groups(self, layer_group_idxs):
-        if not is_listy(layer_group_idxs): layer_group_idxs = [layer_group_idxs]
-        super().unfreeze()
-        for i in layer_group_idxs:
-            for l in self.layer_groups[i]:
-                if not self.train_bn or not isinstance(l, bn_types): requires_grad(l, False)
-
-    def unfreeze_layer_groups(self, layer_group_idxs):
-        if not is_listy(layer_group_idxs): layer_group_idxs = [layer_group_idxs]
-        layer_group_idxs_to_freeze = list(set(list(range(len(self.layer_groups)))) - set(layer_group_idxs))
-        self.freeze_layer_groups(layer_group_idxs_to_freeze)
-
-    def load_from_path(self, path, device=None):
-        if device is None: device = self.data.device
-        self.model.load_state_dict(torch.load(path, map_location=device))
-
     def fit(self, *args, **kwargs):
         if self.n_cycle is None:
             self.n_cycle = 0
@@ -107,7 +149,11 @@ class Learner(fastai.Learner):
 
 
 class Recorder(fastai.basic_train.Recorder):
-    "A extended recorder which has the ability to record the the losses and metric per epoch, this is so that we can use the average value of the losses to determine whether a model is good, or if and when to do early stopping/reduce LR"
+    """
+    A extended recorder which has the ability to record the the losses and metric per epoch, this is so that we can
+    use the average value of the losses to determine whether a model is good, or if and when to do early
+    stopping/reduce LR
+    """
     _order = -10
 
     def __init__(self, learn: Learner):
@@ -151,7 +197,6 @@ class Recorder(fastai.basic_train.Recorder):
 
 
 def to_fp16(learn: Learner, loss_scale: float = 512, flat_master: bool = False) -> Learner:
-    "Transform `learn` in FP16 precision."
     from .callbacks import MixedPrecision
     learn.model = fastai.model2half(learn.model)
     learn.mp_cb = MixedPrecision(learn, loss_scale=loss_scale, flat_master=flat_master)
