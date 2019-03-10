@@ -34,7 +34,7 @@ import pytorch_toolbox.fastai.fastai as fastai
 from pytorch_toolbox.utils import listify
 from pytorch_toolbox.fastai_extensions.vision.utils import denormalize_fn_lookup, normalize_fn_lookup, tensor2img
 from pytorch_toolbox.fastai.fastai.callbacks import CSVLogger
-from pytorch_toolbox.fastai_extensions.basic_train import LearnerWrapper
+from pytorch_toolbox.fastai_extensions.basic_train import Learner
 from pytorch_toolbox.fastai_extensions.loss import LossWrapper, loss_lookup
 from pytorch_toolbox.fastai_extensions.basic_data import DataBunch
 from pytorch_toolbox.fastai_extensions.callbacks import callback_lookup, learner_callback_lookup
@@ -199,13 +199,13 @@ def create_learner(data, model_creator, loss_funcs=[], metrics=None,
     callbacks = callbacks_creator() if callbacks_creator is not None else None
     callback_fns = callback_fns_creator() if callback_fns_creator is not None else None
 
-    learner = LearnerWrapper.create(data=data,
-                                    model=model,
-                                    layer_groups=get_layer_groups(model),
-                                    loss_func=LossWrapper(loss_funcs),
-                                    metrics=metrics,
-                                    callbacks=callbacks,
-                                    callback_fns=callback_fns)
+    learner = Learner.create(data=data,
+                             model=model,
+                             layer_groups=get_layer_groups(model),
+                             loss_func=LossWrapper(loss_funcs),
+                             metrics=metrics,
+                             callbacks=callbacks,
+                             callback_fns=callback_fns)
     if model_path is not None:
         learner.load_from_path(model_path)
     if to_fp16:
