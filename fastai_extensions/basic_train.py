@@ -30,17 +30,17 @@ def determine_phase(train, last_target, label_key="label"):
             return Phase.TEST
 
 
-class LearnerWrapper:
+class Learner:
     """
     This class serves to create the boundary between the fastai library and the pytorch_toolbox. By creating this class,
     any breaking changes in the fastai Learner class would mean that only this class would need to be changed.
     """
     EXPOSED_ATTRIBUTES_FOR_LEARNER = ["model"]
 
-    @staticmethod
-    def create(*args, **kwargs):
-        learner = Learner(*args, **kwargs)
-        return LearnerWrapper(learner)
+    @classmethod
+    def create(cls, *args, **kwargs):
+        learner = PytorchToolboxLearner(*args, **kwargs)
+        return cls(learner)
 
     def __init__(self, learner):
         self.learner = learner
@@ -77,7 +77,7 @@ class LearnerWrapper:
 
 
 @dataclass
-class Learner(fastai.Learner):
+class PytorchToolboxLearner(fastai.Learner):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.n_cycle = None
