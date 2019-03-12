@@ -34,9 +34,8 @@ import pytorch_toolbox.fastai.fastai as fastai
 from pytorch_toolbox.utils import listify
 from pytorch_toolbox.fastai_extensions.vision.utils import denormalize_fn_lookup, normalize_fn_lookup, tensor2img
 from pytorch_toolbox.fastai.fastai.callbacks import CSVLogger
-from pytorch_toolbox.fastai_extensions.basic_train import Learner
+from pytorch_toolbox.fastai_extensions.basic_train import Learner, DataBunch
 from pytorch_toolbox.fastai_extensions.loss import LossWrapper, loss_lookup
-from pytorch_toolbox.fastai_extensions.basic_data import DataBunch
 from pytorch_toolbox.fastai_extensions.callbacks import callback_lookup, learner_callback_lookup
 from pytorch_toolbox.fastai_extensions.metrics import metric_lookup
 from pytorch_toolbox.pipeline import PipelineGraph

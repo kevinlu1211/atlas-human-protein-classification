@@ -9,7 +9,7 @@ from pytorch_toolbox.utils import to_numpy
 import pytorch_toolbox.fastai.fastai as fastai
 
 
-class ResultRecorder(fastai.Callback):
+class ResultRecorder(fastai.LearnerCallback):
     _order = -10
 
     def __init__(self):
@@ -18,9 +18,9 @@ class ResultRecorder(fastai.Callback):
         self.targets = []
 
     def on_batch_begin(self, last_input, last_target, train, **kwargs):
-        self.phase = determine_phase(train, last_target)
+        phase = self.learn.phase
         self.names.extend(last_target['name'])
-        if self.phase == Phase.TRAIN or self.phase == Phase.VAL:
+        if phase == Phase.TRAIN or phase == Phase.VAL:
             label = to_numpy(last_target['label'])
             self.targets.extend(label)
 
@@ -36,19 +36,19 @@ class OutputRecorder(fastai.LearnerCallback):
         super().__init__(learn)
         self.save_path = save_path
         self.history = defaultdict(list)
-        self.phase = None
+        self.key = None
         self.current_batch = dict()
         self.save_img_fn = save_img_fn
         self.save_img = save_img
 
     def on_batch_begin(self, last_input, last_target, epoch, train, **kwargs):
-        self.phase = determine_phase(train, last_target)
-        self.key = (self.phase.name, epoch)
+        phase = self.learn.phase
+        self.key = (phase.name, epoch)
         if self.save_img:
             inputs = self.save_img_fn(last_input)
             self.current_batch['input'] = inputs
         self.current_batch['name'] = last_target['name']
-        if self.phase == Phase.TRAIN or self.phase == Phase.VAL:
+        if phase == Phase.TRAIN or phase == Phase.VAL:
             label = to_numpy(last_target['label'])
             self.current_batch['label'] = label
 

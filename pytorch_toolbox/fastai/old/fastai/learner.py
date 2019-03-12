@@ -306,7 +306,7 @@ class Learner():
         self.sched = LR_Finder(layer_opt, len(self.data.trn_dl), lr, linear=True)
         return self.fit_gen(self.model, self.data, layer_opt, 1)
 
-    def lr_find(self, start_lr=1e-5, end_lr=10, wds=None, linear=False, **kwargs):
+    def     lr_find(self, start_lr=1e-5, end_lr=10, wds=None, linear=False, **kwargs):
         """Helps you find an optimal learning rate for a model.
 
          It uses the technique developed in the 2015 paper
