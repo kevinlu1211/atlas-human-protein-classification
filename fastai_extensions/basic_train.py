@@ -1,3 +1,4 @@
+import functools
 import sys
 from collections import defaultdict
 from enum import Enum
@@ -13,29 +14,15 @@ import fastai
 from pytorch_toolbox.utils import to_numpy
 
 
-class Phase(Enum):
-    TRAIN = 1
-    VAL = 2
-    TEST = 3
-
-
-def determine_phase(train, last_target, label_key="label"):
-    if train:
-        return Phase.TRAIN
-    else:
-        label = last_target.get(label_key)
-        if label is not None:
-            return Phase.VAL
-        else:
-            return Phase.TEST
-
-
 class Learner:
     """
     This class serves to create the boundary between the fastai library and the pytorch_toolbox. By creating this class,
     any breaking changes in the fastai Learner class would mean that only this class would need to be changed.
     """
-    EXPOSED_ATTRIBUTES_FOR_LEARNER = ["model"]
+
+    exposed_attributes = ["data", "model", "model_gradients", "unfreeze", "unfreeze_layer_groups", "recorder",
+                          "freeze_layer_groups", "lr_find", "to_fp16", "mixup", "metrics", "callback", "callback_fns"
+                          "predict_on_dl", "fit", "fit_one_cycle", "load_from_path"]
 
     @classmethod
     def create(cls, *args, **kwargs):
@@ -43,46 +30,28 @@ class Learner:
         return cls(learner)
 
     def __init__(self, learner):
-        self.learner = learner
+        self._learner = learner
+        self.set_exposed_attributes()
+        self.phase = None
 
-    def __getattr__(self, item):
-        if item in self.EXPOSED_ATTRIBUTES_FOR_LEARNER:
-            return getattr(self.learner, item)
-        else:
-            return getattr(self, item)
-
-    def model_gradients(self):
-        self.learner.model_gradients()
-
-    def unfreeze(self):
-        self.learner.unfreeze()
-
-    def freeze_layer_groups(self, layer_groups_idx):
-        self.learner.freeze_layer_groups(layer_groups_idx)
-
-    def unfreeze_layer_groups(self, layer_groups_idx):
-        self.learner.unfreeze_layer_groups(layer_groups_idx)
-
-    def predict_on_dl(self, dl, callbacks, callback_fns, metrics):
-        self.learner.predict_on_dl(dl, callbacks=callbacks, callback_fns=callback_fns, metrics=metrics)
-
-    def fit(self, *args, **kwargs):
-        self.learner.fit(*args, **kwargs)
-
-    def fit_one_cycle(self, *args, **kwargs):
-        self.learner.fit_one_cycle(*args, **kwargs)
-
-    def load_from_path(self, path, device=None):
-        self.learner.load_from_path(path, device)
+    def set_exposed_attributes(self):
+        for name in dir(self._learner):
+            if len(self.exposed_attributes) == 1 and self.exposed_attributes[0] == "ALL":
+                setattr(self, name, getattr(self._learner, name))
+            else:
+                if name in self.exposed_attributes:
+                    setattr(self, name, getattr(self._learner, name))
 
 
 @dataclass
 class PytorchToolboxLearner(fastai.Learner):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, label_key='label', *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.n_cycle = None
+        self.phase = None
         self._remove_fastai_recorder()
         self._add_custom_recorder()
+        self._add_phase_determiner(label_key)
 
     def _remove_fastai_recorder(self):
         callback_fns = []
@@ -100,6 +69,9 @@ class PytorchToolboxLearner(fastai.Learner):
 
     def _add_custom_recorder(self):
         self.callback_fns = [Recorder] + self.callback_fns
+
+    def _add_phase_determiner(self, label_key):
+        self.callback_fns = [functools.partial(PhaseDeterminer, label_key=label_key)] + self.callback_fns
 
     def model_gradients(self):
         for lg in self.layer_groups:
@@ -148,6 +120,96 @@ class PytorchToolboxLearner(fastai.Learner):
         super().fit(*args, **kwargs)
 
 
+def to_fp16(learn: Learner, loss_scale: float = 512, flat_master: bool = False) -> Learner:
+    from .callbacks import MixedPrecision
+    learn.model = fastai.model2half(learn.model)
+    learn.mp_cb = MixedPrecision(learn, loss_scale=loss_scale, flat_master=flat_master)
+    learn.callbacks.append(learn.mp_cb)
+    return learn
+
+
+Learner.to_fp16 = to_fp16
+
+
+class DeviceDataLoader(fastai.DeviceDataLoader):
+    """
+    This is subclasses because there are situations where the batch being returns may contain more than tensors e.g.
+    maybe we also return the UID of the image. Hence the proc_batch function is overridden to provide this functionality
+    """
+
+    def proc_batch(self, b):
+        input = fastai.to_device(b[0], self.device)
+        output = {}
+        for k, v in b[1].items():
+            if isinstance(v, torch.Tensor):
+                output[k] = fastai.to_device(v, None)
+            else:
+                output[k] = v
+        return input, output
+
+    def __iter__(self):
+        for b in self.dl:
+            yield self.proc_batch(b)
+
+    @classmethod
+    def create(cls, dataset: fastai.Dataset, bs: int = 64, shuffle: bool = False,
+               device: torch.device = fastai.defaults.device,
+               tfms: Collection[Callable] = None, num_workers: int = fastai.defaults.cpus,
+               collate_fn: Callable = fastai.data_collate, **kwargs: Any):
+        "Create DeviceDataLoader from `dataset` with `batch_size` and `shuffle`: processs using `num_workers`."
+        return cls(DataLoader(dataset, batch_size=bs, shuffle=shuffle, num_workers=num_workers, **kwargs),
+                   device=device, tfms=tfms, collate_fn=collate_fn)
+
+    @classmethod
+    def create_with_initialized_dl(cls, dl, device, tfms, collate_fn):
+        return cls(dl=dl, device=device, tfms=tfms, collate_fn=collate_fn)
+
+
+class DataBunch(fastai.DataBunch):
+    """
+    This purpose of this subclass was to provide more customization on how to set the batch sizes for the val and test
+    dataset, instead them being set @ twice the size of the train bs. This is because there are situations where we
+    would want to train smaller images (maybe it speed up training, or for better generalization as for smaller images
+    the higher features would have to be identitfied), but test on the full sized image.
+    """
+    "Bind `train_dl`,`valid_dl` and`test_dl` to `device`. tfms are DL tfms (normalize). `path` is for models."
+
+    def __init__(self, train_dl: DataLoader, valid_dl: DataLoader, test_dl: Optional[DataLoader] = None,
+                 device: torch.device = None, tfms: Optional[Collection[Callable]] = None, path: PathOrStr = '.',
+                 collate_fn: Callable = data_collate):
+        "Bind `train_dl`,`valid_dl` and`test_dl` to `device`. tfms are DL tfms (normalize). `path` is for models."
+        super().__init__(train_dl, valid_dl, test_dl, device, tfms, path, collate_fn)
+        self.train_dl = DeviceDataLoader.create_with_initialized_dl(train_dl, self.device, tfms, collate_fn)
+        self.valid_dl = DeviceDataLoader.create_with_initialized_dl(valid_dl, self.device, tfms, collate_fn)
+        self.test_dl = DeviceDataLoader.create_with_initialized_dl(test_dl, self.device, tfms,
+                                                                   collate_fn) if test_dl else None
+
+    @classmethod
+    def create(cls, train_ds: Dataset, valid_ds: Dataset, test_ds: Dataset = None, path: PathOrStr = '.',
+               train_bs: int = 64, val_bs: int = None, test_bs: int = None, sampler=None,
+               num_workers: int = fastai.defaults.cpus, pin_memory: bool = False,
+               tfms: Optional[Collection[Callable]] = None,
+               device: torch.device = None,
+               collate_fn: Callable = data_collate) -> 'DataBunch':
+        "`DataBunch` factory. `bs` batch size, `ds_tfms` for `Dataset`, `tfms` for `DataLoader`."
+        if val_bs is None: val_bs = train_bs * 2
+        if test_bs is None: test_bs = train_bs * 2
+
+        datasets = [train_ds, valid_ds]
+        if test_ds is not None:
+            datasets.append(test_ds)
+        if sampler is None:
+            train_dl = DataLoader(train_ds, train_bs, shuffle=True, num_workers=num_workers, pin_memory=pin_memory,
+                                  drop_last=True)
+        else:
+            train_dl = DataLoader(train_ds, train_bs, sampler=sampler, num_workers=num_workers, pin_memory=pin_memory,
+                                  drop_last=True)
+        val_dl = DataLoader(valid_ds, val_bs, shuffle=False, num_workers=num_workers)
+        test_dl = DataLoader(test_ds, test_bs, shuffle=False, num_workers=num_workers)
+        dls = [train_dl, val_dl, test_dl]
+        return cls(*dls, path=path, device=device, tfms=tfms, collate_fn=collate_fn)
+
+
 class Recorder(fastai.basic_train.Recorder):
     """
     A extended recorder which has the ability to record the the losses and metric per epoch, this is so that we can
@@ -166,9 +228,9 @@ class Recorder(fastai.basic_train.Recorder):
     def history(self):
         return {**self.loss_history, **self.metric_history}
 
-    def on_batch_begin(self, train, epoch, last_target, **kwargs):
+    def on_batch_begin(self, train, epoch, **kwargs):
         super().on_batch_begin(train, **kwargs)
-        self.phase = determine_phase(train, last_target)
+        self.phase = self.learn.phase
         self.key = (self.phase.name, epoch)
 
     def _create_loss_values_for_batch_for_every_samples(self):
@@ -196,12 +258,40 @@ class Recorder(fastai.basic_train.Recorder):
                 self.metric_history[self.key][name].append(metric.item())
 
 
-def to_fp16(learn: Learner, loss_scale: float = 512, flat_master: bool = False) -> Learner:
-    from .callbacks import MixedPrecision
-    learn.model = fastai.model2half(learn.model)
-    learn.mp_cb = MixedPrecision(learn, loss_scale=loss_scale, flat_master=flat_master)
-    learn.callbacks.append(learn.mp_cb)
-    return learn
+class Phase(Enum):
+    TRAIN = 1
+    VAL = 2
+    TEST = 3
 
 
-Learner.to_fp16 = to_fp16
+def determine_phase(train, last_target, label_key='label'):
+    if train:
+        return Phase.TRAIN
+    else:
+        label = last_target.get(label_key)
+        if label is not None:
+            return Phase.VAL
+        else:
+            return Phase.TEST
+
+
+class PhaseDeterminer(fastai.LearnerCallback):
+    _order = -100
+
+    def __init__(self, learn: Learner, label_key: str = 'label'):
+        self.learn = learn
+        self.label_key = label_key
+
+    def on_batch_begin(self, train, last_target, **kwargs):
+        phase = self._determine_phase(train, last_target)
+        self.learn.phase = phase
+
+    def _determine_phase(self, train, last_target):
+        if train:
+            return Phase.TRAIN
+        else:
+            label = last_target.get(self.label_key)
+            if label is not None:
+                return Phase.VAL
+            else:
+                return Phase.TEST

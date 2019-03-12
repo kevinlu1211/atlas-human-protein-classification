@@ -17,6 +17,7 @@ import pytorch_toolbox.fastai.fastai as fastai
 
 @dataclass
 class LabelExtractorCallback(fastai.Callback):
+    _order = -5
     label_key: str = 'label'
 
     def on_batch_begin(self, last_input, last_target, **kwargs):
@@ -29,7 +30,7 @@ class LabelExtractorCallback(fastai.Callback):
 
 @dataclass
 class FiveCropTTAPredictionCallback(fastai.Callback):
-    _order = -20
+    _order = -25
 
     aggregate_fns = {
         "MAX": partial(torch.max, dim=1)
@@ -236,6 +237,25 @@ class ReduceLROnEpochEndCallback(TrackerCallback):
     def on_train_end(self, **kwargs):
         lr_history_df = pd.DataFrame(self.lr_history)
         lr_history_df.to_csv(self.save_path / "lr_history.csv")
+
+
+@dataclass
+class DeterminePhaseCallback(fastai.LearnerCallback):
+    _order = -15
+    label_key: str = 'label'
+
+    def on_batch_begin(self, train, last_target, **kwargs):
+        self.learn.phase = self.determine_phase(train, last_target)
+
+    def determine_phase(self, train, last_target):
+        if train:
+            return Phase.TRAIN
+        else:
+            label = last_target.get(self.label_key)
+            if label is not None:
+                return Phase.VAL
+            else:
+                return Phase.TEST
 
 
 learner_callback_lookup = {

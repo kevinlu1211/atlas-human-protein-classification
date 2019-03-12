@@ -4,10 +4,9 @@ sys.path.append("../fastai")
 
 from fastai import *
 import fastai
-from fastai import vision
 
 
-class PytorchToolboxDeviceDataLoader(fastai.DeviceDataLoader):
+class DeviceDataLoader(fastai.DeviceDataLoader):
     """
     This is subclasses because there are situations where the batch being returns may contain more than tensors e.g.
     maybe we also return the UID of the image. Hence the proc_batch function is overridden to provide this functionality
@@ -37,40 +36,37 @@ class PytorchToolboxDeviceDataLoader(fastai.DeviceDataLoader):
                    device=device, tfms=tfms, collate_fn=collate_fn)
 
 
-class DeviceDataLoader:
-    EXPOSED_ATTRIBUTES_FOR_DEVICE_DATA_LOADER = []
-
-    @classmethod
-    def create(cls, dataset: fastai.Dataset, bs: int = 64, shuffle: bool = False,
-               device: torch.device = fastai.defaults.device, num_workers: int = fastai.defaults.cpus,
-               collate_fn: Callable = fastai.data_collate, **kwargs: Any):
-        device_data_loader = PytorchToolboxDeviceDataLoader(
-            DataLoader(dataset, batch_size=bs, shuffle=shuffle, num_worker=num_workers, **kwargs),
-            device=device, tfms=None, collate_fn=collate_fn)
-        return cls(device_data_loader)
-
-    @classmethod
-    def create_with_initialized_dl(cls, dl, device, collate_fn):
-        device_data_loader = PytorchToolboxDeviceDataLoader(dl=dl, device=device, tfms=None, collate_fn=collate_fn)
-        return cls(device_data_loader)
-
-    # def __getattr__(self, item):
-    #     try:
-    #         return getattr(self, item)
-    #     except AttributeError:
-    #         if item in self.EXPOSED_ATTRIBUTES_FOR_DEVICE_DATA_LOADER:
-    #             return getattr(self.learner, item)
-    #         else:
-    #             raise AttributeError
-
-    def __iter__(self):
-        return self.device_data_loader.__iter__()
-
-    def __init__(self, device_data_loader):
-        self.device_data_loader = device_data_loader
+# class DeviceDataLoader:
+#     exposed_attributes = ["ALL"]
+#
+#     def __init__(self, device_data_loader):
+#         self._device_data_loader = device_data_loader
+#         self.set_exposed_attributes()
+#
+#     def set_exposed_attributes(self):
+#         for name in dir(self._device_data_loader):
+#             if len(self.exposed_attributes) == 1 and self.exposed_attributes[0] == "ALL":
+#                 setattr(self, name, getattr(self._device_data_loader, name))
+#             else:
+#                 if name in self.exposed_attributes:
+#                     setattr(self, name, getattr(self._device_data_loader, name))
+#
+#     @classmethod
+#     def create(cls, dataset: fastai.Dataset, bs: int = 64, shuffle: bool = False,
+#                device: torch.device = fastai.defaults.device, num_workers: int = fastai.defaults.cpus,
+#                collate_fn: Callable = fastai.data_collate, **kwargs: Any):
+#         device_data_loader = PytorchToolboxDeviceDataLoader(
+#             DataLoader(dataset, batch_size=bs, shuffle=shuffle, num_worker=num_workers, **kwargs),
+#             device=device, tfms=None, collate_fn=collate_fn)
+#         return cls(device_data_loader)
+#
+#     @classmethod
+#     def create_with_initialized_dl(cls, dl, device, collate_fn):
+#         device_data_loader = PytorchToolboxDeviceDataLoader(dl=dl, device=device, tfms=None, collate_fn=collate_fn)
+#         return cls(device_data_loader)
 
 
-class DataBunch:
+class DataBunch(fastai.DataBunch):
     """
     This purpose of this subclass was to provide more customization on how to set the batch sizes for the val and test
     dataset, instead them being set @ twice the size of the train bs. This is because there are situations where we
@@ -83,13 +79,11 @@ class DataBunch:
                  device: torch.device = None, tfms: Optional[Collection[Callable]] = None, path: PathOrStr = '.',
                  collate_fn: Callable = data_collate):
         "Bind `train_dl`,`valid_dl` and`test_dl` to `device`. tfms are DL tfms (normalize). `path` is for models."
-        self.tfms = fastai.listify(tfms)
-        self.device = fastai.defaults.device if device is None else device
+        super().__init__(train_dl, valid_dl, test_dl, device, tfms, path, collate_fn)
         self.train_dl = DeviceDataLoader.create_with_initialized_dl(train_dl, self.device, collate_fn)
         self.valid_dl = DeviceDataLoader.create_with_initialized_dl(valid_dl, self.device, collate_fn)
         self.test_dl = DeviceDataLoader.create_with_initialized_dl(test_dl, self.device,
                                                                    collate_fn) if test_dl else None
-        self.path = Path(path)
 
     @classmethod
     def create(cls, train_ds: Dataset, valid_ds: Dataset, test_ds: Dataset = None, path: PathOrStr = '.',
@@ -103,7 +97,8 @@ class DataBunch:
         if test_bs is None: test_bs = train_bs * 2
 
         datasets = [train_ds, valid_ds]
-        if test_ds is not None: datasets.append(test_ds)
+        if test_ds is not None:
+            datasets.append(test_ds)
         if sampler is None:
             train_dl = DataLoader(train_ds, train_bs, shuffle=True, num_workers=num_workers, pin_memory=pin_memory,
                                   drop_last=True)
@@ -114,3 +109,27 @@ class DataBunch:
         test_dl = DataLoader(test_ds, test_bs, shuffle=False, num_workers=num_workers)
         dls = [train_dl, val_dl, test_dl]
         return cls(*dls, path=path, device=device, tfms=tfms, collate_fn=collate_fn)
+
+
+# class DataBunch:
+#     """
+#     This class serves to create the boundary between the fastai library and the pytorch_toolbox.
+#     """
+#     exposed_attributes = ["ALL"]
+#
+#     def __init__(self, data_bunch):
+#         self._data_bunch = data_bunch
+#         self.set_exposed_attributes()
+#
+#     def set_exposed_attributes(self):
+#         for name in dir(self._data_bunch):
+#             if len(self.exposed_attributes) == 1 and self.exposed_attributes[0] == "ALL":
+#                 setattr(self, name, getattr(self._data_bunch, name))
+#             else:
+#                 if name in self.exposed_attributes:
+#                     setattr(self, name, getattr(self._data_bunch, name))
+#
+#     @classmethod
+#     def create(cls, *args, **kwargs):
+#         data_bunch = PytorchToolboxDataBunch.create(*args, **kwargs)
+#         return cls(data_bunch)
