@@ -82,6 +82,7 @@ class Learner(fastai.Learner):
         dl = self.data.test_dl
         self.predict_on_dl(dl, pbar, callbacks, metrics)
 
+
     def freeze_layer_groups(self, layer_group_idxs):
         if not is_listy(layer_group_idxs): layer_group_idxs = [layer_group_idxs]
         super().unfreeze()
@@ -106,7 +107,7 @@ class Learner(fastai.Learner):
         super().fit(*args, **kwargs)
 
 
-class Recorder(fastai.basic_train.Recorder):
+class Recorder(fastai.Recorder):
     """A extended recorder which has the ability to record the the losses and metric per epoch,
     this is so that we can use the average value of the losses to determine whether a model is good,
      or if and when to do early stopping/reduce LR"""

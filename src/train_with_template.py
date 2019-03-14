@@ -40,6 +40,8 @@ from pytorch_toolbox.fastai_extensions.basic_data import DataBunch
 from pytorch_toolbox.fastai_extensions.callbacks import callback_lookup, learner_callback_lookup
 from pytorch_toolbox.fastai_extensions.metrics import metric_lookup
 from pytorch_toolbox.pipeline import PipelineGraph
+from pytorch_toolbox.training.learner import Learner
+from pytorch_toolbox.training.data import DataBunch
 
 
 def set_logger(log_level):
@@ -49,7 +51,7 @@ def set_logger(log_level):
         "WARNING": logging.WARNING,
         "INFO": logging.INFO,
         "DEBUG": logging.DEBUG,
-        "NONSET": logging.NOTSET
+        "NOTSET": logging.NOTSET
     }
     logging.basicConfig(
         level=log_levels.get(log_level, logging.INFO),
