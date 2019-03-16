@@ -20,12 +20,12 @@ _default_cpus = min(1, num_cpus())
 _default_device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 defaults = SimpleNamespace(device=_default_device, cpus=_default_cpus)
 default_collate = torch.utils.data.dataloader.default_collate
-default_lr = slice(3e-3)
+default_lr = 3e-3
 default_wd = 1e-2
 
 ModuleList = Collection[nn.Module]
 NPArray = np.ndarray
-OptOptimizer = Optional[optim.Optimizer]
+OptionalOptimizer = Optional[optim.Optimizer]
 ParamList = Collection[nn.Parameter]
 SplitFunc = Callable[[nn.Module], List[nn.Module]]
 SplitFuncOrIdxList = Union[Callable, Collection[ModuleList]]
@@ -49,3 +49,7 @@ AnnealFunc = Callable[[Number, Number, float], Number]
 StartOptEnd = Union[float, Tuple[float, float]]
 PBar = Union[MasterBar, ProgressBar]
 bn_types = (nn.BatchNorm1d, nn.BatchNorm2d, nn.BatchNorm3d)
+ListOrItem = Union[Collection[Any], int, float, str]
+OptionalListOrItem = Optional[ListOrItem]
+StrList = Collection[str]
+OptionalStrList = Optional[StrList]

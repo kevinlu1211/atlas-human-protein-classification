@@ -6,7 +6,7 @@ from pytorch_toolbox.training.defaults import ModuleList, Floats
 from pytorch_toolbox.utils import split_bn_bias, trainable_params, listify, is_tuple
 
 
-class OptimWrapper:
+class OptimizerWrapper:
     "Basic wrapper around an optimizer to simplify HP changes."
 
     def __init__(self, opt: optim.Optimizer, wd: Floats = 0., true_wd: bool = False, bn_wd: bool = True):

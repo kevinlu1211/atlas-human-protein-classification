@@ -33,14 +33,14 @@ from src.callbacks import OutputRecorder, ResultRecorder
 import pytorch_toolbox.fastai.fastai as fastai
 from pytorch_toolbox.utils import listify
 from pytorch_toolbox.fastai_extensions.vision.utils import denormalize_fn_lookup, normalize_fn_lookup, tensor2img
-from pytorch_toolbox.fastai.fastai.callbacks import CSVLogger
 from pytorch_toolbox.fastai_extensions.basic_train import Learner
 from pytorch_toolbox.fastai_extensions.loss import LossWrapper, loss_lookup
 from pytorch_toolbox.fastai_extensions.basic_data import DataBunch
-from pytorch_toolbox.fastai_extensions.callbacks import callback_lookup, learner_callback_lookup
 from pytorch_toolbox.fastai_extensions.metrics import metric_lookup
 from pytorch_toolbox.pipeline import PipelineGraph
-from pytorch_toolbox.training.learner import Learner
+from pytorch_toolbox.training.learner.core import Learner
+from pytorch_toolbox.training.callbacks.learner_callbacks import learner_callback_lookup
+from pytorch_toolbox.training.callbacks.normal_callbacks import callback_lookup
 from pytorch_toolbox.training.data import DataBunch
 
 
@@ -294,7 +294,7 @@ def create_output_recorder(save_path_creator, denormalize_fn):
 
 
 def create_csv_logger(save_path_creator):
-    return partial(CSVLogger, filename=str(save_path_creator() / 'history'))
+    return partial(learner_callback_lookup["CSVLogger"], file_save_path=save_path_creator(), file_name='history')
 
 
 def sigmoid_np(x):

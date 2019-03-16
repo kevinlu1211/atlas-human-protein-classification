@@ -1,4 +1,5 @@
 import re
+from enum import Enum
 
 from pytorch_toolbox.training.defaults import *
 
@@ -27,15 +28,28 @@ def make_one_hot(labels, n_classes=28):
     return one_hots
 
 
-def listify(x):
-    if isinstance(x, str):
-        return [x]
-    elif not isinstance(x, Iterable):
-        return [x]
-    elif not isinstance(x, List):
-        return [x]
-    else:
-        return x
+# def listify(x):
+#     if isinstance(x, str):
+#         return [x]
+#     elif not isinstance(x, Iterable):
+#         return [x]
+#     elif not isinstance(x, List):
+#         return [x]
+#     else:
+#         return x
+
+def listify(p: OptionalListOrItem = None, q: OptionalListOrItem = None):
+    "Make `p` same length as `q`"
+    if p is None:
+        p = []
+    elif isinstance(p, str):
+        p = [p]
+    elif not isinstance(p, Iterable):
+        p = [p]
+    n = q if type(q) == int else len(p) if q is None else len(q)
+    if len(p) == 1: p = p * n
+    assert len(p) == n, f'List len mismatch ({len(p)} vs {n})'
+    return list(p)
 
 
 def if_none(a: Any, b: Any) -> Any:
@@ -105,9 +119,27 @@ def camel2snake(name: str) -> str:
     s1 = re.sub(_camel_re1, r'\1_\2', name)
     return re.sub(_camel_re2, r'\1_\2', s1).lower()
 
+
 def requires_grad(m: nn.Module, b: Optional[bool] = None) -> Optional[bool]:
     "If `b` is not set `requires_grad` on all params in `m`, else return `requires_grad` of first param."
     ps = list(m.parameters())
     if not ps: return None
     if b is None: return ps[0].requires_grad
     for p in ps: p.requires_grad = b
+
+
+class Phase(Enum):
+    TRAIN = 1
+    VAL = 2
+    TEST = 3
+
+
+def determine_phase(train, last_target, label_key="label"):
+    if train:
+        return Phase.TRAIN
+    else:
+        label = last_target.get(label_key)
+        if label is not None:
+            return Phase.VAL
+        else:
+            return Phase.TEST
