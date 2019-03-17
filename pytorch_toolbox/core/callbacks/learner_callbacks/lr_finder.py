@@ -1,13 +1,12 @@
-from pytorch_toolbox.training.defaults import TensorOrNumber, Any
-from pytorch_toolbox.training.callbacks.core import LearnerCallback, annealing_exp, Stepper
-import pytorch_toolbox.training.learner.core as learner_core
+from pytorch_toolbox.core.defaults import TensorOrNumber, Any
+from pytorch_toolbox.core.callbacks import LearnerCallback, annealing_exp, Stepper
 
 
 class LRFinder(LearnerCallback):
     """Causes `learn` to go on a mock training from `start_lr` to `end_lr` for `num_it` iterations.
        Training is interrupted if the loss diverges. Weights changes are reverted after run complete."""
 
-    def __init__(self, learn: learner_core.Learner, start_lr: float = 1e-7, end_lr: float = 10, num_it: int = 100,
+    def __init__(self, learn, start_lr: float = 1e-7, end_lr: float = 10, num_it: int = 100,
                  stop_div: bool = True):
         "Initialize schedule of learning rates"
         super().__init__(learn)

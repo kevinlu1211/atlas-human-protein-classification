@@ -1,20 +1,21 @@
-from dataclasses import dataclass
+import time
+from pathlib import Path
 
 import pandas as pd
 
-from pytorch_toolbox.training.callbacks.core import TrackerCallback
-from pytorch_toolbox.training.defaults import Callable
+from pytorch_toolbox.core.defaults import Callable, Optional
+from pytorch_toolbox.core.callbacks import TrackerCallback
 
-@dataclass
+
 class ReduceLROnEpochEndCallback(TrackerCallback):
-    wait_duration: int = 10
-    save_path_creator: Callable = None
-
-    def __post_init__(self):
-        assert self.save_path_creator is not None
-        self.lr_history = []
-        self.save_path = self.save_path_creator()
-        super().__post_init__()
+    def __init__(self, learn, save_path_creator: Optional[Callable] = None, file_name: str = "lr_history",
+                 wait_duration: int = 10):
+        super().__init__(learn)
+        self.wait_duration = wait_duration
+        self.file_name = file_name
+        self.save_path = Path(
+            self.learn.path if save_path_creator is None else save_path_creator()) / f"{file_name}.csv"
+        self.lr_history = None
 
     def _wait_for_user_prompt_to_change_lr(self):
         print(f"Waiting for {self.wait_duration} seconds keyboard interrupt to change LR")
@@ -52,4 +53,4 @@ class ReduceLROnEpochEndCallback(TrackerCallback):
 
     def on_train_end(self, **kwargs):
         lr_history_df = pd.DataFrame(self.lr_history)
-        lr_history_df.to_csv(self.save_path / "lr_history.csv")
+        lr_history_df.to_csv(self.save_path)

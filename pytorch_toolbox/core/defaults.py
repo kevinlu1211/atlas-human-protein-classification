@@ -1,7 +1,7 @@
 import os
 from numbers import Number
 from types import SimpleNamespace
-from typing import Collection, Optional, Callable, List, Union, Tuple, Dict, Any, Iterator, Iterable
+from typing import Collection, Optional, Callable, List, Union, Tuple, Dict, Any, Iterator, Iterable, Sequence
 
 import numpy as np
 import torch

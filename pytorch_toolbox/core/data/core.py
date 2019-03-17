@@ -3,8 +3,8 @@ from typing import Callable, Any, Optional
 import torch
 from torch.utils.data import Dataset, DataLoader
 
-from pytorch_toolbox.utils import to_device
-from pytorch_toolbox.training.defaults import default_collate, defaults
+from pytorch_toolbox.core.utils import to_device
+from pytorch_toolbox.core.defaults import default_collate, defaults
 
 
 class DeviceDataLoader:
@@ -52,6 +52,9 @@ class DeviceDataLoader:
     def __iter__(self):
         for b in self.dl:
             yield self.proc_batch(b)
+
+    def __len__(self):
+        return len(self.dl)
 
 
 class DataBunch:

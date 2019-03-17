@@ -7,8 +7,9 @@ from typing import Any, Collection, Dict, Union, Optional
 from torch import Tensor
 import numpy as np
 
-from pytorch_toolbox.training.defaults import PBar, MetricFuncList, StartOptEnd, AnnealFunc
-from pytorch_toolbox.utils import if_none, camel2snake, is_listy, is_tuple, Phase
+from pytorch_toolbox.core.defaults import PBar, MetricFuncList, StartOptEnd, AnnealFunc
+from pytorch_toolbox.core.utils import if_none, camel2snake, is_listy, is_tuple, Phase
+
 
 # __all__ = ["Callback", "CallbackHandler", "LearnerCallback", "CallbackList"]
 
@@ -171,13 +172,13 @@ class LearnerCallback(Callback):
     def cb_name(self): return camel2snake(self.__class__.__name__)
 
 
-@dataclass
 class TrackerCallback(LearnerCallback):
     "A `LearnerCallback` that keeps track of the best value in `monitor`."
-    monitor: str = 'val_loss'
-    mode: str = 'auto'
 
-    def __post_init__(self):
+    def __init__(self, learn, monitor="val_loss", mode="auto"):
+        super().__init__(learn)
+        self.monitor = monitor
+        self.mode = mode
         assert self.mode in ['auto', 'min', 'max'], "Please select a valid model to monitor"
         mode_dict = dict(min=np.less, max=np.greater)
         mode_dict['auto'] = np.less if 'loss' in self.monitor else np.greater

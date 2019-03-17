@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 import torch
 
-from pytorch_toolbox.training.callbacks.core import Callback
+from pytorch_toolbox.core.callbacks import Callback
 
 
 @dataclass

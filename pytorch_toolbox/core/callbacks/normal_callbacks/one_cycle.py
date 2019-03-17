@@ -1,23 +1,21 @@
-from dataclasses import dataclass
-
 import numpy as np
 
-from pytorch_toolbox.training.learner import Learner
-from pytorch_toolbox.training.defaults import Floats, StartOptEnd, Any
-from pytorch_toolbox.training.callbacks.core import Callback, annealing_linear, annealing_cos, Stepper
-from pytorch_toolbox.utils import listify, is_listy
+from pytorch_toolbox.core.defaults import Floats, StartOptEnd, Any
+from pytorch_toolbox.core.callbacks.core import Callback, annealing_linear, annealing_cos, Stepper
+from pytorch_toolbox.core.utils import listify, is_listy
 
 
-@dataclass
 class OneCycleScheduler(Callback):
     "Manage 1-Cycle style training as outlined in Leslie Smith's [paper](https://arxiv.org/pdf/1803.09820.pdf)."
-    learn: Learner
-    lr_max: float
-    moms: Floats = (0.95, 0.85)
-    div_factor: float = 25.
-    pct_start: float = 0.3
 
-    def __post_init__(self):
+    def __init__(self, learn, lr_max: float, moms: Floats = (0.95, 0.85), div_factor: float = 25.,
+                 pct_start: float = 0.3):
+        super().__init__()
+        self.learn = learn
+        self.lr_max = lr_max
+        self.moms = moms
+        self.div_factor = div_factor
+        self.pct_start = pct_start
         self.moms = tuple(listify(self.moms, 2))
         if is_listy(self.lr_max):
             self.lr_max = np.array(self.lr_max)

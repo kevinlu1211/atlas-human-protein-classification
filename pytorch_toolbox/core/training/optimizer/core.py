@@ -2,8 +2,8 @@ from typing import Union, Callable, Tuple, List, Any
 
 from torch import optim
 
-from pytorch_toolbox.training.defaults import ModuleList, Floats
-from pytorch_toolbox.utils import split_bn_bias, trainable_params, listify, is_tuple
+from pytorch_toolbox.core.defaults import ModuleList, Floats
+from pytorch_toolbox.core.utils import split_bn_bias, trainable_params, listify, is_tuple
 
 
 class OptimizerWrapper:

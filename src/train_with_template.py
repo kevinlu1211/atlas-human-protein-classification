@@ -38,10 +38,9 @@ from pytorch_toolbox.fastai_extensions.loss import LossWrapper, loss_lookup
 from pytorch_toolbox.fastai_extensions.basic_data import DataBunch
 from pytorch_toolbox.fastai_extensions.metrics import metric_lookup
 from pytorch_toolbox.pipeline import PipelineGraph
-from pytorch_toolbox.training.learner.core import Learner
-from pytorch_toolbox.training.callbacks.learner_callbacks import learner_callback_lookup
-from pytorch_toolbox.training.callbacks.normal_callbacks import callback_lookup
-from pytorch_toolbox.training.data import DataBunch
+from pytorch_toolbox.core.training.learner import Learner
+from pytorch_toolbox.core.callbacks import callback_lookup, learner_callback_lookup
+from pytorch_toolbox.core.data import DataBunch
 
 
 def set_logger(log_level):
@@ -294,7 +293,7 @@ def create_output_recorder(save_path_creator, denormalize_fn):
 
 
 def create_csv_logger(save_path_creator):
-    return partial(learner_callback_lookup["CSVLogger"], file_save_path=save_path_creator(), file_name='history')
+    return partial(learner_callback_lookup["CSVLogger"], save_path_creator=save_path_creator, file_name='history')
 
 
 def sigmoid_np(x):
