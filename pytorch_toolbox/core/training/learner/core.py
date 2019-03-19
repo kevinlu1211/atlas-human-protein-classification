@@ -7,6 +7,7 @@ from torch.utils.data import DataLoader
 from torch.optim import Adam
 import numpy as np
 from fastprogress import progress_bar, master_bar
+from miniutils import progbar
 
 from pytorch_toolbox.core.training.learner.train import fit_one_cycle, lr_find, to_fp16
 from pytorch_toolbox.core.callbacks import Callback, CallbackList, CallbackHandler, Recorder
@@ -81,12 +82,12 @@ class Learner:
         assert dl is not None
         metrics = if_none(metrics, self.metrics)
         callbacks_fns = [cb(self) for cb in if_none(callback_fns, [])]
-        cb_handler = callbacks.CallbackHandler(self.callbacks + if_none(callbacks, []) + callbacks_fns, metrics)
+        cb_handler = CallbackHandler(self.callbacks + if_none(callbacks, []) + callbacks_fns, metrics)
         with torch.no_grad():
             self.model.eval()
-            for xb, yb in progress_bar(dl, parent=pbar, leave=(pbar is not None)):
+            for xb, yb in progbar(dl):
                 if cb_handler: xb, yb = cb_handler.on_batch_begin(xb, yb, train=False)
-                cb_handler = if_none(cb_handler, callbacks.CallbackHandler())
+                cb_handler = if_none(cb_handler, CallbackHandler())
                 if not is_listy(xb):
                     xb = [xb]
                 out = self.model(*xb)

@@ -9,7 +9,7 @@ def sigmoid_np(x):
     return 1.0 / (1.0 + np.exp(-x))
 
 
-def f_score_soft(preds, targs, beta, th=0.5, d=50.0):
+def soft_f_score(preds, targs, beta, th=0.5, d=50.0):
     if isinstance(preds, torch.Tensor) and isinstance(targs, torch.Tensor):
         return (-1. * calculate_soft_f_score_loss(preds, targs, beta=beta).mean()) + 1
     else:

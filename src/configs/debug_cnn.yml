@@ -233,7 +233,7 @@ CreateTrainingScheme:
   type: training_scheme_fit
   properties:
     callable_arguments:
-      epochs: 50
+      epochs: 5
       lr: [5e-3, 5e-2]
     partial_callable: true
   output: TrainingScheme
