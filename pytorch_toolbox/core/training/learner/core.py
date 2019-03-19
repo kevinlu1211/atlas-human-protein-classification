@@ -14,8 +14,8 @@ from pytorch_toolbox.core.data import DataBunch
 from pytorch_toolbox.core.defaults import Floats, default_lr, bn_types, LossFunction, OptionalMetrics, \
     OptionalLossFunction, PBar, OptionalOptimizer
 from pytorch_toolbox.core.training.optimizer import OptimizerWrapper
-from pytorch_toolbox.core.utils import listify, flatten_model, if_none, is_listy, requires_grad, to_numpy, to_detach, \
-    even_mults
+from pytorch_toolbox.core.utils import listify, if_none, is_listy, to_numpy, even_mults
+from pytorch_toolbox.core.training.utils import flatten_model, to_detach, requires_grad
 
 AdamW = partial(Adam, betas=(0.9, 0.99))
 

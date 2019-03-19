@@ -250,3 +250,13 @@ def mean(l, ignore_nan=True, empty=0):
         return acc
     return acc / n
 
+
+class LovaszHingeFlatLoss:
+    def __call__(self, out, *yb):
+        prediction = out
+        target = yb[0]
+        original_shape = target.shape
+        lovasz_loss = lovasz_hinge_flat(prediction.flatten(), target.flatten(), reduce=False)
+        self.per_sample_loss = lovasz_loss.view(*original_shape).sum(dim=1)
+        self.loss = lovasz_loss.view(*original_shape)
+        return lovasz_loss.view(*original_shape).sum(dim=1).mean()

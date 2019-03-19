@@ -1,6 +1,3 @@
-from .lovasz_loss import lovasz_hinge_flat
-from fastai import *
-
 from abc import abstractmethod
 
 import torch.nn as nn
@@ -41,16 +38,5 @@ class BaseLoss:
     @abstractmethod
     def reduced_loss(self):
         pass
-
-
-class LovaszHingeFlatLoss:
-    def __call__(self, out, *yb):
-        prediction = out
-        target = yb[0]
-        original_shape = target.shape
-        lovasz_loss = lovasz_hinge_flat(prediction.flatten(), target.flatten(), reduce=False)
-        self.per_sample_loss = lovasz_loss.view(*original_shape).sum(dim=1)
-        self.loss = lovasz_loss.view(*original_shape)
-        return lovasz_loss.view(*original_shape).sum(dim=1).mean()
 
 

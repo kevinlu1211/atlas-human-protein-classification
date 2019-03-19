@@ -3,7 +3,7 @@ from torch.nn.utils import parameters_to_vector
 
 from pytorch_toolbox.core.callbacks import Callback
 from pytorch_toolbox.core.defaults import *
-from pytorch_toolbox.core.utils import split_bn_bias
+from pytorch_toolbox.core.training.utils import split_bn_bias
 
 
 def get_master(layer_groups: ModuleList, flat_master: bool = False) -> Tuple[List[List[Tensor]], List[List[Tensor]]]:

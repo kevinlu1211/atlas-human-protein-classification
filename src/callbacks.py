@@ -64,7 +64,7 @@ class OutputRecorder(fastai.LearnerCallback):
     def on_batch_end(self, **kwargs):
         for loss in self.learn.loss_func.losses:
             name = loss.__class__.__name__
-            unreduced_loss = to_numpy(loss.loss)
+            unreduced_loss = to_numpy(loss.unreduced_loss)
             # reduced_loss = to_numpy(loss.loss.mean())
             self.current_batch[f"{name}"] = unreduced_loss
             # self.current_batch[f"{name}_reduced"] = reduced_loss
