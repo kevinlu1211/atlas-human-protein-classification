@@ -52,7 +52,19 @@ class SoftFScoreLoss:
         return f1_soft_loss.mean()
 
 
-def calculate_soft_f_score(logits, labels, beta=1):
+def calculate_soft_F_score(logits, labels, beta=1):
+    """
+    The formula to calculate F_{beta} score is:
+
+        F_{beta} = (1 + beta^{2}) * (precision * recall) / (beta^{2} * precision + recall)
+
+    F_{beta} measure the effectiveness of retrieval with respect to a user who attaches beta times as much importance
+    to recall as precision (https://en.wikipedia.org/wiki/F1_score)
+    :param logits: B x ... for example B x n_classes x H x W for segmentation or B x n_classes for classification
+    :param labels: same as above
+    :param beta:
+    :return:
+    """
     __small_value = 1e-6
 
     probs = F.sigmoid(logits)
