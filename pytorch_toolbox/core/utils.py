@@ -11,7 +11,6 @@ def to_numpy(t):
         return np.array(t)
 
 
-
 def listify(p: OptionalListOrItem = None, q: OptionalListOrItem = None):
     "Make `p` same length as `q`"
     if p is None:
@@ -71,6 +70,7 @@ def even_mults(start: float, stop: float, n: int) -> np.ndarray:
     mult = stop / start
     step = mult ** (1 / (n - 1))
     return np.array([start * (step ** i) for i in range(n)])
+
 
 def make_one_hot(labels, n_classes=28):
     one_hots = []

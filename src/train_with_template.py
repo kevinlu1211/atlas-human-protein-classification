@@ -31,11 +31,11 @@ from src.transforms import augment_fn_lookup
 from src.callbacks import OutputRecorder, ResultRecorder
 
 import pytorch_toolbox.fastai.fastai as fastai
-from pytorch_toolbox.fastai_extensions.vision.utils import denormalize_fn_lookup, normalize_fn_lookup, tensor2img
 from pytorch_toolbox.fastai_extensions.metrics import metric_lookup
 from pytorch_toolbox.core.pipeline import PipelineGraph
 from pytorch_toolbox.core.training.learner import Learner
 from pytorch_toolbox.core.callbacks import callback_lookup, learner_callback_lookup
+from pytorch_toolbox.core.vision.utils import denormalize_fn_lookup, normalize_fn_lookup, tensor2img
 from pytorch_toolbox.core.data import DataBunch
 from pytorch_toolbox.core.utils import listify
 from pytorch_toolbox.core.losses import LossWrapper, loss_lookup
@@ -325,7 +325,6 @@ def create_inference(image, inference_data_bunch_creator, inference_learner_crea
 learner_callback_lookup = {
     "create_output_recorder": create_output_recorder,
     "create_csv_logger": create_csv_logger,
-    "GradientClipping": fastai.GradientClipping,
     **learner_callback_lookup
 }
 

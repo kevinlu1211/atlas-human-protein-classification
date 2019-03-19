@@ -292,7 +292,7 @@ CreateLearnerCallbacks:
           - CreateGradientClippingLearnerCallback: GradientClippingLearnerCallback
           - CreateSaveModelCallback: SaveModelCallback
 #          - CreateReduceLROnPlateauCallback: ReduceLROnPlateauCallback
-          - CreateReduceLROnEpochEndCallback: ReduceLROnEpochEndCallback
+#          - CreateReduceLROnEpochEndCallback: ReduceLROnEpochEndCallback
   output: LearnerCallbacksCreator
 
 
