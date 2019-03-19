@@ -30,7 +30,6 @@ from src.models import model_lookup
 from src.transforms import augment_fn_lookup
 from src.callbacks import OutputRecorder, ResultRecorder
 
-import pytorch_toolbox.fastai.fastai as fastai
 from pytorch_toolbox.fastai_extensions.metrics import metric_lookup
 from pytorch_toolbox.core.pipeline import PipelineGraph
 from pytorch_toolbox.core.training.learner import Learner
@@ -39,6 +38,7 @@ from pytorch_toolbox.core.vision.utils import denormalize_fn_lookup, normalize_f
 from pytorch_toolbox.core.data import DataBunch
 from pytorch_toolbox.core.utils import listify
 from pytorch_toolbox.core.losses import LossWrapper, loss_lookup
+from pytorch_toolbox.core.metrics import metric_lookup
 
 
 def set_logger(log_level):

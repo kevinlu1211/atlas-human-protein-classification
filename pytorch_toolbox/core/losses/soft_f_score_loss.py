@@ -26,14 +26,14 @@ class SoftFScoreLoss(BaseLoss):
         target = yb[0]
 
         # This returns B x n_classes
-        soft_f_score_loss = calculate_soft_f_score(prediction, target, beta=self.beta)
+        soft_f_score_loss = calculate_soft_f_score_loss(prediction, target, beta=self.beta)
         self._unreduced_loss = soft_f_score_loss
         self._per_sample_loss = soft_f_score_loss
         self._reduced_loss = soft_f_score_loss.mean()
         return self._reduced_loss
 
 
-def calculate_soft_f_score(logits, labels, beta=1):
+def calculate_soft_f_score_loss(logits, labels, beta=1):
     """
     The formula to calculate F_{beta} score is:
 
