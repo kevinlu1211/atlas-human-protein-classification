@@ -130,8 +130,10 @@ def requires_grad(m: nn.Module, b: Optional[bool] = None) -> Optional[bool]:
 
 def bn2float(module: nn.Module) -> nn.Module:
     "If `module` is batchnorm don't use half precision."
-    if isinstance(module, torch.nn.modules.batchnorm._BatchNorm): module.float()
-    for child in module.children(): bn2float(child)
+    if isinstance(module, torch.nn.modules.batchnorm._BatchNorm):
+        module.float()
+    for child in module.children():
+        bn2float(child)
     return module
 
 
@@ -157,8 +159,8 @@ def determine_phase(train, last_target, label_key="label"):
             return Phase.TEST
 
 
-def even_mults(start:float, stop:float, n:int)->np.ndarray:
+def even_mults(start: float, stop: float, n: int) -> np.ndarray:
     "Build evenly stepped schedule from `start` to `stop` in `n` steps."
-    mult = stop/start
-    step = mult**(1/(n-1))
-    return np.array([start*(step**i) for i in range(n)])
+    mult = stop / start
+    step = mult ** (1 / (n - 1))
+    return np.array([start * (step ** i) for i in range(n)])
