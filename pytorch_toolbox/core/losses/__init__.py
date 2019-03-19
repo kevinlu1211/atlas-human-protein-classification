@@ -6,8 +6,9 @@ from pytorch_toolbox.core.losses.focal_loss import FocalLoss
 
 loss_lookup = {
     "FocalLoss": FocalLoss,
+    "CrossEntropyLoss": partial(FocalLoss, gamma=0),
+    "SoftFLoss": SoftFScoreLoss,
     "SoftF1Loss": partial(SoftFScoreLoss, beta=1),
     "SoftF2Loss": partial(SoftFScoreLoss, beta=2),
-    "SoftFLoss": SoftFScoreLoss,
     "LovaszHingeFlatLoss": LovaszHingeFlatLoss
 }

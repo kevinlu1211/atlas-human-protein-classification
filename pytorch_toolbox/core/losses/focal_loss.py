@@ -24,7 +24,7 @@ class FocalLoss(BaseLoss):
         target = yb[0]
         # This returns B x ... (same shape as input)
         self._unreduced_loss = calculate_focal_loss(prediction, target, self.gamma)
-        self._per_sample_loss = self.reshape_to_batch_x_minus_one_and_sum_over_last_dimension(
+        self._per_sample_loss = self.reshape_to_batch_size_x_minus_one_and_sum_over_last_dimension(
             self._unreduced_loss)
         self._reduced_loss = self._per_sample_loss.mean()
         return self._reduced_loss

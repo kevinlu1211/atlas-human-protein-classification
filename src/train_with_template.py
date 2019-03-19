@@ -30,7 +30,6 @@ from src.models import model_lookup
 from src.transforms import augment_fn_lookup
 from src.callbacks import OutputRecorder, ResultRecorder
 
-from pytorch_toolbox.fastai_extensions.metrics import metric_lookup
 from pytorch_toolbox.core.pipeline import PipelineGraph
 from pytorch_toolbox.core.training.learner import Learner
 from pytorch_toolbox.core.callbacks import callback_lookup, learner_callback_lookup
