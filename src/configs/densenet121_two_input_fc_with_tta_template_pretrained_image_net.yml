@@ -320,7 +320,7 @@ CreateSaveModelCallback:
   type: SaveModelCallback
   properties:
     initialization_arguments:
-      monitor: val_loss
+      monitor: val_focal_loss
       save_path_creator:
         Ref:
           CreateTimeStampedSavePath: SavePathCreator
@@ -385,9 +385,12 @@ RunRecordResults:
   type: record_results
   properties:
     callable_arguments:
-      result_recorder_creator:
+      result_recorder_callback:
         Ref:
           CreateResultRecorder: ResultRecorderCreator
+      determine_phase_callback:
+        Ref:
+          CreateDeterminePhaseCallback: DeterminePhaseCallback
       save_path_creator:
         Ref:
           CreateTimeStampedSavePath: SavePathCreator
@@ -499,8 +502,10 @@ CreateInference:
       inference_learner_creator:
         Ref:
           CreateLearnerForInference: LearnerCreator
-      result_recorder_creator:
+      result_recorder_callback:
         Ref:
           CreateResultRecorder: ResultRecorderCreator
+      determine_phase_callback:
+        Ref:
+          CreateDeterminePhaseCallback: DeterminePhaseCallback
   output: Inference
-

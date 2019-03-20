@@ -504,8 +504,11 @@ CreateInference:
       inference_learner_creator:
         Ref:
           CreateLearnerForInference: LearnerCreator
-      result_recorder_creator:
+      result_recorder_callback:
         Ref:
           CreateResultRecorder: ResultRecorderCreator
+      determine_phase_callback:
+        Ref:
+          CreateDeterminePhaseCallback: DeterminePhaseCallback
   output: Inference
 

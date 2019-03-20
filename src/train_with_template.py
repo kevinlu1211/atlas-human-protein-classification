@@ -203,7 +203,7 @@ def create_learner(data, model_creator, loss_funcs=[], metrics=None,
                       callbacks=callbacks,
                       callback_fns=callback_fns)
     if model_path is not None:
-        learner.load_from_path(model_path)
+        learner.load_model_with_path(model_path)
     if to_fp16:
         learner = learner.to_fp16()
     return learner
@@ -288,6 +288,7 @@ def create_output_recorder(save_path_creator, denormalize_fn):
     return partial(OutputRecorder, save_path=save_path_creator(),
                    save_img_fn=partial(tensor2img, denormalize_fn=denormalize_fn))
 
+
 def create_csv_logger(save_path_creator):
     return partial(learner_callback_lookup["CSVLogger"], save_path_creator=save_path_creator, file_name='history')
 
@@ -312,11 +313,12 @@ def fit_val(x, y):
     return p
 
 
-def create_inference(image, inference_data_bunch_creator, inference_learner_creator, result_recorder_creator):
+def create_inference(image, inference_data_bunch_creator, inference_learner_creator, determine_phase_callback,
+                     result_recorder_callback):
     inference_data_bunch = inference_data_bunch_creator([Image(image)])
     inference_learner = inference_learner_creator(inference_data_bunch)
-    result_recorder = result_recorder_creator()
-    inference_learner.predict_on_test_dl(callbacks=[result_recorder])
+    inference_learner.predict_on_test_dl(callback_fns=[determine_phase_callback, result_recorder_callback])
+    result_recorder = inference_learner.result_recorder
     return np.stack(result_recorder.names), np.stack(result_recorder.prob_preds)
 
 

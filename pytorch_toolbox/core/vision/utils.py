@@ -4,8 +4,6 @@ import torch
 import numpy as np
 
 
-
-
 def tensor2img(image_tensor, imtype=np.uint8, denormalize_fn=None):
     shape = image_tensor.shape
     image_tensor = image_tensor.cpu()

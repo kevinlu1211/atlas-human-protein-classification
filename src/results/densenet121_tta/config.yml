@@ -155,8 +155,9 @@ CreateGradientClippingLearnerCallback:
     partial_initialization: true
   type: GradientClipping
 CreateInference:
-  output: Inference
+  type: create_inference
   properties:
+    partial_callable: true
     callable_arguments:
       inference_data_bunch_creator:
         Ref:
@@ -164,11 +165,13 @@ CreateInference:
       inference_learner_creator:
         Ref:
           CreateLearnerForInference: LearnerCreator
-      result_recorder_creator:
+      result_recorder_callback:
         Ref:
           CreateResultRecorder: ResultRecorderCreator
-    partial_callable: true
-  type: create_inference
+      determine_phase_callback:
+        Ref:
+          CreateDeterminePhaseCallback: DeterminePhaseCallback
+  output: Inference
 CreateLabelExtractorCallback:
   output: LabelExtractorCallback
   properties:

@@ -42,14 +42,8 @@ class Learner:
         self.callbacks = listify(callbacks)
         self.callback_fns = [Recorder] + listify(callback_fns)
 
-        self._create_aliases_for_fastai()
-
         if not layer_groups:
             self.layer_groups = [nn.Sequential(*flatten_model(self.model))]
-
-    def _create_aliases_for_fastai(self):
-        self.save = self.save_model_with_name
-        self.load = self.load_model_with_name
 
     def fit(self, epochs: int, lr: Union[Floats, slice] = default_lr,
             wd: Floats = None, callbacks: Collection[Callback] = None) -> None:
@@ -93,17 +87,18 @@ class Learner:
         with torch.no_grad():
             self.model.eval()
             for xb, yb in progbar(dl):
-                if cb_handler: xb, yb = cb_handler.on_batch_begin(xb, yb, train=False)
+                if cb_handler:
+                    xb, yb = cb_handler.on_batch_begin(xb, yb, train=False)
                 cb_handler = if_none(cb_handler, CallbackHandler())
                 if not is_listy(xb):
                     xb = [xb]
                 out = self.model(*xb)
                 _ = cb_handler.on_loss_begin(out)
 
-    def predict_on_test_dl(self, pbar=None, callbacks=None, metrics=None):
+    def predict_on_test_dl(self, callbacks=None, callback_fns=None, metrics=None):
         """Test with callbacks"""
         dl = self.data.test_dl
-        self.predict_on_dl(dl, pbar, callbacks, metrics)
+        self.predict_on_dl(dl, callbacks, callback_fns, metrics)
 
     def freeze_to(self, n: int) -> None:
         "Freeze layers up to layer `n`."
@@ -148,7 +143,7 @@ class Learner:
 
     def save_model_with_name(self, name, return_path: bool = False) -> Union[None, str]:
         "Save model with `name` to `self.model_dir`, and return path if `return_path`."
-        path = self.path / self.model_dir / f"{name}.pth"
+        path = Path(self.path) / self.model_dir / f"{name}.pth"
         path.parent.mkdir(parents=True, exist_ok=True)
         torch.save(self.model.state_dict(), path)
         if return_path:
@@ -156,7 +151,8 @@ class Learner:
 
     def save_model_with_path(self, path, return_path: bool = False) -> Union[None, str]:
         "Save model with `name` to `self.model_dir`, and return path if `return_path`."
-        path.parent.mkdir(parents=True, exist_ok=True)
+
+        Path(path).parent.mkdir(parents=True, exist_ok=True)
         torch.save(self.model.state_dict(), path)
         if return_path:
             return path
