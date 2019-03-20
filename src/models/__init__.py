@@ -1,5 +1,4 @@
 from .cbam import *
-from .gapnet import *
 from .resnet import *
 from .debug_cnn import *
 from .senet import *
@@ -17,10 +16,6 @@ model_lookup = {
     "cbam_resnet50_four_channel_input": cbam_resnet50_four_channel_input,
     "cbam_resnet50_four_channel_input_one_fc": cbam_resnet50_four_channel_input_one_fc,
     "cbam_resnet101_four_channel_input": cbam_resnet101_four_channel_input,
-    "gapnet_resnet34_four_channel_input_backbone": gapnet_resnet34_four_channel_input_backbone,
-    "gapnet_resnet34_d_four_channel_input_backbone": gapnet_resnet34_d_four_channel_input_backbone,
-    "gapnet2_resnet34_four_channel_input_backbone": gapnet2_resnet34_four_channel_input_backbone,
-    "gapnet2_resnet34_d_four_channel_input_backbone": gapnet2_resnet34_d_four_channel_input_backbone,
     "se_resnext50_32x4d_four_channel_input": se_resnext50_32x4d_four_channel_input,
     "se_resnext50_32x4d_four_channel_input_two_fc": se_resnext50_32x4d_four_channel_input_two_fc,
     "densenet121_four_channel_input_two_fc": densenet121_four_channel_input_two_fc,

@@ -11,7 +11,7 @@ def debug_cnn():
         nn.Linear(10, 28)
     )
     n_first_half_layers = len(flatten_model(model[:3]))
-    # n_second_half_layers = len(fastai.flatten_model(model[3:]))
+    # n_second_half_layers = len(flatten_model(model[3:]))
     layer_groups = split_model_idx(model, [n_first_half_layers])
     model.layer_groups = layer_groups
     return model
