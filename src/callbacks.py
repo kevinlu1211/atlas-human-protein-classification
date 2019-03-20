@@ -4,21 +4,22 @@ import torch
 import numpy as np
 import pandas as pd
 
-from pytorch_toolbox.fastai_extensions.basic_train import Phase, determine_phase
+from pytorch_toolbox.core.callbacks import LearnerCallback
+from pytorch_toolbox.core.utils import Phase
 from pytorch_toolbox.utils import to_numpy
-import pytorch_toolbox.fastai.fastai as fastai
 
 
-class ResultRecorder(fastai.LearnerCallback):
+class ResultRecorder(LearnerCallback):
     _order = -10
 
-    def __init__(self):
+    def __init__(self, learn):
+        super().__init__(learn)
         self.names = []
         self.prob_preds = []
         self.targets = []
 
     def on_batch_begin(self, last_input, last_target, train, **kwargs):
-        phase = self.learn.phase
+        self.phase = self.learn.phase
         self.names.extend(last_target['name'])
         if phase == Phase.TRAIN or phase == Phase.VAL:
             label = to_numpy(last_target['label'])
@@ -29,7 +30,7 @@ class ResultRecorder(fastai.LearnerCallback):
         self.prob_preds.extend(prob_pred)
 
 
-class OutputRecorder(fastai.LearnerCallback):
+class OutputRecorder(LearnerCallback):
     _order = -10
 
     def __init__(self, learn, save_path, save_img_fn, save_img=False):
@@ -42,8 +43,8 @@ class OutputRecorder(fastai.LearnerCallback):
         self.save_img = save_img
 
     def on_batch_begin(self, last_input, last_target, epoch, train, **kwargs):
-        phase = self.learn.phase
-        self.key = (phase.name, epoch)
+        self.phase = self.learn.phase
+        self.key = (self.phase.name, epoch)
         if self.save_img:
             inputs = self.save_img_fn(last_input)
             self.current_batch['input'] = inputs
@@ -96,20 +97,19 @@ class OutputRecorder(fastai.LearnerCallback):
 
     def on_epoch_end(self, epoch, **kwargs):
         prev_epoch = epoch - 1
-        n_cycle = self.learn.n_cycle
-        history_save_path = self.save_path / 'training_logs' / f"cycle_{n_cycle}_epoch_{prev_epoch}_train.csv"
+        history_save_path = self.save_path / 'training_logs' / f"epoch_{prev_epoch}_train.csv"
         history_save_path.parent.mkdir(exist_ok=True, parents=True)
-        history = self.history[('TRAIN', prev_epoch)]
+        history = self.history[(Phase.TRAIN.name, prev_epoch)]
         df = pd.DataFrame(history)
         df.to_csv(history_save_path, index=False)
 
-        history_save_path = self.save_path / 'training_logs' / f"cycle_{n_cycle}_epoch_{prev_epoch}_val.csv"
+        history_save_path = self.save_path / 'training_logs' / f"epoch_{prev_epoch}_val.csv"
         history_save_path.parent.mkdir(exist_ok=True, parents=True)
-        history = self.history[('VAL', prev_epoch)]
+        history = self.history[(Phase.VAL.name, prev_epoch)]
         df = pd.DataFrame(history)
         df.to_csv(history_save_path, index=False)
 
-        model_save_path = self.save_path / 'model_checkpoints' / f"cycle_{n_cycle}_epoch_{prev_epoch}"
+        model_save_path = self.save_path / 'model_checkpoints' / f"epoch_{prev_epoch}.pth"
         model_save_path.parent.mkdir(exist_ok=True, parents=True)
-        self.learn.save(model_save_path)
+        self.learn.save_model_with_path(model_save_path)
         self.history = defaultdict(list)

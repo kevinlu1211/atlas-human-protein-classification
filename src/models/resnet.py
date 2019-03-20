@@ -1,6 +1,6 @@
 import torchvision
-import pytorch_toolbox.fastai.fastai as fastai
-from pytorch_toolbox.fastai_extensions.models import cbam
+
+from pytorch_toolbox.core.training.utils import flatten_model, split_model_idx
 from .layers_and_init import *
 
 
@@ -59,16 +59,6 @@ def resnet34_four_channel_input(pretrained=True):
         *fc_layers
     )
 
-    return model
-
-def resnet34(pretrained=False, **kwargs):
-    """Constructs a ResNet-34 model.
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
-    """
-    model = ResNet(BasicBlock, [3, 4, 6, 3], **kwargs)
-    if pretrained:
-        model.load_state_dict(model_zoo.load_url(model_urls['resnet34']))
     return model
 
 
@@ -256,9 +246,9 @@ def resnet50_four_channel_input(pretrained=True):
         *list(model.children())[1:-2],
         *fc_layers
     )
-    n_starting_layers = len(fastai.flatten_model(model[:6]))
-    n_middle_layers = len(fastai.flatten_model(model[6:8]))
-    model.layer_groups = fastai.split_model_idx(model, [n_starting_layers, n_starting_layers + n_middle_layers])
+    n_starting_layers = len(flatten_model(model[:6]))
+    n_middle_layers = len(flatten_model(model[6:8]))
+    model.layer_groups = split_model_idx(model, [n_starting_layers, n_starting_layers + n_middle_layers])
 
     return model
 

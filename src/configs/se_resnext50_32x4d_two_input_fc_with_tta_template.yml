@@ -17,7 +17,6 @@ LoadTrainingData:
         - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined
         - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined_HPAv18
       root_label_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_all_no_dupes.csv
-      use_n_samples: 100
 #      root_image_paths:
 #        - /home/kevin/Documents/Kaggle/human-protein-image-classification/data_test/train_combined
 #      root_label_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data_test/train.csv
@@ -167,7 +166,7 @@ CreateDataBunch:
       sampler:
         Ref:
           CreateSampler: Sampler
-      num_workers: 0
+      num_workers: 28
     partial_callable: true
 
 CreateSamplerFunction:
@@ -233,8 +232,8 @@ CreateTrainingScheme:
   type: training_scheme_one_cycle
   properties:
     callable_arguments:
-      epochs: 50
-      lr: 8e-5
+      epochs: 80
+      lr: 8e-4
     partial_callable: true
   output: TrainingScheme
 
@@ -254,12 +253,12 @@ CreateLearner:
         Ref:
           - CreateAccuracyMetric: AccuracyMetric
           - CreateF1SoftMetric: F1SoftMetric
-          - CreateFocalLossMetric: FocalLossMetric
+#          - CreateFocalLossMetric: FocalLossMetric
       loss_funcs:
         Ref:
-          - CreateLovaszHingeFlatLoss: LovaszHingeFlatLoss
-          - CreateFocalLoss: FocalLoss
+#          - CreateLovaszHingeFlatLoss: LovaszHingeFlatLoss
           - CreateSoftF1Loss: SoftF1Loss
+          - CreateFocalLoss: FocalLoss
       callbacks_creator:
         Ref:
           CreateCallbacks: CallbacksCreator
@@ -291,6 +290,7 @@ CreateLearnerCallbacks:
           - CreateOutputRecorderLearnerCallback: OutputRecorderLearnerCallback
           - CreateGradientClippingLearnerCallback: GradientClippingLearnerCallback
           - CreateSaveModelCallback: SaveModelCallback
+          - CreateDeterminePhaseCallback: DeterminePhaseCallback
   output: LearnerCallbacksCreator
 
 
@@ -313,8 +313,21 @@ CreateLabelExtractorCallback:
 CreateSaveModelCallback:
   type: SaveModelCallback
   properties:
+    initialization_arguments:
+      monitor: val_focal_loss
+      save_path_creator:
+        Ref:
+          CreateTimeStampedSavePath: SavePathCreator
     partial_initialization: true
   output: SaveModelCallback
+
+CreateDeterminePhaseCallback:
+  type: DeterminePhaseCallback
+  properties:
+    initialization_arguments:
+      label_key: "label"
+    partial_initialization: true
+  output: DeterminePhaseCallback
 
 CreateCSVLoggerLearnerCallback:
   type: create_csv_logger
@@ -374,9 +387,12 @@ RunRecordResults:
   type: record_results
   properties:
     callable_arguments:
-      result_recorder_creator:
+      result_recorder_callback:
         Ref:
           CreateResultRecorder: ResultRecorderCreator
+      determine_phase_callback:
+        Ref:
+          CreateDeterminePhaseCallback: DeterminePhaseCallback
       save_path_creator:
         Ref:
           CreateTimeStampedSavePath: SavePathCreator
@@ -447,7 +463,6 @@ CreateLearnerForInference:
         Ref:
           - CreateLovaszHingeFlatLoss: LovaszHingeFlatLoss
           - CreateFocalLoss: FocalLoss
-      #          - CreateSoftF1Loss: SoftF1Loss
       callbacks_creator:
         Ref:
           CreateCallbacksForInference: CallbacksCreator
@@ -489,8 +504,11 @@ CreateInference:
       inference_learner_creator:
         Ref:
           CreateLearnerForInference: LearnerCreator
-      result_recorder_creator:
+      result_recorder_callback:
         Ref:
           CreateResultRecorder: ResultRecorderCreator
+      determine_phase_callback:
+        Ref:
+          CreateDeterminePhaseCallback: DeterminePhaseCallback
   output: Inference
 

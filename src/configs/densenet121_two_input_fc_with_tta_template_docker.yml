@@ -250,10 +250,10 @@ CreateLearner:
         Ref:
           - CreateAccuracyMetric: AccuracyMetric
           - CreateF1SoftMetric: F1SoftMetric
-          - CreateFocalLossMetric: FocalLossMetric
+      #          - CreateFocalLossMetric: FocalLossMetric
       loss_funcs:
         Ref:
-#          - CreateLovaszHingeFlatLoss: LovaszHingeFlatLoss
+          #          - CreateLovaszHingeFlatLoss: LovaszHingeFlatLoss
           - CreateSoftF1Loss: SoftF1Loss
           - CreateFocalLoss: FocalLoss
       callbacks_creator:
@@ -287,10 +287,18 @@ CreateLearnerCallbacks:
           - CreateOutputRecorderLearnerCallback: OutputRecorderLearnerCallback
           - CreateGradientClippingLearnerCallback: GradientClippingLearnerCallback
           - CreateSaveModelCallback: SaveModelCallback
+          - CreateDeterminePhaseCallback: DeterminePhaseCallback
   output: LearnerCallbacksCreator
 
 
 # Callbacks
+CreateDeterminePhaseCallback:
+  type: DeterminePhaseCallback
+  properties:
+    initialization_arguments:
+      label_key: "label"
+    partial_initialization: true
+  output: DeterminePhaseCallback
 
 CreateTimeStampedSavePath:
   type: create_time_stamped_save_path
@@ -375,9 +383,12 @@ RunRecordResults:
   type: record_results
   properties:
     callable_arguments:
-      result_recorder_creator:
+      result_recorder_callback:
         Ref:
           CreateResultRecorder: ResultRecorderCreator
+      determine_phase_callback:
+        Ref:
+          CreateDeterminePhaseCallback: DeterminePhaseCallback
       save_path_creator:
         Ref:
           CreateTimeStampedSavePath: SavePathCreator
@@ -487,8 +498,11 @@ CreateInference:
       inference_learner_creator:
         Ref:
           CreateLearnerForInference: LearnerCreator
-      result_recorder_creator:
+      result_recorder_callback:
         Ref:
           CreateResultRecorder: ResultRecorderCreator
+      determine_phase_callback:
+        Ref:
+          CreateDeterminePhaseCallback: DeterminePhaseCallback
   output: Inference
 

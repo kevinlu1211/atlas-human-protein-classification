@@ -229,8 +229,8 @@ CreateTrainingScheme:
   type: training_scheme_one_cycle
   properties:
     callable_arguments:
-      epochs: 50
-      lr: 4e-3
+      epochs: 80
+      lr: 8e-4
     partial_callable: true
   output: TrainingScheme
 
@@ -250,12 +250,12 @@ CreateLearner:
         Ref:
           - CreateAccuracyMetric: AccuracyMetric
           - CreateF1SoftMetric: F1SoftMetric
-          - CreateFocalLossMetric: FocalLossMetric
+      #          - CreateFocalLossMetric: FocalLossMetric
       loss_funcs:
         Ref:
-          - CreateLovaszHingeFlatLoss: LovaszHingeFlatLoss
-          - CreateFocalLoss: FocalLoss
+          #          - CreateLovaszHingeFlatLoss: LovaszHingeFlatLoss
           - CreateSoftF1Loss: SoftF1Loss
+          - CreateFocalLoss: FocalLoss
       callbacks_creator:
         Ref:
           CreateCallbacks: CallbacksCreator
@@ -286,17 +286,26 @@ CreateLearnerCallbacks:
           - CreateCSVLoggerLearnerCallback: CSVLoggerLearnerCallback
           - CreateOutputRecorderLearnerCallback: OutputRecorderLearnerCallback
           - CreateGradientClippingLearnerCallback: GradientClippingLearnerCallback
+          - CreateSaveModelCallback: SaveModelCallback
+          - CreateDeterminePhaseCallback: DeterminePhaseCallback
   output: LearnerCallbacksCreator
 
 
 # Callbacks
+CreateDeterminePhaseCallback:
+  type: DeterminePhaseCallback
+  properties:
+    initialization_arguments:
+      label_key: "label"
+    partial_initialization: true
+  output: DeterminePhaseCallback
 
 CreateTimeStampedSavePath:
   type: create_time_stamped_save_path
   properties:
     partial_callable: true
     callable_arguments:
-      save_path: /code/results
+      save_path: /media/hd/Kaggle/human-protein-image-classification/results
   output: SavePathCreator
 
 CreateLabelExtractorCallback:
@@ -305,6 +314,16 @@ CreateLabelExtractorCallback:
     partial_initialization: true
   output: LabelExtractorCallback
 
+CreateSaveModelCallback:
+  type: SaveModelCallback
+  properties:
+    initialization_arguments:
+      monitor: val_focal_loss
+      save_path_creator:
+        Ref:
+          CreateTimeStampedSavePath: SavePathCreator
+    partial_initialization: true
+  output: SaveModelCallback
 
 CreateCSVLoggerLearnerCallback:
   type: create_csv_logger
@@ -364,9 +383,12 @@ RunRecordResults:
   type: record_results
   properties:
     callable_arguments:
-      result_recorder_creator:
+      result_recorder_callback:
         Ref:
           CreateResultRecorder: ResultRecorderCreator
+      determine_phase_callback:
+        Ref:
+          CreateDeterminePhaseCallback: DeterminePhaseCallback
       save_path_creator:
         Ref:
           CreateTimeStampedSavePath: SavePathCreator
@@ -437,13 +459,10 @@ CreateLearnerForInference:
         Ref:
           - CreateLovaszHingeFlatLoss: LovaszHingeFlatLoss
           - CreateFocalLoss: FocalLoss
-      #          - CreateSoftF1Loss: SoftF1Loss
       callbacks_creator:
         Ref:
           CreateCallbacksForInference: CallbacksCreator
       to_fp16: false
-      model_path: /media/hd/Kaggle/human-protein-image-classification/results/saved_results/se_resnext_50_2_fc_lovasz_loss_20190201-102757/Fold_1/model_checkpoints/cycle_0_epoch_56.pth
-
   output: LearnerCreator
 
 CreateCallbacksForInference:
@@ -454,6 +473,7 @@ CreateCallbacksForInference:
       callback_references:
         Ref:
           - CreateLabelExtractorCallback: LabelExtractorCallback
+          - CreateFiveCropTTAPredictionCallback: FiveCropTTAPredictionCallback
   output: CallbacksCreator
 
 CreateDataBunchForInference:
@@ -463,7 +483,7 @@ CreateDataBunchForInference:
       ds:
         Ref:
           CreateTestingDataset: TestingDataset
-      num_workers: 28
+      num_workers: 0
     partial_callable: true
   output: DataBunchCreator
 
@@ -478,8 +498,11 @@ CreateInference:
       inference_learner_creator:
         Ref:
           CreateLearnerForInference: LearnerCreator
-      result_recorder_creator:
+      result_recorder_callback:
         Ref:
           CreateResultRecorder: ResultRecorderCreator
+      determine_phase_callback:
+        Ref:
+          CreateDeterminePhaseCallback: DeterminePhaseCallback
   output: Inference
 

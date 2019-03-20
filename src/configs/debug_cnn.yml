@@ -233,8 +233,8 @@ CreateTrainingScheme:
   type: training_scheme_fit
   properties:
     callable_arguments:
-      epochs: 50
-      lr: [5e-2, 5e-1]
+      epochs: 5
+      lr: [5e-3, 5e-2]
     partial_callable: true
   output: TrainingScheme
 
@@ -258,6 +258,7 @@ CreateLearner:
       loss_funcs:
         Ref:
 #          - CreateLovaszHingeFlatLoss: LovaszHingeFlatLoss
+          - CreateSoftF1Loss: SoftF1Loss
           - CreateFocalLoss: FocalLoss
       callbacks_creator:
         Ref:
@@ -290,6 +291,7 @@ CreateLearnerCallbacks:
           - CreateOutputRecorderLearnerCallback: OutputRecorderLearnerCallback
           - CreateGradientClippingLearnerCallback: GradientClippingLearnerCallback
           - CreateSaveModelCallback: SaveModelCallback
+          - CreateDeterminePhaseCallback: DeterminePhaseCallback
 #          - CreateReduceLROnPlateauCallback: ReduceLROnPlateauCallback
 #          - CreateReduceLROnEpochEndCallback: ReduceLROnEpochEndCallback
   output: LearnerCallbacksCreator
@@ -321,6 +323,14 @@ CreateSaveModelCallback:
           CreateTimeStampedSavePath: SavePathCreator
     partial_initialization: true
   output: SaveModelCallback
+
+CreateDeterminePhaseCallback:
+  type: DeterminePhaseCallback
+  properties:
+    initialization_arguments:
+      label_key: "label"
+    partial_initialization: true
+  output: DeterminePhaseCallback
 
 CreateReduceLROnPlateauCallback:
   type: ReduceLROnPlateauCallback
@@ -400,9 +410,12 @@ RunRecordResults:
   type: record_results
   properties:
     callable_arguments:
-      result_recorder_creator:
+      result_recorder_callback:
         Ref:
           CreateResultRecorder: ResultRecorderCreator
+      determine_phase_callback:
+        Ref:
+          CreateDeterminePhaseCallback: DeterminePhaseCallback
       save_path_creator:
         Ref:
           CreateTimeStampedSavePath: SavePathCreator
@@ -512,8 +525,11 @@ CreateInference:
       inference_learner_creator:
         Ref:
           CreateLearnerForInference: LearnerCreator
-      result_recorder_creator:
+      result_recorder_callback:
         Ref:
           CreateResultRecorder: ResultRecorderCreator
+      determine_phase_callback:
+        Ref:
+          CreateDeterminePhaseCallback: DeterminePhaseCallback
   output: Inference
 

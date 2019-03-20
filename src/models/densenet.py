@@ -1,5 +1,4 @@
 import pretrainedmodels
-import pytorch_toolbox.fastai.fastai as fastai
 from .layers_and_init import *
 
 def densenet121_four_channel_input_two_fc(pretrained=True):

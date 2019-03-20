@@ -1,6 +1,6 @@
 from collections import OrderedDict
 
-from pytorch_toolbox.fastai_extensions.models import cbam
+from pytorch_toolbox.core.vision.models import cbam
 from .layers_and_init import *
 
 def cbam_resnet18_four_channel_input_one_fc():
