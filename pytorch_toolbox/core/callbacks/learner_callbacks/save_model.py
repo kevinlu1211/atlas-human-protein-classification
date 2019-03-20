@@ -34,6 +34,6 @@ class SaveModelCallback(TrackerCallback):
             return
         if self.every == "improvement":
             try:
-                self.learn.load_model_from_path(self.save_path)
+                self.learn.load_model_with_path(self.save_path)
             except FileNotFoundError:
                 logging.info(f"File at {str(self.save_path)} is not found, skip loading model")

@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Callable, Collection, Union, Optional, Iterator, Tuple
 from functools import partial
 
@@ -35,14 +36,20 @@ class Learner:
         self.batch_norm_weight_decay = batch_norm_weight_decay
         self.weight_decay = weight_decay
         self.train_bn = train_bn
-        self.path = path
+        self.path = Path(path)
         self.model_dir = model_dir
         self.metrics = listify(metrics)
         self.callbacks = listify(callbacks)
         self.callback_fns = [Recorder] + listify(callback_fns)
 
+        self._create_aliases_for_fastai()
+
         if not layer_groups:
             self.layer_groups = [nn.Sequential(*flatten_model(self.model))]
+
+    def _create_aliases_for_fastai(self):
+        self.save = self.save_model_with_name
+        self.load = self.load_model_with_name
 
     def fit(self, epochs: int, lr: Union[Floats, slice] = default_lr,
             wd: Floats = None, callbacks: Collection[Callback] = None) -> None:
@@ -127,13 +134,13 @@ class Learner:
         layer_group_idxs_to_freeze = list(set(list(range(len(self.layer_groups)))) - set(layer_group_idxs))
         self.freeze_layer_groups(layer_group_idxs_to_freeze)
 
-    def load_model_from_name(self, name, device=None):
+    def load_model_with_name(self, name, device=None):
         if device is None:
             device = self.data.device
         self.model.load_state_dict(torch.load(self.path / self.model_dir / f"{name}.pth", map_location=device))
         return self
 
-    def load_model_from_path(self, path, device=None):
+    def load_model_with_path(self, path, device=None):
         if device is None:
             device = self.data.device
         self.model.load_state_dict(torch.load(path, map_location=device))
@@ -142,12 +149,14 @@ class Learner:
     def save_model_with_name(self, name, return_path: bool = False) -> Union[None, str]:
         "Save model with `name` to `self.model_dir`, and return path if `return_path`."
         path = self.path / self.model_dir / f"{name}.pth"
+        path.parent.mkdir(parents=True, exist_ok=True)
         torch.save(self.model.state_dict(), path)
         if return_path:
             return path
 
     def save_model_with_path(self, path, return_path: bool = False) -> Union[None, str]:
         "Save model with `name` to `self.model_dir`, and return path if `return_path`."
+        path.parent.mkdir(parents=True, exist_ok=True)
         torch.save(self.model.state_dict(), path)
         if return_path:
             return path
