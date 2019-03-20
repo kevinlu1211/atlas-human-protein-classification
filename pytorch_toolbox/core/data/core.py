@@ -4,15 +4,15 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 
 from pytorch_toolbox.core.training.utils import to_device
-from pytorch_toolbox.core.defaults import default_collate, defaults
+from pytorch_toolbox.core.defaults import default_collate, default_hardware
 
 
 class DeviceDataLoader:
 
     @classmethod
     def create(cls, dataset: Dataset, batch_size: int = 64, shuffle: bool = False,
-               device: torch.device = defaults.device,
-               num_workers: int = defaults.cpus,
+               device: torch.device = default_hardware.device,
+               num_workers: int = default_hardware.cpus,
                collate_fn: Callable = default_collate, **kwargs: Any):
         dl = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, **kwargs)
         return cls(dl, device=device, collate_fn=collate_fn)
@@ -60,7 +60,7 @@ class DeviceDataLoader:
 class DataBunch:
     def __init__(self, train_dl: DataLoader, valid_dl: DataLoader, test_dl: Optional[DataLoader] = None,
                  device: torch.device = None, collate_fn: Callable = default_collate):
-        self.device = defaults.device if device is None else device
+        self.device = default_hardware.device if device is None else device
         self.train_dl = DeviceDataLoader(train_dl, self.device, collate_fn)
         self.valid_dl = DeviceDataLoader(valid_dl, self.device, collate_fn)
         self.test_dl = DeviceDataLoader(test_dl, self.device, collate_fn) if test_dl else None
@@ -68,7 +68,7 @@ class DataBunch:
     @classmethod
     def create(cls, train_ds: Dataset, valid_ds: Dataset, test_ds: Dataset = None,
                train_bs: int = 64, val_bs: int = None, test_bs: int = None, sampler=None,
-               num_workers: int = defaults.cpus, pin_memory: bool = False,
+               num_workers: int = default_hardware.cpus, pin_memory: bool = False,
                device: torch.device = None,
                collate_fn: Callable = default_collate) -> 'DataBunch':
 

@@ -3,12 +3,22 @@ from typing import Optional
 import torch
 from torch import nn, Tensor
 
-from pytorch_toolbox.core.defaults import Tensors, defaults, ModuleList, ParamList
+from pytorch_toolbox.core.defaults import Tensors, default_hardware, ModuleList, ParamList, List
 from pytorch_toolbox.core.utils import if_none, is_listy
 
 
+def split_model_idx(model: nn.Module, idxs: List[int]) -> ModuleList:
+    "Split `model` according to the indices in `idxs`."
+    layers = flatten_model(model)
+    if idxs[0] != 0:
+        idxs = [0] + idxs
+    if idxs[-1] != len(layers):
+        idxs.append(len(layers))
+    return [nn.Sequential(*layers[i:j]) for i, j in zip(idxs[:-1], idxs[1:])]
+
+
 def to_device(t: Tensors, device: torch.device):
-    device = if_none(device, defaults.device)
+    device = if_none(device, default_hardware.device)
     if is_listy(t):
         return [to_device(o, device) for o in t]
     return t.to(device)

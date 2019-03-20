@@ -1,5 +1,3 @@
-from functools import partial
-
 from .cbam import *
 from .gapnet import *
 from .resnet import *

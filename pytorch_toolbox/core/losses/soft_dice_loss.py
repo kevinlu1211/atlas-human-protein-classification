@@ -3,7 +3,7 @@ from collections import defaultdict
 import torch
 from torch.nn import functional as F
 
-from pytorch_toolbox.core.defaults import defaults
+from pytorch_toolbox.core.defaults import default_hardware
 
 
 class SoftDiceLoss:
@@ -51,7 +51,7 @@ def multi_class_dice_loss(pred_logits, targets, n_classes):
     """
 
     one_hot = torch.FloatTensor(targets.size(0), n_classes, targets.size(2), targets.size(3)).zero_()
-    target_one_hot = one_hot.scatter_(1, targets.cpu().data, 1).to(defaults.device)
+    target_one_hot = one_hot.scatter_(1, targets.cpu().data, 1).to(default_hardware.device)
     pred_probs = F.softmax(pred_logits, dim=1)
     batch_size = pred_logits.size(0)
     loss_dict = defaultdict(list)

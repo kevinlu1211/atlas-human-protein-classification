@@ -1,5 +1,5 @@
 import pretrainedmodels
-import pytorch_toolbox.fastai.fastai as fastai
+from pytorch_toolbox.core.training.utils import flatten_model, split_model_idx
 
 from .layers_and_init import *
 
@@ -31,9 +31,9 @@ def se_resnext50_32x4d_four_channel_input(pretrained=True):
         *list(model.children())[:-2],
         *fc_layers
     )
-    n_starting_layers = len(fastai.flatten_model(model[:3]))
-    n_middle_layers = len(fastai.flatten_model(model[3:5]))
-    layer_groups = fastai.split_model_idx(model, [n_starting_layers, n_starting_layers + n_middle_layers])
+    n_starting_layers = len(flatten_model(model[:3]))
+    n_middle_layers = len(flatten_model(model[3:5]))
+    layer_groups = split_model_idx(model, [n_starting_layers, n_starting_layers + n_middle_layers])
     model.layer_groups = layer_groups
     return model
 
@@ -68,8 +68,8 @@ def se_resnext50_32x4d_four_channel_input_two_fc(pretrained=True):
         *list(model.children())[:-2],
         *fc_layers
     )
-    n_starting_layers = len(fastai.flatten_model(model[:3]))
-    n_middle_layers = len(fastai.flatten_model(model[3:5]))
-    layer_groups = fastai.split_model_idx(model, [n_starting_layers, n_starting_layers + n_middle_layers])
+    n_starting_layers = len(flatten_model(model[:3]))
+    n_middle_layers = len(flatten_model(model[3:5]))
+    layer_groups = split_model_idx(model, [n_starting_layers, n_starting_layers + n_middle_layers])
     model.layer_groups = layer_groups
     return model

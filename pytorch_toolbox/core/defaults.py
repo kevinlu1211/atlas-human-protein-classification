@@ -18,7 +18,7 @@ def num_cpus() -> int:
 
 _default_cpus = min(1, num_cpus())
 _default_device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-defaults = SimpleNamespace(device=_default_device, cpus=_default_cpus)
+default_hardware = SimpleNamespace(device=_default_device, cpus=_default_cpus)
 default_collate = torch.utils.data.dataloader.default_collate
 default_lr = 3e-3
 default_wd = 1e-2

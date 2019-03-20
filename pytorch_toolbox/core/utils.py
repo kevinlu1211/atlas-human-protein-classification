@@ -4,6 +4,8 @@ from enum import Enum
 from pytorch_toolbox.core.defaults import *
 
 
+
+
 def to_numpy(t):
     if isinstance(t, torch.Tensor):
         return t.cpu().data.numpy()
