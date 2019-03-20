@@ -8,7 +8,7 @@ from torch import Tensor
 from pytorch_toolbox.core.callbacks import LearnerCallback
 from pytorch_toolbox.core.callbacks.learner_callbacks.determine_phase import Phase
 from pytorch_toolbox.core.defaults import PBar, MetricsList, TensorOrNumberList
-from pytorch_toolbox.utils import range_of, to_numpy
+from pytorch_toolbox.core.utils import range_of, to_numpy
 
 
 class BaseRecorder(LearnerCallback):

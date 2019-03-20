@@ -5,8 +5,7 @@ import numpy as np
 import pandas as pd
 
 from pytorch_toolbox.core.callbacks import LearnerCallback
-from pytorch_toolbox.core.utils import Phase
-from pytorch_toolbox.utils import to_numpy
+from pytorch_toolbox.core.utils import Phase, to_numpy
 
 
 class ResultRecorder(LearnerCallback):
@@ -21,7 +20,7 @@ class ResultRecorder(LearnerCallback):
     def on_batch_begin(self, last_input, last_target, train, **kwargs):
         self.phase = self.learn.phase
         self.names.extend(last_target['name'])
-        if phase == Phase.TRAIN or phase == Phase.VAL:
+        if self.phase == Phase.TRAIN or self.phase == Phase.VAL:
             label = to_numpy(last_target['label'])
             self.targets.extend(label)
 
@@ -49,7 +48,7 @@ class OutputRecorder(LearnerCallback):
             inputs = self.save_img_fn(last_input)
             self.current_batch['input'] = inputs
         self.current_batch['name'] = last_target['name']
-        if phase == Phase.TRAIN or phase == Phase.VAL:
+        if self.phase == Phase.TRAIN or self.phase == Phase.VAL:
             label = to_numpy(last_target['label'])
             self.current_batch['label'] = label
 

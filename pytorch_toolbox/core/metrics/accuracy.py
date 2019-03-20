@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 
-from pytorch_toolbox.utils import to_numpy
+from pytorch_toolbox.core.utils import to_numpy
 
 
 def accuracy(preds, targs, th=0.0):

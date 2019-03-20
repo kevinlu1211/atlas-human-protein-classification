@@ -1,4 +1,4 @@
-from pytorch_toolbox.utils import listify
+from pytorch_toolbox.core.utils import listify
 
 
 def training_scheme_one_cycle(learner, lr, epochs, div_factor=25):
