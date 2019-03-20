@@ -126,20 +126,3 @@ def requires_grad(m: nn.Module, b: Optional[bool] = None) -> Optional[bool]:
     if not ps: return None
     if b is None: return ps[0].requires_grad
     for p in ps: p.requires_grad = b
-
-
-class Phase(Enum):
-    TRAIN = 1
-    VAL = 2
-    TEST = 3
-
-
-def determine_phase(train, last_target, label_key="label"):
-    if train:
-        return Phase.TRAIN
-    else:
-        label = last_target.get(label_key)
-        if label is not None:
-            return Phase.VAL
-        else:
-            return Phase.TEST

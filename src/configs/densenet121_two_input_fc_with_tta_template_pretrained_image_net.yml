@@ -256,7 +256,6 @@ CreateLearner:
           - CreateFocalLossMetric: FocalLossMetric
       loss_funcs:
         Ref:
-          #          - CreateLovaszHingeFlatLoss: LovaszHingeFlatLoss
           - CreateSoftF1Loss: SoftF1Loss
           - CreateFocalLoss: FocalLoss
       callbacks_creator:
@@ -290,10 +289,18 @@ CreateLearnerCallbacks:
           - CreateOutputRecorderLearnerCallback: OutputRecorderLearnerCallback
           - CreateGradientClippingLearnerCallback: GradientClippingLearnerCallback
           - CreateSaveModelCallback: SaveModelCallback
+          - CreateDeterminePhaseCallback: DeterminePhaseCallback
   output: LearnerCallbacksCreator
 
 
 # Callbacks
+CreateDeterminePhaseCallback:
+  type: DeterminePhaseCallback
+  properties:
+    initialization_arguments:
+      label_key: "label"
+    partial_initialization: true
+  output: DeterminePhaseCallback
 
 CreateTimeStampedSavePath:
   type: create_time_stamped_save_path

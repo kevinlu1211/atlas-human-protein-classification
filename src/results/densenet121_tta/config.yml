@@ -13,6 +13,13 @@ CreateAugmentationFunction:
       width: 768
       with_image_wrapper: true
   type: very_simple_aug_with_elastic_transform_and_crop
+CreateDeterminePhaseCallback:
+  type: DeterminePhaseCallback
+  properties:
+    initialization_arguments:
+      label_key: "label"
+    partial_initialization: true
+  output: DeterminePhaseCallback
 CreateCSVLoggerLearnerCallback:
   output: CSVLoggerLearnerCallback
   properties:
@@ -28,8 +35,8 @@ CreateCallbacks:
     callable_arguments:
       callback_references:
         Ref:
-        - CreateLabelExtractorCallback: LabelExtractorCallback
-        - CreateFiveCropTTAPredictionCallback: FiveCropTTAPredictionCallback
+          - CreateLabelExtractorCallback: LabelExtractorCallback
+          - CreateFiveCropTTAPredictionCallback: FiveCropTTAPredictionCallback
     partial_callable: true
   type: create_callbacks
 CreateCallbacksForInference:
@@ -38,8 +45,8 @@ CreateCallbacksForInference:
     callable_arguments:
       callback_references:
         Ref:
-        - CreateLabelExtractorCallback: LabelExtractorCallback
-        - CreateFiveCropTTAPredictionCallback: FiveCropTTAPredictionCallback
+          - CreateLabelExtractorCallback: LabelExtractorCallback
+          - CreateFiveCropTTAPredictionCallback: FiveCropTTAPredictionCallback
     partial_callable: true
   type: create_callbacks
 CreateDataBunch:
@@ -179,13 +186,13 @@ CreateLearner:
           CreateCallbacks: CallbacksCreator
       loss_funcs:
         Ref:
-        - CreateSoftF1Loss: SoftF1Loss
-        - CreateFocalLoss: FocalLoss
+          - CreateSoftF1Loss: SoftF1Loss
+          - CreateFocalLoss: FocalLoss
       metrics:
         Ref:
-        - CreateAccuracyMetric: AccuracyMetric
-        - CreateF1SoftMetric: F1SoftMetric
-        - CreateFocalLossMetric: FocalLossMetric
+          - CreateAccuracyMetric: AccuracyMetric
+          - CreateF1SoftMetric: F1SoftMetric
+          - CreateFocalLossMetric: FocalLossMetric
       model_creator:
         Ref:
           CreateModel: Model
@@ -198,9 +205,9 @@ CreateLearnerCallbacks:
     callable_arguments:
       learner_callback_references:
         Ref:
-        - CreateCSVLoggerLearnerCallback: CSVLoggerLearnerCallback
-        - CreateOutputRecorderLearnerCallback: OutputRecorderLearnerCallback
-        - CreateGradientClippingLearnerCallback: GradientClippingLearnerCallback
+          - CreateCSVLoggerLearnerCallback: CSVLoggerLearnerCallback
+          - CreateOutputRecorderLearnerCallback: OutputRecorderLearnerCallback
+          - CreateGradientClippingLearnerCallback: GradientClippingLearnerCallback
     partial_callable: true
   type: create_learner_callbacks
 CreateLearnerForInference:
@@ -212,12 +219,12 @@ CreateLearnerForInference:
           CreateCallbacksForInference: CallbacksCreator
       loss_funcs:
         Ref:
-        - CreateLovaszHingeFlatLoss: LovaszHingeFlatLoss
-        - CreateFocalLoss: FocalLoss
+          - CreateLovaszHingeFlatLoss: LovaszHingeFlatLoss
+          - CreateFocalLoss: FocalLoss
       metrics:
         Ref:
-        - CreateAccuracyMetric: AccuracyMetric
-        - CreateF1SoftMetric: F1SoftMetric
+          - CreateAccuracyMetric: AccuracyMetric
+          - CreateF1SoftMetric: F1SoftMetric
       model_creator:
         Ref:
           CreateModel: Model
@@ -370,9 +377,9 @@ LoadTestingData:
   type: load_testing_data
 LoadTrainingData:
   output:
-  - train_X
-  - train_y
-  - train_y_one_hot
+    - train_X
+    - train_y
+    - train_y_one_hot
   properties:
     callable_arguments:
       root_image_paths:
@@ -381,17 +388,20 @@ LoadTrainingData:
       root_label_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_all_no_dupes.csv
   type: load_training_data
 RunRecordResults:
-  output: ResultRecorder
+  type: record_results
   properties:
     callable_arguments:
-      result_recorder_creator:
+      result_recorder_callback:
         Ref:
           CreateResultRecorder: ResultRecorderCreator
+      determine_phase_callback:
+        Ref:
+          CreateDeterminePhaseCallback: DeterminePhaseCallback
       save_path_creator:
         Ref:
           CreateTimeStampedSavePath: SavePathCreator
     partial_callable: true
-  type: record_results
+  output: ResultRecorder
 RunTrainingLoop:
   properties:
     callable_arguments:

@@ -291,6 +291,7 @@ CreateLearnerCallbacks:
           - CreateOutputRecorderLearnerCallback: OutputRecorderLearnerCallback
           - CreateGradientClippingLearnerCallback: GradientClippingLearnerCallback
           - CreateSaveModelCallback: SaveModelCallback
+          - CreateDeterminePhaseCallback: DeterminePhaseCallback
 #          - CreateReduceLROnPlateauCallback: ReduceLROnPlateauCallback
 #          - CreateReduceLROnEpochEndCallback: ReduceLROnEpochEndCallback
   output: LearnerCallbacksCreator
@@ -322,6 +323,14 @@ CreateSaveModelCallback:
           CreateTimeStampedSavePath: SavePathCreator
     partial_initialization: true
   output: SaveModelCallback
+
+CreateDeterminePhaseCallback:
+  type: DeterminePhaseCallback
+  properties:
+    initialization_arguments:
+      label_key: "label"
+    partial_initialization: true
+  output: DeterminePhaseCallback
 
 CreateReduceLROnPlateauCallback:
   type: ReduceLROnPlateauCallback
@@ -401,9 +410,12 @@ RunRecordResults:
   type: record_results
   properties:
     callable_arguments:
-      result_recorder_creator:
+      result_recorder_callback:
         Ref:
           CreateResultRecorder: ResultRecorderCreator
+      determine_phase_callback:
+        Ref:
+          CreateDeterminePhaseCallback: DeterminePhaseCallback
       save_path_creator:
         Ref:
           CreateTimeStampedSavePath: SavePathCreator

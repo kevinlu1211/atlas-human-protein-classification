@@ -4,21 +4,22 @@ import torch
 import numpy as np
 import pandas as pd
 
-from pytorch_toolbox.fastai_extensions.basic_train import Phase, determine_phase
+from pytorch_toolbox.core.callbacks import LearnerCallback
+from pytorch_toolbox.core.utils import Phase
 from pytorch_toolbox.utils import to_numpy
-import pytorch_toolbox.fastai.fastai as fastai
 
 
-class ResultRecorder(fastai.Callback):
+class ResultRecorder(LearnerCallback):
     _order = -10
 
-    def __init__(self):
+    def __init__(self, learn):
+        super().__init__(learn)
         self.names = []
         self.prob_preds = []
         self.targets = []
 
     def on_batch_begin(self, last_input, last_target, train, **kwargs):
-        self.phase = determine_phase(train, last_target)
+        self.phase = self.learn.phase
         self.names.extend(last_target['name'])
         if self.phase == Phase.TRAIN or self.phase == Phase.VAL:
             label = to_numpy(last_target['label'])
@@ -29,7 +30,7 @@ class ResultRecorder(fastai.Callback):
         self.prob_preds.extend(prob_pred)
 
 
-class OutputRecorder(fastai.LearnerCallback):
+class OutputRecorder(LearnerCallback):
     _order = -10
 
     def __init__(self, learn, save_path, save_img_fn, save_img=False):
@@ -42,7 +43,7 @@ class OutputRecorder(fastai.LearnerCallback):
         self.save_img = save_img
 
     def on_batch_begin(self, last_input, last_target, epoch, train, **kwargs):
-        self.phase = determine_phase(train, last_target)
+        self.phase = self.learn.phase
         self.key = (self.phase.name, epoch)
         if self.save_img:
             inputs = self.save_img_fn(last_input)

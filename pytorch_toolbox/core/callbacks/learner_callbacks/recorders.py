@@ -6,8 +6,9 @@ from matplotlib import pyplot as plt
 from torch import Tensor
 
 from pytorch_toolbox.core.callbacks import LearnerCallback
+from pytorch_toolbox.core.callbacks.learner_callbacks.determine_phase import Phase
 from pytorch_toolbox.core.defaults import PBar, MetricsList, TensorOrNumberList
-from pytorch_toolbox.utils import range_of, determine_phase, to_numpy, Phase
+from pytorch_toolbox.utils import range_of, to_numpy
 
 
 class BaseRecorder(LearnerCallback):
@@ -127,7 +128,7 @@ class Recorder(BaseRecorder):
 
     def on_batch_begin(self, train, epoch, last_target, **kwargs):
         super().on_batch_begin(train, **kwargs)
-        self.phase = determine_phase(train, last_target)
+        self.phase = self.learn.phase
         self.key = (self.phase.name, epoch)
 
     def _create_loss_values_for_batch_for_every_samples(self):

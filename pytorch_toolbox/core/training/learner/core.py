@@ -78,7 +78,7 @@ class Learner:
                     print(p.shape)
                     print(p.requires_grad)
 
-    def predict_on_dl(self, dl, pbar=None, callbacks=None, callback_fns=None, metrics=None):
+    def predict_on_dl(self, dl, callbacks=None, callback_fns=None, metrics=None):
         assert dl is not None
         metrics = if_none(metrics, self.metrics)
         callbacks_fns = [cb(self) for cb in if_none(callback_fns, [])]

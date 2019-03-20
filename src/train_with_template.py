@@ -23,13 +23,6 @@ import scipy.optimize as opt
 
 sys.path.append("../..")
 
-from src.data import make_one_hot, open_numpy, dataset_lookup, \
-    sampler_weight_lookup, split_method_lookup, Image
-from src.training import training_scheme_lookup
-from src.models import model_lookup
-from src.transforms import augment_fn_lookup
-from src.callbacks import OutputRecorder, ResultRecorder
-
 from pytorch_toolbox.core.pipeline import PipelineGraph
 from pytorch_toolbox.core.training.learner import Learner
 from pytorch_toolbox.core.callbacks import callback_lookup, learner_callback_lookup
@@ -38,6 +31,13 @@ from pytorch_toolbox.core.data import DataBunch
 from pytorch_toolbox.core.utils import listify
 from pytorch_toolbox.core.losses import LossWrapper, loss_lookup
 from pytorch_toolbox.core.metrics import metric_lookup
+
+from src.data import make_one_hot, open_numpy, dataset_lookup, \
+    sampler_weight_lookup, split_method_lookup, Image
+from src.training import training_scheme_lookup
+from src.models import model_lookup
+from src.transforms import augment_fn_lookup
+from src.callbacks import OutputRecorder, ResultRecorder
 
 
 def set_logger(log_level):
@@ -227,12 +227,12 @@ def save_config(save_path_creator, state_dict):
         yaml.dump(state_dict["config"], yaml_file, default_flow_style=False)
 
 
-def record_results(learner, result_recorder_creator, save_path_creator):
+def record_results(learner, result_recorder_callback, determine_phase_callback, save_path_creator):
     save_path = save_path_creator()
 
     # Save the optimal threshold result
-    res_recorder = result_recorder_creator()
-    learner.predict_on_dl(dl=learner.data.valid_dl, callbacks=[res_recorder])
+    learner.predict_on_dl(dl=learner.data.valid_dl, callback_fns=[result_recorder_callback, determine_phase_callback])
+    res_recorder = learner.result_recorder
     targets = np.stack(res_recorder.targets)
     pred_probs = np.stack(res_recorder.prob_preds)
     th = fit_val(pred_probs, targets)
@@ -243,8 +243,8 @@ def record_results(learner, result_recorder_creator, save_path_creator):
     print('F1 macro (th = 0.5): ', f1_score(targets, pred_probs > 0.5, average='macro'))
     print('F1 micro: ', f1_score(targets, pred_probs > th, average='micro'))
 
-    res_recorder = result_recorder_creator()
-    learner.predict_on_dl(dl=learner.data.test_dl, callbacks=[res_recorder])
+    learner.predict_on_dl(dl=learner.data.test_dl, callback_fns=[result_recorder_callback, determine_phase_callback])
+    res_recorder = learner.result_recorder
     names = np.stack(res_recorder.names)
     pred_probs = np.stack(res_recorder.prob_preds)
     predicted = []
@@ -287,7 +287,6 @@ def create_time_stamped_save_path(save_path, state_dict):
 def create_output_recorder(save_path_creator, denormalize_fn):
     return partial(OutputRecorder, save_path=save_path_creator(),
                    save_img_fn=partial(tensor2img, denormalize_fn=denormalize_fn))
-
 
 def create_csv_logger(save_path_creator):
     return partial(learner_callback_lookup["CSVLogger"], save_path_creator=save_path_creator, file_name='history')

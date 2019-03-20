@@ -6,7 +6,7 @@ class DeterminePhaseCallback(LearnerCallback):
     _order = -15
 
     def __init__(self, learn, label_key: str = 'label'):
-        super.__init__(learn)
+        super().__init__(learn)
         self.label_key = label_key
 
     def on_batch_begin(self, train, last_target, **kwargs):
