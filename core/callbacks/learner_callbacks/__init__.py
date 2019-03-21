@@ -1,5 +1,4 @@
 from .csv_logger import CSVLogger
-from .determine_phase import DeterminePhaseCallback
 from .gradient_clipping import GradientClipping
 from .lr_finder import LRFinder
 from .mixed_precision import MixedPrecision

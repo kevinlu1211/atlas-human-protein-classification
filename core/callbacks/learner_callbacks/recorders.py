@@ -6,9 +6,8 @@ from matplotlib import pyplot as plt
 from torch import Tensor
 
 from pytorch_toolbox.core.callbacks import LearnerCallback
-from pytorch_toolbox.core.callbacks.learner_callbacks.determine_phase import Phase
 from pytorch_toolbox.core.defaults import PBar, MetricsList, TensorOrNumberList
-from pytorch_toolbox.core.utils import range_of, to_numpy
+from pytorch_toolbox.core.utils import range_of, to_numpy, camel2snake, Phase
 
 
 class BaseRecorder(LearnerCallback):
@@ -120,16 +119,33 @@ class Recorder(BaseRecorder):
         super().__init__(learn)
         self.loss_history = defaultdict(lambda: defaultdict(list))
         self.metric_history = defaultdict(lambda: defaultdict(list))
-        self.phase = None
 
     @property
     def history(self):
         return {**self.loss_history, **self.metric_history}
 
-    def on_batch_begin(self, train, epoch, last_target, **kwargs):
+    def get_losses_and_metrics_for_epoch(self, epoch, with_mean=True):
+        train_key = (Phase.TRAIN.name, epoch)
+        val_key = (Phase.VAL.name, epoch)
+        recorder = self.learn.recorder
+        values = defaultdict(float)
+        for loss_name, loss_values in recorder.loss_history[train_key].items():
+            if with_mean:
+                loss_values = np.mean(loss_values)
+            values[f"train_{camel2snake(loss_name)}"] = loss_values
+        for loss_name, loss_values in recorder.loss_history[val_key].items():
+            if with_mean:
+                loss_values = np.mean(loss_values)
+            values[f"val_{camel2snake(loss_name)}"] = loss_values
+        for metric_name, metric_values in recorder.metric_history[val_key].items():
+            if with_mean:
+                metric_values = np.mean(metric_values)
+            values[f"val_{camel2snake(metric_name)}"] = metric_values
+        return values
+
+    def on_batch_begin(self, train, epoch, last_target, phase, **kwargs):
         super().on_batch_begin(train, **kwargs)
-        self.phase = self.learn.phase
-        self.key = (self.phase.name, epoch)
+        self.key = (phase.name, epoch)
 
     def _create_loss_values_for_batch_for_every_samples(self):
         per_sample_loss_values_for_current_batch = dict()
@@ -148,9 +164,9 @@ class Recorder(BaseRecorder):
         average_loss_for_current_batch = self._create_loss_values_for_batch_for_every_samples()
         self._update_loss_history(average_loss_for_current_batch)
 
-    def on_epoch_end(self, epoch, num_batch, smooth_loss, last_metrics, **kwargs):
+    def on_epoch_end(self, epoch, num_batch, smooth_loss, last_metrics, phase, **kwargs):
         super().on_epoch_end(epoch, num_batch, smooth_loss, last_metrics, **kwargs)
-        if self.phase == Phase.VAL:
+        if phase == Phase.VAL:
             metric_names = self.names[3:]
             for name, metric in zip(metric_names, self.metrics[0]):
                 self.metric_history[self.key][name].append(metric.item())

@@ -16,7 +16,7 @@ from pytorch_toolbox.core.data import DataBunch
 from pytorch_toolbox.core.defaults import Floats, default_lr, bn_types, LossFunction, OptionalMetrics, \
     OptionalLossFunction, PBar, OptionalOptimizer
 from pytorch_toolbox.core.training.optimizer import OptimizerWrapper
-from pytorch_toolbox.core.utils import listify, if_none, is_listy, to_numpy, even_mults
+from pytorch_toolbox.core.utils import listify, if_none, is_listy, to_numpy, even_mults, Phase
 from pytorch_toolbox.core.training.utils import flatten_model, to_detach, requires_grad
 
 AdamW = partial(Adam, betas=(0.9, 0.99))
@@ -88,7 +88,7 @@ class Learner:
             self.model.eval()
             for xb, yb in progbar(dl):
                 if cb_handler:
-                    xb, yb = cb_handler.on_batch_begin(xb, yb, train=False)
+                    xb, yb = cb_handler.on_batch_begin(xb, yb, train=False, state=Phase.TEST)
                 cb_handler = if_none(cb_handler, CallbackHandler())
                 if not is_listy(xb):
                     xb = [xb]
@@ -177,7 +177,7 @@ def fit(epochs: int, model: nn.Module, loss_func: LossFunction, opt: optim.Optim
             cb_handler.on_epoch_begin()
 
             for xb, yb in progress_bar(data.train_dl, parent=pbar):
-                xb, yb = cb_handler.on_batch_begin(xb, yb)
+                xb, yb = cb_handler.on_batch_begin(xb, yb, phase=Phase.TRAIN)
                 loss = loss_batch(model, xb, yb, loss_func, opt, cb_handler)
                 if cb_handler.on_batch_end(loss): break
 
@@ -203,9 +203,11 @@ def validate(model: nn.Module, dl: DataLoader, loss_func: OptionalLossFunction =
     with torch.no_grad():
         val_losses, nums = [], []
         for xb, yb in progress_bar(dl, parent=pbar, leave=(pbar is not None)):
-            if cb_handler: xb, yb = cb_handler.on_batch_begin(xb, yb, train=False)
+            if cb_handler:
+                xb, yb = cb_handler.on_batch_begin(xb, yb, train=False, phase=Phase.VAL)
             val_losses.append(loss_batch(model, xb, yb, loss_func, cb_handler=cb_handler))
-            if not is_listy(yb): yb = [yb]
+            if not is_listy(yb):
+                yb = [yb]
             nums.append(yb[0].shape[0])
             if cb_handler and cb_handler.on_batch_end(val_losses[-1]): break
             if n_batch and (len(nums) >= n_batch): break
@@ -228,7 +230,8 @@ def loss_batch(model: nn.Module, xb: Tensor, yb: Tensor, loss_func: OptionalLoss
     out = model(*xb)
     out = cb_handler.on_loss_begin(out)
 
-    if not loss_func: return to_detach(out), yb[0].detach()
+    if not loss_func:
+        return to_detach(out), yb[0].detach()
     loss = loss_func(out, *yb)
 
     if opt is not None:
