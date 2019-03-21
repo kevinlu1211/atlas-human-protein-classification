@@ -135,8 +135,8 @@ class Recorder(BaseRecorder):
 
     def _get_val_losses(self, epoch, with_mean):
         losses = {}
-        train_key = (Phase.VAL.name, epoch)
-        for name, values in self.loss_history[train_key].items():
+        val_key = (Phase.VAL.name, epoch)
+        for name, values in self.loss_history[val_key].items():
             if with_mean:
                 values = np.mean(values)
             losses[f"val_{camel2snake(name)}"] = values
@@ -144,8 +144,8 @@ class Recorder(BaseRecorder):
 
     def _get_metrics(self, epoch, with_mean):
         metrics = {}
-        train_key = (Phase.VAL.name, epoch)
-        for name, values in self.metric_history[train_key].items():
+        val_key = (Phase.VAL.name, epoch)
+        for name, values in self.metric_history[val_key].items():
             if with_mean:
                 values = np.mean(values)
             metrics[f"val_{camel2snake(name)}"] = values
