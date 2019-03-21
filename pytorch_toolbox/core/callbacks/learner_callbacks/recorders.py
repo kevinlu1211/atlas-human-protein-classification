@@ -124,24 +124,39 @@ class Recorder(BaseRecorder):
     def history(self):
         return {**self.loss_history, **self.metric_history}
 
-    def get_losses_and_metrics_for_epoch(self, epoch, with_mean=True):
+    def _get_train_losses(self, epoch, with_mean):
+        losses = {}
         train_key = (Phase.TRAIN.name, epoch)
-        val_key = (Phase.VAL.name, epoch)
-        recorder = self.learn.recorder
-        values = defaultdict(float)
-        for loss_name, loss_values in recorder.loss_history[train_key].items():
+        for name, values in self.loss_history[train_key].items():
             if with_mean:
-                loss_values = np.mean(loss_values)
-            values[f"train_{camel2snake(loss_name)}"] = loss_values
-        for loss_name, loss_values in recorder.loss_history[val_key].items():
+                values = np.mean(values)
+            losses[f"train_{camel2snake(name)}"] = values
+        return losses
+
+    def _get_val_losses(self, epoch, with_mean):
+        losses = {}
+        train_key = (Phase.VAL.name, epoch)
+        for name, values in self.loss_history[train_key].items():
             if with_mean:
-                loss_values = np.mean(loss_values)
-            values[f"val_{camel2snake(loss_name)}"] = loss_values
-        for metric_name, metric_values in recorder.metric_history[val_key].items():
+                values = np.mean(values)
+            losses[f"val_{camel2snake(name)}"] = values
+        return losses
+
+    def _get_metrics(self, epoch, with_mean):
+        metrics = {}
+        train_key = (Phase.VAL.name, epoch)
+        for name, values in self.metric_history[train_key].items():
             if with_mean:
-                metric_values = np.mean(metric_values)
-            values[f"val_{camel2snake(metric_name)}"] = metric_values
-        return values
+                values = np.mean(values)
+            metrics[f"val_{camel2snake(name)}"] = values
+        return metrics
+
+    def get_losses_and_metrics_for_epoch(self, epoch, with_mean=True):
+        losses_and_metrics = {}
+        losses_and_metrics.update(**self._get_train_losses(epoch, with_mean=with_mean))
+        losses_and_metrics.update(**self._get_val_losses(epoch, with_mean=with_mean))
+        losses_and_metrics.update(**self._get_metrics(epoch, with_mean=with_mean))
+        return losses_and_metrics
 
     def on_batch_begin(self, train, epoch, last_target, phase, **kwargs):
         super().on_batch_begin(train, **kwargs)

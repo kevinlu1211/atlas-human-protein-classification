@@ -197,13 +197,13 @@ def create_learner(data, model_creator, loss_funcs=[], metrics=None,
     callbacks = callbacks_creator() if callbacks_creator is not None else None
     callback_fns = callback_fns_creator() if callback_fns_creator is not None else None
 
-    learner = Learner.create(data=data,
-                             model=model,
-                             layer_groups=get_layer_groups(model),
-                             loss_func=LossWrapper(loss_funcs),
-                             metrics=metrics,
-                             callbacks=callbacks,
-                             callback_fns=callback_fns)
+    learner = Learner(data=data,
+                      model=model,
+                      layer_groups=get_layer_groups(model),
+                      loss_func=LossWrapper(loss_funcs),
+                      metrics=metrics,
+                      callbacks=callbacks,
+                      callback_fns=callback_fns)
     if model_path is not None:
         learner.load_model_with_path(model_path)
     if to_fp16:
