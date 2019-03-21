@@ -17,10 +17,9 @@ class ResultRecorder(LearnerCallback):
         self.prob_preds = []
         self.targets = []
 
-    def on_batch_begin(self, last_input, last_target, train, **kwargs):
-        self.phase = self.learn.phase
+    def on_batch_begin(self, last_input, last_target, phase, **kwargs):
         self.names.extend(last_target['name'])
-        if self.phase == Phase.TRAIN or self.phase == Phase.VAL:
+        if phase == Phase.TRAIN or phase == Phase.VAL:
             label = to_numpy(last_target['label'])
             self.targets.extend(label)
 
@@ -41,14 +40,13 @@ class OutputRecorder(LearnerCallback):
         self.save_img_fn = save_img_fn
         self.save_img = save_img
 
-    def on_batch_begin(self, last_input, last_target, epoch, train, **kwargs):
-        self.phase = self.learn.phase
-        self.key = (self.phase.name, epoch)
+    def on_batch_begin(self, last_input, last_target, epoch, phase, **kwargs):
+        self.key = (phase.name, epoch)
         if self.save_img:
             inputs = self.save_img_fn(last_input)
             self.current_batch['input'] = inputs
         self.current_batch['name'] = last_target['name']
-        if self.phase == Phase.TRAIN or self.phase == Phase.VAL:
+        if phase == Phase.TRAIN or phase == Phase.VAL:
             label = to_numpy(last_target['label'])
             self.current_batch['label'] = label
 

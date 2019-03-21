@@ -1,14 +1,14 @@
 import logging
 from pathlib import Path
 
-from pytorch_toolbox.core.defaults import Callable
+from pytorch_toolbox.core.defaults import Callable, Optional
 from pytorch_toolbox.core.callbacks import TrackerCallback
 
 
 class SaveModelCallback(TrackerCallback):
     "A `TrackerCallback` that saves the model when monitored quantity is best."
 
-    def __init__(self, learn, save_path_creator: Callable, monitor: str = "val_loss",
+    def __init__(self, learn, save_path_creator: Optional[Callable], monitor: str = "val_loss",
                  mode: str = "auto", every: str = "improvement", file_name: str = "best_model", ):
         super().__init__(learn, monitor, mode)
         self.every = every
