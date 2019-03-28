@@ -1,3 +1,4 @@
-# dl-toolbox
+# Pytorch Toolbox
 
-Create tests for loss function wrapper, and metrics, and create property to provide loss of the reduced loss of the batch, per sample loss in the batch, and per class loss in every sample, remember for the metrics, the recorder expects the mean as the reduce method
+This code is based heavily of off FastAI, though I have made some modifications and implemented some new functionality
+
