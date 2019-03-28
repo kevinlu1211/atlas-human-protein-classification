@@ -291,6 +291,7 @@ CreateLearnerCallbacks:
           - CreateGradientClippingLearnerCallback: GradientClippingLearnerCallback
           - CreateSaveModelCallback: SaveModelCallback
           - CreateDeterminePhaseCallback: DeterminePhaseCallback
+          - CreateTensorBoardRecorderLearnerCallback: TensorBoardRecorder
   output: LearnerCallbacksCreator
 
 
@@ -338,6 +339,16 @@ CreateCSVLoggerLearnerCallback:
         Ref:
           CreateTimeStampedSavePath: SavePathCreator
   output: CSVLoggerLearnerCallback
+
+CreateTensorBoardRecorderLearnerCallback:
+  type: TensorBoardRecorder
+  properties:
+    partial_initialization: true
+    initialization_arguments:
+      save_path_creator:
+        Ref:
+          CreateTimeStampedSavePath: SavePathCreator
+  output: TensorBoardRecorder
 
 CreateOutputRecorderLearnerCallback:
   type: create_output_recorder

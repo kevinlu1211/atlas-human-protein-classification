@@ -79,7 +79,7 @@ class Learner:
                     print(p.shape)
                     print(p.requires_grad)
 
-    def predict_on_dl(self, dl, callbacks=None, callback_fns=None, metrics=None):
+    def _predict_on_dl(self, dl, phase, callbacks=None, callback_fns=None, metrics=None):
         assert dl is not None
         metrics = if_none(metrics, self.metrics)
         callbacks_fns = [cb(self) for cb in if_none(callback_fns, [])]
@@ -88,17 +88,26 @@ class Learner:
             self.model.eval()
             for xb, yb in progbar(dl):
                 if cb_handler:
-                    xb, yb = cb_handler.on_batch_begin(xb, yb, train=False, state=Phase.TEST)
+                    xb, yb = cb_handler.on_batch_begin(xb, yb, train=False, phase=phase)
                 cb_handler = if_none(cb_handler, CallbackHandler())
                 if not is_listy(xb):
                     xb = [xb]
                 out = self.model(*xb)
                 _ = cb_handler.on_loss_begin(out)
 
+    def predict_on_train_dl(self, callbacks=None, callback_fns=None, metrics=None):
+        dl = self.data.train_dl
+        self._predict_on_dl(dl, Phase.TRAIN, callbacks, callback_fns, metrics)
+
+    def predict_on_val_dl(self, callbacks=None, callback_fns=None, metrics=None):
+        """Test with callbacks"""
+        dl = self.data.valid_dl
+        self._predict_on_dl(dl, Phase.VAL, callbacks, callback_fns, metrics)
+
     def predict_on_test_dl(self, callbacks=None, callback_fns=None, metrics=None):
         """Test with callbacks"""
         dl = self.data.test_dl
-        self.predict_on_dl(dl, callbacks, callback_fns, metrics)
+        self._predict_on_dl(dl, Phase.TEST, callbacks, callback_fns, metrics)
 
     def freeze_to(self, n: int) -> None:
         "Freeze layers up to layer `n`."

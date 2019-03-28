@@ -240,7 +240,7 @@ def record_results(learner, result_recorder_callback, determine_phase_callback, 
     save_path = save_path_creator()
 
     # Save the optimal threshold result
-    learner.predict_on_dl(dl=learner.data.valid_dl, callback_fns=[result_recorder_callback, determine_phase_callback])
+    learner.predict_on_val_dl(callback_fns=[result_recorder_callback, determine_phase_callback])
     res_recorder = learner.result_recorder
     targets = np.stack(res_recorder.targets)
     pred_probs = np.stack(res_recorder.prob_preds)
@@ -252,7 +252,7 @@ def record_results(learner, result_recorder_callback, determine_phase_callback, 
     print('F1 macro (th = 0.5): ', f1_score(targets, pred_probs > 0.5, average='macro'))
     print('F1 micro: ', f1_score(targets, pred_probs > th, average='micro'))
 
-    learner.predict_on_dl(dl=learner.data.test_dl, callback_fns=[result_recorder_callback, determine_phase_callback])
+    learner.predict_on_test_dl(callback_fns=[result_recorder_callback, determine_phase_callback])
     res_recorder = learner.result_recorder
     names = np.stack(res_recorder.names)
     pred_probs = np.stack(res_recorder.prob_preds)

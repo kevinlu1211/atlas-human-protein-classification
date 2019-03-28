@@ -17,7 +17,7 @@ LoadTrainingData:
         - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined
         - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined_HPAv18
       root_label_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_all_no_dupes.csv
-      use_n_samples: 25
+      use_n_samples: 500
   #      root_image_paths:
   #        - /home/kevin/Documents/Kaggle/human-protein-image-classification/data_test/train_combined
   #      root_label_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data_test/train.csv
@@ -292,6 +292,7 @@ CreateLearnerCallbacks:
           - CreateGradientClippingLearnerCallback: GradientClippingLearnerCallback
           - CreateSaveModelCallback: SaveModelCallback
           - CreateDeterminePhaseCallback: DeterminePhaseCallback
+          - CreateTensorBoardRecorderLearnerCallback: TensorBoardRecorder
 #          - CreateReduceLROnPlateauCallback: ReduceLROnPlateauCallback
 #          - CreateReduceLROnEpochEndCallback: ReduceLROnEpochEndCallback
   output: LearnerCallbacksCreator
@@ -361,6 +362,17 @@ CreateCSVLoggerLearnerCallback:
         Ref:
           CreateTimeStampedSavePath: SavePathCreator
   output: CSVLoggerLearnerCallback
+
+
+CreateTensorBoardRecorderLearnerCallback:
+  type: TensorBoardRecorder
+  properties:
+    partial_initialization: true
+    initialization_arguments:
+      save_path_creator:
+        Ref:
+          CreateTimeStampedSavePath: SavePathCreator
+  output: TensorBoardRecorder
 
 CreateOutputRecorderLearnerCallback:
   type: create_output_recorder

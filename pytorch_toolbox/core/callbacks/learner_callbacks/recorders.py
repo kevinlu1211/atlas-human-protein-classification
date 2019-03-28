@@ -1,12 +1,15 @@
+from itertools import repeat
 from collections import defaultdict
 from typing import Collection, Any
+from pathlib import Path
 
 import numpy as np
 from matplotlib import pyplot as plt
 from torch import Tensor
+from tensorboardX import SummaryWriter
 
 from pytorch_toolbox.core.callbacks import LearnerCallback
-from pytorch_toolbox.core.defaults import PBar, MetricsList, TensorOrNumberList
+from pytorch_toolbox.core.defaults import PBar, MetricsList, TensorOrNumberList, Callable, Optional
 from pytorch_toolbox.core.utils import range_of, to_numpy, camel2snake, Phase
 
 
@@ -124,64 +127,119 @@ class Recorder(BaseRecorder):
     def history(self):
         return {**self.loss_history, **self.metric_history}
 
-    def _get_train_losses(self, epoch, with_mean):
+    def on_batch_begin(self, train, epoch, last_target, phase, **kwargs):
+        super().on_batch_begin(train, **kwargs)
+        self.key = (phase.name, epoch)
+
+    def on_batch_end(self, phase, **kwargs):
+        super().on_batch_end(**kwargs)
+        self.loss_for_current_batch = self._create_loss_values_for_every_sample_in_batch(phase)
+        self._update_loss_history(self.loss_for_current_batch)
+
+    def _create_loss_values_for_every_sample_in_batch(self, phase):
+        per_sample_loss_values_for_current_batch = dict()
+        all_losses = []
+        for loss in self.learn.loss_func.losses:
+            name = loss.__class__.__name__
+            per_sample_loss = to_numpy(loss.per_sample_loss)
+            per_sample_loss_values_for_current_batch[f"{phase.name}/{camel2snake(name)}"] = per_sample_loss
+            all_losses.append(per_sample_loss)
+        per_sample_loss_values_for_current_batch[f"{phase.name}/total_loss"] = np.sum(all_losses, axis=0)
+
+        return per_sample_loss_values_for_current_batch
+
+    def _update_loss_history(self, loss_for_current_batch):
+        for name, loss_value in loss_for_current_batch.items():
+            self.loss_history[self.key][name].extend(loss_value)
+
+    def on_epoch_end(self, epoch, num_batch, smooth_loss, last_metrics, phase, **kwargs):
+        super().on_epoch_end(epoch, num_batch, smooth_loss, last_metrics, **kwargs)
+        if phase == Phase.VAL:
+            prev_epoch = epoch - 1
+            metric_names = self.names[3:]
+            for name, metric in zip(metric_names, self.metrics[prev_epoch]):
+                self.metric_history[self.key][name].append(metric.item())
+
+    def get_losses_and_metrics_for_epoch(self, epoch, with_mean=True):
+        losses_and_metrics = {}
+        losses_and_metrics.update(**self.get_losses_for_epoch_with_phase(epoch, Phase.TRAIN, with_mean=with_mean))
+        losses_and_metrics.update(**self.get_losses_for_epoch_with_phase(epoch, Phase.VAL, with_mean=with_mean))
+        losses_and_metrics.update(**self.get_metrics_for_epoch(epoch, with_mean=with_mean))
+        return losses_and_metrics
+
+    def get_losses_for_epoch(self, epoch, with_mean=True):
         losses = {}
-        train_key = (Phase.TRAIN.name, epoch)
-        for name, values in self.loss_history[train_key].items():
-            if with_mean:
-                values = np.mean(values)
-            losses[f"train_{camel2snake(name)}"] = values
+        losses.update(**self.get_losses_for_epoch_with_phase(epoch, Phase.TRAIN, with_mean=with_mean))
+        losses.update(**self.get_losses_for_epoch_with_phase(epoch, Phase.VAL, with_mean=with_mean))
         return losses
 
-    def _get_val_losses(self, epoch, with_mean):
+    def get_losses_for_epoch_with_phase(self, epoch, phase, with_mean=True):
         losses = {}
-        val_key = (Phase.VAL.name, epoch)
-        for name, values in self.loss_history[val_key].items():
+        key = (phase.name, epoch)
+        for name, values in self.loss_history[key].items():
             if with_mean:
                 values = np.mean(values)
-            losses[f"val_{camel2snake(name)}"] = values
+            losses[f"{phase.name}/{camel2snake(name)}"] = values
         return losses
 
-    def _get_metrics(self, epoch, with_mean):
+    def get_metrics_for_epoch(self, epoch, with_mean=True):
         metrics = {}
         val_key = (Phase.VAL.name, epoch)
         for name, values in self.metric_history[val_key].items():
             if with_mean:
                 values = np.mean(values)
-            metrics[f"val_{camel2snake(name)}"] = values
+            metrics[f"{camel2snake(name)}"] = values
         return metrics
 
-    def get_losses_and_metrics_for_epoch(self, epoch, with_mean=True):
-        losses_and_metrics = {}
-        losses_and_metrics.update(**self._get_train_losses(epoch, with_mean=with_mean))
-        losses_and_metrics.update(**self._get_val_losses(epoch, with_mean=with_mean))
-        losses_and_metrics.update(**self._get_metrics(epoch, with_mean=with_mean))
-        return losses_and_metrics
 
-    def on_batch_begin(self, train, epoch, last_target, phase, **kwargs):
-        super().on_batch_begin(train, **kwargs)
-        self.key = (phase.name, epoch)
+class TensorBoardRecorder(LearnerCallback):
+    def __init__(self, learn, save_path_creator: Optional[Callable], file_name="tensorboard"):
+        super().__init__(learn)
+        log_path = Path(
+            self.learn.path if save_path_creator is None else save_path_creator()) / f"{file_name}.log"
+        self.tb_writer = SummaryWriter(log_dir=str(log_path))
+        self.train_global_step = 0
+        self.val_global_step = 0
 
-    def _create_loss_values_for_batch_for_every_samples(self):
-        per_sample_loss_values_for_current_batch = dict()
-        for loss in self.learn.loss_func.losses:
-            name = loss.__class__.__name__
-            per_sample_loss = loss.per_sample_loss
-            per_sample_loss_values_for_current_batch[f"{name}"] = per_sample_loss
-        return per_sample_loss_values_for_current_batch
+    def on_batch_end(self, epoch, phase, **kwargs):
+        if phase == Phase.TRAIN or phase == Phase.VAL:
+            self._record_losses_for_step(phase)
 
-    def _update_loss_history(self, loss_for_current_batch):
-        for name, loss_value in loss_for_current_batch.items():
-            self.loss_history[self.key][name].extend(to_numpy(loss_value))
+    def _record_losses_for_step(self, phase):
+        # (loss1_name, loss2_name, loss3_name)
+        loss_names = tuple(self.learn.recorder.loss_for_current_batch.keys())
 
-    def on_batch_end(self, **kwargs):
-        super().on_batch_end(**kwargs)
-        average_loss_for_current_batch = self._create_loss_values_for_batch_for_every_samples()
-        self._update_loss_history(average_loss_for_current_batch)
+        # [(sample1_loss1, sample1_loss2, sample1_loss3), (sample2_loss1, sample2_loss2, sample2_loss3)]
+        per_sample_loss_for_samples_in_batch = list(zip(*self.learn.recorder.loss_for_current_batch.values()))
+        repeated_loss_names = repeat(loss_names, times=len(per_sample_loss_for_samples_in_batch))
+        global_step = self.train_global_step if phase == Phase.TRAIN else self.val_global_step
 
-    def on_epoch_end(self, epoch, num_batch, smooth_loss, last_metrics, phase, **kwargs):
-        super().on_epoch_end(epoch, num_batch, smooth_loss, last_metrics, **kwargs)
-        if phase == Phase.VAL:
-            metric_names = self.names[3:]
-            for name, metric in zip(metric_names, self.metrics[0]):
-                self.metric_history[self.key][name].append(metric.item())
+        for i, (loss_names_, per_sample_losses) in enumerate(
+                zip(repeated_loss_names, per_sample_loss_for_samples_in_batch),
+                global_step):
+            tag_scalar_dict = {loss_name: loss_value for loss_name, loss_value in
+                               zip(loss_names_, per_sample_losses)}
+            self.tb_writer.add_scalars(f"{phase.name.lower()}_losses_per_step",
+                                       tag_scalar_dict=tag_scalar_dict,
+                                       global_step=i)
+
+        n_samples = len(per_sample_losses)
+        global_step += n_samples
+        if phase == Phase.TRAIN:
+            self.train_global_step = global_step
+        else:
+            self.val_global_step = global_step
+
+    def on_epoch_end(self, epoch, phase, **kwargs):
+        prev_epoch = epoch - 1
+        self._record_mean_losses_for_epoch(prev_epoch)
+        self._record_metrics_for_epoch(prev_epoch)
+
+
+    def _record_mean_losses_for_epoch(self, epoch):
+        self.tb_writer.add_scalars("mean_losses_for_epoch", self.learn.recorder.get_losses_for_epoch(epoch),
+                                   global_step=epoch)
+
+    def _record_metrics_for_epoch(self, epoch):
+        self.tb_writer.add_scalars("metrics_for_epoch", self.learn.recorder.get_metrics_for_epoch(epoch),
+                                   global_step=epoch)
