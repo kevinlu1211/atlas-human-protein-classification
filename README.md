@@ -71,6 +71,4 @@ Then open the `inference.ipynb` notebook
 `conda env export  --no-builds > environment.yml`
 
 #### Currently doing:
-1. Metric learning with triplet loss to which may increase the performance of the model. The hypothesis is here is that the nearest neighbours of an embedding don't look similar, and a lot of the times don't even have the same class labels.
-2. Restructure the files and folder of the code e.g. Refactor the functions in `image.py` and `data.py` to be more cohesive.
-3. Finish `ReduceLROnEpochEndCallback` to reduce LR interactively when training, this would be useful when we don't know what the optimal learning rate schedule is and `ReduceLROnPlateauCallback` isn't working well.
+1. Metric learning with arcface loss which may increase the performance of the model. The hypothesis is here is that the nearest neighbours of an embedding don't look similar, and a lot of the times don't even have the same class labels.
