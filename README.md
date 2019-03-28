@@ -54,7 +54,7 @@ In the folder there will be subfolders, one for each fold. After training, the f
 - `thresholds.p` the thresholds that were used to calculate the `submission_optimal_threshold.csv`
 - `training_logs` (this folder contains two CSV files, one for training, one for validation, each row of the CSV file records the name, prediction, ground truth, and losses associated with one sample, look at `notebook/diagnosis.ipynb` to see how to visualize these training logs)
 
-You could also forward port 6006 of the container to see the training results on Tensorboard, below is an example:
+You could also forward port `6006` of the container to see the training results on Tensorboard, below is an example:
 
 ![alt text](README_images/tensorboard_example.png)
 
