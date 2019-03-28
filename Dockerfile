@@ -1,5 +1,6 @@
 FROM nvidia/cuda:9.1-cudnn7-runtime-ubuntu16.04
 EXPOSE 8888
+EXPOSE 6006
 EXPOSE 5000
 EXPOSE 80
 
