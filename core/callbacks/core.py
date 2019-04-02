@@ -258,7 +258,7 @@ def annealing_poly(degree: Number) -> Number:
     return partial(do_annealing_poly, degree=degree)
 
 
-class Stepper:
+class Scheduler:
     "Used to \"step\" from start,end (`vals`) over `n_iter` iterations on a schedule defined by `func`"
 
     def __init__(self, vals: StartOptEnd, n_iter: int, func: Optional[AnnealFunc] = None):

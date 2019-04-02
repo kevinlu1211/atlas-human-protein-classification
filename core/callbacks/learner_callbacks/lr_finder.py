@@ -1,5 +1,5 @@
 from pytorch_toolbox.core.defaults import TensorOrNumber, Any
-from pytorch_toolbox.core.callbacks import LearnerCallback, annealing_exp, Stepper
+from pytorch_toolbox.core.callbacks import LearnerCallback, annealing_exp, Scheduler
 
 
 class LRFinder(LearnerCallback):
@@ -11,7 +11,7 @@ class LRFinder(LearnerCallback):
         "Initialize schedule of learning rates"
         super().__init__(learn)
         self.data, self.stop_div = learn.data, stop_div
-        self.sched = Stepper((start_lr, end_lr), num_it, annealing_exp)
+        self.sched = Scheduler((start_lr, end_lr), num_it, annealing_exp)
         # To avoid validating if the train_dl has less than num_it batches, we put aside the valid_dl and remove it
         # during the call to fit.
         self.valid_dl = learn.data.valid_dl
