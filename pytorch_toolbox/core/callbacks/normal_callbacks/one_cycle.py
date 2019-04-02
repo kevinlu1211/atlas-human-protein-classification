@@ -1,7 +1,7 @@
 import numpy as np
 
 from pytorch_toolbox.core.defaults import Floats, StartOptEnd, Any
-from pytorch_toolbox.core.callbacks.core import Callback, annealing_linear, annealing_cos, Stepper
+from pytorch_toolbox.core.callbacks.core import Callback, annealing_linear, annealing_cos, Scheduler
 from pytorch_toolbox.core.utils import listify, is_listy
 
 
@@ -22,7 +22,7 @@ class OneCycleScheduler(Callback):
 
     def steps(self, *steps_cfg: StartOptEnd):
         "Build anneal schedule for all of the parameters."
-        return [Stepper(step, n_iter, func=func)
+        return [Scheduler(step, n_iter, func=func)
                 for (step, (n_iter, func)) in zip(steps_cfg, self.phases)]
 
     def on_train_begin(self, n_epochs: int, **kwargs: Any) -> None:
