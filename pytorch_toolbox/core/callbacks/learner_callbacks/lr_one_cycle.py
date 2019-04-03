@@ -1,17 +1,16 @@
 import numpy as np
 
 from pytorch_toolbox.core.defaults import Floats, StartOptEnd, Any
-from pytorch_toolbox.core.callbacks.core import Callback, annealing_linear, annealing_cos, Scheduler
-from pytorch_toolbox.core.utils import listify, is_listy
+from pytorch_toolbox.core.callbacks.core import LearnerCallback, annealing_linear, annealing_cos, Scheduler
+from pytorch_toolbox.core.utils import listify, is_listy, Phase
 
 
-class OneCycleScheduler(Callback):
+class OneCycleScheduler(LearnerCallback):
     "Manage 1-Cycle style training as outlined in Leslie Smith's [paper](https://arxiv.org/pdf/1803.09820.pdf)."
 
     def __init__(self, learn, lr_max: float, moms: Floats = (0.95, 0.85), div_factor: float = 25.,
                  pct_start: float = 0.3):
-        super().__init__()
-        self.learn = learn
+        super().__init__(learn)
         self.lr_max = lr_max
         self.moms = moms
         self.div_factor = div_factor
@@ -38,9 +37,9 @@ class OneCycleScheduler(Callback):
         self.opt.lr, self.opt.mom = self.lr_scheds[0].start, self.mom_scheds[0].start
         self.idx_s = 0
 
-    def on_batch_end(self, train, **kwargs: Any) -> None:
+    def on_batch_end(self, phase, **kwargs: Any) -> None:
         "Take one step forward on the annealing schedule for the optim params."
-        if train:
+        if phase == Phase.TRAIN:
             if self.idx_s >= len(self.lr_scheds): return True
             self.opt.lr = self.lr_scheds[self.idx_s].step()
             self.opt.mom = self.mom_scheds[self.idx_s].step()
