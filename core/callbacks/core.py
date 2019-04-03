@@ -227,7 +227,7 @@ class AverageMetric(Callback):
         self.metric = self.val / self.count
 
 
-def annealing_no(start: Number, end: Number, pct: float) -> Number:
+def annealing_no(start: Number, _, _) -> Number:
     "No annealing, always return `start`."
     return start
 
@@ -274,6 +274,9 @@ class Scheduler:
         "Return next value along annealed schedule."
         self.n += 1
         return self.func(self.start, self.end, self.n / self.n_iter)
+
+    def restart(self):
+        self.n = 0
 
     @property
     def is_done(self) -> bool:

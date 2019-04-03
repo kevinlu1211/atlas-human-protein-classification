@@ -1,4 +1,4 @@
-from pytorch_toolbox.core.callbacks import CallbackList, LRFinder, OneCycleScheduler, MixedPrecision
+from pytorch_toolbox.core.callbacks import CallbackList, LRFinder, OneCycleScheduler, MixedPrecision, Mul
 from pytorch_toolbox.core.defaults import *
 from pytorch_toolbox.core.utils import if_none, is_listy
 from pytorch_toolbox.core.training.utils import model2half
@@ -13,6 +13,8 @@ def fit_one_cycle(learn, cyc_len: int, max_lr: Union[Floats, slice] = default_lr
     callbacks.append(OneCycleScheduler(learn, max_lr, moms=moms, div_factor=div_factor,
                                        pct_start=pct_start, **kwargs))
     learn.fit(cyc_len, max_lr, wd=wd, callbacks=callbacks)
+
+def fit_multi_step(learn)
 
 
 def lr_find(learn, start_lr: Floats = 1e-7, end_lr: Floats = 10, num_it: int = 100, stop_div: bool = True,

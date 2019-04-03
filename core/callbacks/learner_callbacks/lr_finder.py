@@ -11,7 +11,7 @@ class LRFinder(LearnerCallback):
         "Initialize schedule of learning rates"
         super().__init__(learn)
         self.data, self.stop_div = learn.data, stop_div
-        self.sched = Scheduler((start_lr, end_lr), num_it, annealing_exp)
+        self.scheduler = Scheduler((start_lr, end_lr), num_it, annealing_exp)
         # To avoid validating if the train_dl has less than num_it batches, we put aside the valid_dl and remove it
         # during the call to fit.
         self.valid_dl = learn.data.valid_dl
@@ -22,14 +22,14 @@ class LRFinder(LearnerCallback):
         setattr(pbar, 'clean_on_interrupt', True)
         self.learn.save_model_with_name('tmp')
         self.opt = self.learn.opt
-        self.opt.lr = self.sched.start
+        self.opt.lr = self.scheduler.start
         self.stop, self.best_loss = False, 0.
 
     def on_batch_end(self, iteration: int, smooth_loss: TensorOrNumber, **kwargs: Any) -> None:
         "Determine if loss has runaway and we should stop."
         if iteration == 0 or smooth_loss < self.best_loss: self.best_loss = smooth_loss
-        self.opt.lr = self.sched.step()
-        if self.sched.is_done or (self.stop_div and smooth_loss > 4 * self.best_loss):
+        self.opt.lr = self.scheduler.step()
+        if self.scheduler.is_done or (self.stop_div and smooth_loss > 4 * self.best_loss):
             # We use the smoothed loss to decide on the stopping since it's less shaky.
             self.stop = True
             return True
