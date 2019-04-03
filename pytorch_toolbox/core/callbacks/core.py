@@ -227,7 +227,7 @@ class AverageMetric(Callback):
         self.metric = self.val / self.count
 
 
-def annealing_no(start: Number, _, _) -> Number:
+def annealing_no(start: Number, end: Number, pct: float) -> Number:
     "No annealing, always return `start`."
     return start
 

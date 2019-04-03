@@ -1,4 +1,4 @@
-from pytorch_toolbox.core.callbacks import CallbackList, LRFinder, OneCycleScheduler, MixedPrecision, Mul
+from pytorch_toolbox.core.callbacks import CallbackList, LRFinder, OneCycleScheduler, MixedPrecision, MultiStepScheduler
 from pytorch_toolbox.core.defaults import *
 from pytorch_toolbox.core.utils import if_none, is_listy
 from pytorch_toolbox.core.training.utils import model2half
@@ -14,7 +14,18 @@ def fit_one_cycle(learn, cyc_len: int, max_lr: Union[Floats, slice] = default_lr
                                        pct_start=pct_start, **kwargs))
     learn.fit(cyc_len, max_lr, wd=wd, callbacks=callbacks)
 
-def fit_multi_step(learn)
+
+def fit_multi_step(learn, epochs_for_step_for_hyperparameters: List[List[Number]], hyperparameter_names: List[str],
+                   hyperparameter_values: List[List[Number]], start_epoch: Optional[int] = None,
+                   end_epoch: Optional[int] = None, wd: float = None, callbacks: Optional[CallbackList] = None):
+    multistep_cbs = []
+    for epochs_for_step_for_hp, hp_name, hp_val in zip(epochs_for_step_for_hyperparameters, hyperparameter_names,
+                                                       hyperparameter_values):
+        multistep_cbs.append(MultiStepScheduler(learn, epochs_for_step_for_hp, hp_name, hp_val, start_epoch, end_epoch))
+    end_epoch = multistep_cbs[-1].end_epoch
+    callbacks = if_none(callbacks, [])
+    callbacks.extend(multistep_cbs)
+    learn.fit(end_epoch, wd=wd, callbacks=callbacks)
 
 
 def lr_find(learn, start_lr: Floats = 1e-7, end_lr: Floats = 10, num_it: int = 100, stop_div: bool = True,
@@ -34,10 +45,8 @@ def to_fp16(learn, loss_scale: float = 512., flat_master: bool = False):
     learn.callbacks.append(learn.mp_cb)
     return learn
 
-
 # def mixup(learn, alpha: float = 0.4, stack_x: bool = False, stack_y: bool = True) -> Learner:
 #     "Add mixup https://arxiv.org/abs/1710.09412 to `learn`."
 #     if stack_y: learn.loss_func = MixUpLoss(learn.loss_func)
 #     learn.callback_fns.append(partial(MixUpCallback, alpha=alpha, stack_x=stack_x, stack_y=stack_y))
 #     return learn
-

@@ -229,12 +229,23 @@ RunTrainingLoop:
         Ref:
           RunRecordResults: ResultRecorder
 
+#CreateTrainingScheme:
+#  type: training_scheme_fit
+#  properties:
+#    callable_arguments:
+#      epochs: 5
+#      lr: [5e-3, 5e-2]
+#    partial_callable: true
+#  output: TrainingScheme
+
 CreateTrainingScheme:
-  type: training_scheme_fit
+  type: training_scheme_multi_step
   properties:
     callable_arguments:
-      epochs: 5
-      lr: [5e-3, 5e-2]
+      epochs_for_step_for_hyperparameters: [[0, 2, 5, 10]]
+      hyperparameter_names: ["lr"]
+      hyperparameter_values: [1e-3, 3e-3, 9e-3, 3e-4]
+      end_epoch: 15
     partial_callable: true
   output: TrainingScheme
 

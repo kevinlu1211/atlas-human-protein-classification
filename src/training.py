@@ -28,8 +28,16 @@ def training_scheme_lr_warmup(learner, epochs, warmup_epochs=None, lr=1e-3):
     learner.fit_one_cycle(cyc_len=epochs, max_lr=lr, pct_start=pct_start, div_factor=div_factor)
 
 
+def training_scheme_multi_step(learner, epochs_for_step_for_hyperparameters,
+                               hyperparameter_names, hyperparameter_values, start_epoch=None, end_epoch=None):
+    learner.unfreeze()
+    learner.fit_multi_step(epochs_for_step_for_hyperparameters, hyperparameter_names, hyperparameter_values,
+                           start_epoch, end_epoch)
+
+
 training_scheme_lookup = {
     "training_scheme_one_cycle": training_scheme_one_cycle,
     "training_scheme_fit": training_scheme_fit,
     "training_scheme_lr_warmup": training_scheme_lr_warmup,
+    "training_scheme_multi_step": training_scheme_multi_step
 }
