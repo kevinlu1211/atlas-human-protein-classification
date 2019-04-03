@@ -10,7 +10,7 @@ import numpy as np
 from fastprogress import progress_bar, master_bar
 from miniutils import progbar
 
-from pytorch_toolbox.core.training.learner.train import fit_one_cycle, lr_find, to_fp16
+from pytorch_toolbox.core.training.learner.train import fit_one_cycle, fit_multi_step, lr_find, to_fp16
 from pytorch_toolbox.core.callbacks import Callback, CallbackList, CallbackHandler, Recorder
 from pytorch_toolbox.core.data import DataBunch
 from pytorch_toolbox.core.defaults import Floats, default_lr, bn_types, LossFunction, OptionalMetrics, \
@@ -42,8 +42,10 @@ class Learner:
         self.callbacks = listify(callbacks)
         self.callback_fns = [Recorder] + listify(callback_fns)
 
-        if not layer_groups:
+        if layer_groups is None:
             self.layer_groups = [nn.Sequential(*flatten_model(self.model))]
+        else:
+            self.layer_groups = layer_groups
 
     def fit(self, epochs: int, lr: Union[Floats, slice] = default_lr,
             wd: Floats = None, callbacks: Collection[Callback] = None) -> None:
@@ -168,6 +170,7 @@ class Learner:
 
 
 Learner.fit_one_cycle = fit_one_cycle
+Learner.fit_multi_step = fit_multi_step
 Learner.lr_find = lr_find
 Learner.to_fp16 = to_fp16
 

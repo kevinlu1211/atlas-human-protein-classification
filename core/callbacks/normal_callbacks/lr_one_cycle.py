@@ -1,11 +1,11 @@
 import numpy as np
 
 from pytorch_toolbox.core.defaults import Floats, StartOptEnd, Any
-from pytorch_toolbox.core.callbacks.core import LearnerCallback, annealing_linear, annealing_cos, Scheduler
+from pytorch_toolbox.core.callbacks.core import Callback, annealing_linear, annealing_cos, Scheduler
 from pytorch_toolbox.core.utils import listify, is_listy, Phase
 
 
-class OneCycleScheduler(LearnerCallback):
+class OneCycleScheduler(Callback):
     "Manage 1-Cycle style training as outlined in Leslie Smith's [paper](https://arxiv.org/pdf/1803.09820.pdf)."
 
     def __init__(self, learn, lr_max: float, moms: Floats = (0.95, 0.85), div_factor: float = 25.,

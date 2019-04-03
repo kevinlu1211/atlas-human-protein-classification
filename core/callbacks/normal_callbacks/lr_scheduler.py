@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from pytorch_toolbox.core.defaults import Collection, Any, Number, StartOptEnd, List, Floats, Optional
-from pytorch_toolbox.core.callbacks.core import LearnerCallback, Scheduler, annealing_no
+from pytorch_toolbox.core.callbacks.core import Callback, Scheduler, annealing_no
 from pytorch_toolbox.core.utils import if_none
 
 
@@ -28,12 +28,13 @@ class TrainingPhase:
     def hyperparameter_and_scheduler_pairs(self):
         return self.scheduler_lookup.items()
 
-class GeneralScheduler(LearnerCallback):
+
+class GeneralScheduler(Callback):
     "Schedule multiple `TrainingPhase` for a `Learner`."
 
     def __init__(self, learn, phases: Collection[TrainingPhase], start_epoch: int = None):
-        super().__init__(learn)
-        self.opt = self.learn.opt
+        super().__init__()
+        self.learn = learn
         self.phases, self.start_epoch = phases, start_epoch
         self.scheduler_lookups = [p.scheduler_lookup for p in self.phases]
         self.current_phase_idx = 0
@@ -46,7 +47,8 @@ class GeneralScheduler(LearnerCallback):
         "Initialize the schedulers for training."
         res = {'epoch': self.start_epoch} if self.start_epoch is not None else None
         self.start_epoch = if_none(self.start_epoch, epoch)
-        current_hp_name_and_scheduler_pairs = self.current_phase.hyperparameter_and_scheduler_pairs()
+        self.opt = self.learn.opt
+        current_hp_name_and_scheduler_pairs = self.current_phase.hyperparameter_and_scheduler_pairs
         for hp_name, scheduler in current_hp_name_and_scheduler_pairs:
             scheduler.restart()
             self.opt.set_stat(hp_name, scheduler.start)
@@ -62,7 +64,7 @@ class GeneralScheduler(LearnerCallback):
             if self.current_phase_idx >= len(self.phases):
                 return {'stop_training': True, 'stop_epoch': True}
 
-            current_hp_name_and_scheduler_pairs = self.current_phase.hyperparameter_and_scheduler_pairs()
+            current_hp_name_and_scheduler_pairs = self.current_phase.hyperparameter_and_scheduler_pairs
             for hp_name, scheduler in current_hp_name_and_scheduler_pairs:
                 self.opt.set_stat(hp_name, scheduler.step())
 
@@ -70,10 +72,11 @@ class GeneralScheduler(LearnerCallback):
                 self.current_phase_idx += 1
 
 
-class MultiStepScheduler(LearnerCallback):
+class MultiStepScheduler(GeneralScheduler):
 
-    def __init__(self, learn, epochs_for_step: List[Number], hyperparameter_values_for_step: List[Floats],
-                 hyperparameter_name: str = "lr", start_epoch: Optional[Number] = None,
+    def __init__(self, learn, epochs_for_step: List[Number], hyperparameter_name: str,
+                 hyperparameter_values_for_step: List[Floats],
+                 start_epoch: Optional[Number] = None,
                  end_epoch: Optional[Number] = None):
         assert len(epochs_for_step) > 0
         assert epochs_for_step[0] == 0, "Please set the first epoch to 0"
@@ -84,12 +87,11 @@ class MultiStepScheduler(LearnerCallback):
         self.epochs_for_step = epochs_for_step
         self.hyperparameter_values_for_step = hyperparameter_values_for_step
         self.hyperparameter_name = hyperparameter_name
-        self.epochs_to_iterations = self._convert_epochs_to_iterations()
+        self.epochs_to_iterations = self._convert_epochs_to_iterations(n_iterations_in_epoch=len(learn.data.train_dl))
         self.training_phases = self._create_training_phases()
         super().__init__(learn, self.training_phases, start_epoch)
 
-    def _convert_epochs_to_iterations(self):
-        n_iterations_in_epoch = len(self.learn.data.train_dl)
+    def _convert_epochs_to_iterations(self, n_iterations_in_epoch):
         epochs_between_each_step = self._calculate_epochs_between_each_step()
         epochs_to_n_iterations = [int(epoch * n_iterations_in_epoch) for epoch in epochs_between_each_step]
         return epochs_to_n_iterations
