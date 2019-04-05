@@ -3,12 +3,12 @@ from torch.nn.utils import parameters_to_vector
 
 from pytorch_toolbox.core.callbacks import Callback
 from pytorch_toolbox.core.defaults import *
-from pytorch_toolbox.core.training.utils import split_bn_bias
+from pytorch_toolbox.core.training.utils import split_layers_into_batch_norm_and_non_batch_norm
 
 
 def get_master(layer_groups: ModuleList, flat_master: bool = False) -> Tuple[List[List[Tensor]], List[List[Tensor]]]:
     "Return two lists, one for the model parameters in FP16 and one for the master parameters in FP32."
-    split_groups = split_bn_bias(layer_groups)
+    split_groups = split_layers_into_batch_norm_and_non_batch_norm(layer_groups)
     model_params = [[param for param in lg.parameters() if param.requires_grad] for lg in split_groups]
     if flat_master:
         master_params = []

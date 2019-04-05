@@ -28,6 +28,23 @@ class Learner:
                  batch_norm_weight_decay: bool = True, weight_decay: Floats = 1e-2, train_bn: bool = True,
                  path: str = ".", model_dir: str = "model", callback_fns: Collection[Callable] = None,
                  callbacks: Collection[Callable] = [], layer_groups: Collection[nn.Module] = None):
+        """
+
+        :param data: object that wraps the data loaders
+        :param model: the model
+        :param loss_func: the loss function
+        :param opt_func: the optimizer
+        :param metrics: metrics to be calculated after each epoch
+        :param true_weight_decay:
+        :param batch_norm_weight_decay:
+        :param weight_decay: the weight decay
+        :param train_bn:
+        :param path: the root path of the Learner
+        :param model_dir: the name of the directory that the model will be saved in, where path is the parent
+        :param callback_fns: the learner callback functions
+        :param callbacks: the callback function
+        :param layer_groups: the different layers that the model is split into for differential learning rates
+        """
         self.data = data
         self.model = model.to(self.data.device)
         self.loss_func = loss_func
@@ -60,8 +77,8 @@ class Learner:
 
     def create_opt(self, lr: Floats, wd: Floats = 0.) -> None:
         "Create optimizer with `lr` learning rate and `wd` weight decay."
-        self.opt = OptimizerWrapper.create(self.opt_func, lr, self.layer_groups, wd=wd, true_wd=self.true_weight_decay,
-                                           bn_wd=self.batch_norm_weight_decay)
+        self.opt = OptimizerWrapper.create(opt_func=self.opt_func, lr=lr, layer_groups=self.layer_groups,
+                                           wd=wd, true_wd=self.true_weight_decay, bn_wd=self.batch_norm_weight_decay)
 
     def lr_range(self, lr: Union[float, slice]) -> np.ndarray:
         "Build differential learning rates."

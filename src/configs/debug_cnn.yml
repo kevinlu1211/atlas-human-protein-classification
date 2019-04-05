@@ -242,9 +242,10 @@ CreateTrainingScheme:
   type: training_scheme_multi_step
   properties:
     callable_arguments:
-      epochs_for_step_for_hyperparameters: [[0, 2, 5, 10]]
-      hyperparameter_names: ["lr"]
-      hyperparameter_values: [1e-3, 3e-3, 9e-3, 3e-4]
+      epochs_for_step_for_hyperparameters: [[0, 2, 5, 10], [0, 2, 5, 13]]
+      hyperparameter_names: ["lr", "wd"]
+      hyperparameter_values: [[[3e-2, 9e-3, 3e-3, 9e-4], [3e-3, 9e-4, 3e-4, 9e-5]],
+                              [1e-5, 3e-5, 6e-5, 9e-5]]
       end_epoch: 15
     partial_callable: true
   output: TrainingScheme

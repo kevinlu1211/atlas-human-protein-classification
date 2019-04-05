@@ -1,4 +1,4 @@
-from itertools import repeat
+from itertools import repeat, cycle
 from collections import defaultdict
 from typing import Collection, Any
 from pathlib import Path
@@ -10,7 +10,7 @@ from tensorboardX import SummaryWriter
 
 from pytorch_toolbox.core.callbacks import LearnerCallback
 from pytorch_toolbox.core.defaults import PBar, MetricsList, TensorOrNumberList, Callable, Optional
-from pytorch_toolbox.core.utils import range_of, to_numpy, camel2snake, Phase
+from pytorch_toolbox.core.utils import range_of, to_numpy, camel2snake, Phase, listify
 
 
 class BaseRecorder(LearnerCallback):
@@ -133,6 +133,7 @@ class Recorder(BaseRecorder):
 
     def on_batch_end(self, phase, **kwargs):
         super().on_batch_end(**kwargs)
+        # self.optimizer_hyperparameters_for_current_batch = self._create_optimizer_hyperparameters_for_current_batch()
         self.loss_for_current_batch = self._create_loss_values_for_every_sample_in_batch(phase)
         self._update_loss_history(self.loss_for_current_batch)
 
@@ -192,49 +193,56 @@ class Recorder(BaseRecorder):
         return metrics
 
 
+# TODO: allow recording by batch
 class TensorBoardRecorder(LearnerCallback):
-    def __init__(self, learn, save_path_creator: Optional[Callable], file_name="tensorboard"):
+    _order = 10
+
+    def __init__(self, learn, save_path_creator: Optional[Callable], file_name="tensorboard", per_batch=False):
         super().__init__(learn)
         log_path = Path(
             self.learn.path if save_path_creator is None else save_path_creator()) / f"{file_name}.log"
         self.tb_writer = SummaryWriter(log_dir=str(log_path))
-        self.train_global_step = 0
-        self.val_global_step = 0
+        self.train_step_idx = 0
+        self.val_step_idx = 0
+        self.per_batch = per_batch
 
     def on_batch_end(self, epoch, phase, **kwargs):
-        if phase == Phase.TRAIN or phase == Phase.VAL:
-            self._record_losses_for_step(phase)
-
-    def _record_losses_for_step(self, phase):
-        # (loss1_name, loss2_name, loss3_name)
-        loss_names = tuple(self.learn.recorder.loss_for_current_batch.keys())
-
-        # [(sample1_loss1, sample1_loss2, sample1_loss3), (sample2_loss1, sample2_loss2, sample2_loss3)]
-        per_sample_loss_for_samples_in_batch = list(zip(*self.learn.recorder.loss_for_current_batch.values()))
-        repeated_loss_names = repeat(loss_names, times=len(per_sample_loss_for_samples_in_batch))
-        global_step = self.train_global_step if phase == Phase.TRAIN else self.val_global_step
-
-        for i, (loss_names_, per_sample_losses) in enumerate(
-                zip(repeated_loss_names, per_sample_loss_for_samples_in_batch),
-                global_step):
-            tag_scalar_dict = {loss_name: loss_value for loss_name, loss_value in
-                               zip(loss_names_, per_sample_losses)}
-            self.tb_writer.add_scalars(f"{phase.name.lower()}_losses_per_step",
-                                       tag_scalar_dict=tag_scalar_dict,
-                                       global_step=i)
-
-        n_samples = len(per_sample_losses)
-        global_step += n_samples
         if phase == Phase.TRAIN:
-            self.train_global_step = global_step
-        else:
-            self.val_global_step = global_step
+            self._record_losses_for_step(phase, self.train_step_idx)
+            self._record_optimizer_hyperparameters(self.train_step_idx)
+            self.train_step_idx += 1
+        if phase == Phase.TRAIN or phase == Phase.VAL:
+            self._record_losses_for_step(phase, self.val_step_idx)
+            self.val_step_idx += 1
+
+    def _record_optimizer_hyperparameters(self, step_idx):
+        optimizer = self.learn.opt
+        available_optimizer_hyperparameters = optimizer.available_hyperparameters
+        optimizer_hyperparameters_tag_scalar_dict = {}
+
+        for hp_name in available_optimizer_hyperparameters:
+            if hp_name == "betas":
+                for i, layer_group_val in enumerate(listify(optimizer.read_val(hp_name))):
+                    optimizer_hyperparameters_tag_scalar_dict[f"layer_{i}-beta1"] = layer_group_val[0]
+                    optimizer_hyperparameters_tag_scalar_dict[f"layer_{i}-beta2"] = layer_group_val[1]
+
+            else:
+                for i, layer_group_val in enumerate(listify(optimizer.read_val(hp_name))):
+                    optimizer_hyperparameters_tag_scalar_dict[f"layer_{i}-{hp_name}"] = layer_group_val
+        self.tb_writer.add_scalars("optimizer_hyperparameter", optimizer_hyperparameters_tag_scalar_dict,
+                                   global_step=step_idx)
+
+    def _record_losses_for_step(self, phase, step_idx):
+        loss_tag_scalar_dict = {loss_name: np.mean(loss_values) for loss_name, loss_values in
+                                self.learn.recorder.loss_for_current_batch.items()}
+        self.tb_writer.add_scalars(f"{phase.name.lower()}_losses_per_sample",
+                                   tag_scalar_dict=loss_tag_scalar_dict,
+                                   global_step=step_idx)
 
     def on_epoch_end(self, epoch, phase, **kwargs):
         prev_epoch = epoch - 1
         self._record_mean_losses_for_epoch(prev_epoch)
         self._record_metrics_for_epoch(prev_epoch)
-
 
     def _record_mean_losses_for_epoch(self, epoch):
         self.tb_writer.add_scalars("mean_losses_for_epoch", self.learn.recorder.get_losses_for_epoch(epoch),
