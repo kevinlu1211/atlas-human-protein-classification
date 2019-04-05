@@ -1,7 +1,7 @@
 import os
 from numbers import Number
 from types import SimpleNamespace
-from typing import Collection, Optional, Callable, List, Union, Tuple, Dict, Any, Iterator, Iterable, Sequence
+from typing import Optional, Dict, Any, Iterator, Iterable, Sequence, Union, Callable, Tuple, List, Any, Collection
 
 import numpy as np
 import torch
@@ -46,7 +46,7 @@ OptionalMetrics = Optional[MetricsList]
 OptionalSplitFunction = Optional[SplitFunc]
 Floats = Union[float, Collection[float]]
 AnnealFunc = Callable[[Number, Number, float], Number]
-StartOptEnd = Union[float, Tuple[float, float]]
+StartOptEnd = Union[float, Tuple[float, float], List[float]]
 PBar = Union[MasterBar, ProgressBar]
 bn_types = (nn.BatchNorm1d, nn.BatchNorm2d, nn.BatchNorm3d)
 ListOrItem = Union[Collection[Any], int, float, str]

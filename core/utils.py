@@ -1,9 +1,9 @@
 import re
 from enum import Enum
 
+import numpy as np
+
 from pytorch_toolbox.core.defaults import *
-
-
 
 
 def to_numpy(t):
@@ -32,11 +32,18 @@ def if_none(a: Any, b: Any) -> Any:
 
 
 def is_listy(x: Any) -> bool:
-    return isinstance(x, (tuple, list))
+    return isinstance(x, (tuple, list, np.ndarray))
 
 
 def is_tuple(x: Any) -> bool:
     return isinstance(x, tuple)
+
+
+def str_to_float(x):
+    if isinstance(x, str):
+        return float(x)
+    else:
+        return [str_to_float(s) for s in x]
 
 
 def range_of(x):

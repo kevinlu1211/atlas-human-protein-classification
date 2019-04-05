@@ -3,9 +3,9 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from pytorch_toolbox.core.defaults import Collection, Any, Number, StartOptEnd, List, Floats, Optional
+from pytorch_toolbox.core.defaults import Collection, Any, Number, List, Floats, Optional
 from pytorch_toolbox.core.callbacks.core import Callback, Scheduler, annealing_no
-from pytorch_toolbox.core.utils import if_none
+from pytorch_toolbox.core.utils import if_none, listify
 
 
 @dataclass
@@ -36,7 +36,6 @@ class GeneralScheduler(Callback):
         super().__init__()
         self.learn = learn
         self.phases, self.start_epoch = phases, start_epoch
-        self.scheduler_lookups = [p.scheduler_lookup for p in self.phases]
         self.current_phase_idx = 0
 
     @property
@@ -51,7 +50,7 @@ class GeneralScheduler(Callback):
         current_hp_name_and_scheduler_pairs = self.current_phase.hyperparameter_and_scheduler_pairs
         for hp_name, scheduler in current_hp_name_and_scheduler_pairs:
             scheduler.restart()
-            self.opt.set_stat(hp_name, scheduler.start)
+            setattr(self.opt, hp_name, scheduler.start)
         return res
 
     def jump_to_epoch(self, epoch: int) -> None:
@@ -66,7 +65,9 @@ class GeneralScheduler(Callback):
 
             current_hp_name_and_scheduler_pairs = self.current_phase.hyperparameter_and_scheduler_pairs
             for hp_name, scheduler in current_hp_name_and_scheduler_pairs:
-                self.opt.set_stat(hp_name, scheduler.step())
+                hp_value = scheduler.step()
+                print(f"name: {hp_name}\nvalue: {hp_value}")
+                setattr(self.opt, hp_name, hp_value)
 
             if self.current_phase.is_done:
                 self.current_phase_idx += 1
@@ -119,11 +120,11 @@ class MultiStepScheduler(GeneralScheduler):
 
     def _create_training_phases(self):
         training_phases = []
-        repeated_hyperparameter_name = cycle([self.hyperparameter_name])
-        for hyperparameter_name, hyperparameter_value, n_iterations in zip(repeated_hyperparameter_name,
-                                                                           self.hyperparameter_values_for_step,
-                                                                           self.epochs_to_iterations):
+        for hp_name, hp_val, n_iterations in zip(cycle([self.hyperparameter_name]),
+                                                 self.hyperparameter_values_for_step,
+                                                 self.epochs_to_iterations):
+            print(hp_name, hp_val)
             training_phase = TrainingPhase(length=n_iterations)
-            training_phase = training_phase.schedule_hp(hyperparameter_name, hyperparameter_value, anneal=annealing_no)
+            training_phase = training_phase.schedule_hp(hp_name, hp_val, anneal=annealing_no)
             training_phases.append(training_phase)
         return training_phases

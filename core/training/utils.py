@@ -36,17 +36,17 @@ def children(m: nn.Module) -> ModuleList:
     return list(m.children())
 
 
-def split_bn_bias(layer_groups: ModuleList) -> ModuleList:
+def split_layers_into_batch_norm_and_non_batch_norm(layer_groups: ModuleList) -> ModuleList:
     "Sort each layer in  `layer_groups` into batchnorm (`bn_types`) and non-batchnorm groups."
     split_groups = []
     for l in layer_groups:
-        l1, l2 = [], []
+        non_batch_norm_layers, batch_norm_layers = [], []
         for c in l.children():
             if isinstance(c, (nn.BatchNorm1d, nn.BatchNorm2d, nn.BatchNorm3d)):
-                l2.append(c)
+                batch_norm_layers.append(c)
             else:
-                l1.append(c)
-        split_groups += [nn.Sequential(*l1), nn.Sequential(*l2)]
+                non_batch_norm_layers.append(c)
+        split_groups += [nn.Sequential(*non_batch_norm_layers), nn.Sequential(*batch_norm_layers)]
     return split_groups
 
 

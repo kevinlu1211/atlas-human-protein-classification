@@ -8,7 +8,7 @@ from torch import Tensor
 import numpy as np
 
 from pytorch_toolbox.core.defaults import PBar, MetricFuncList, StartOptEnd, AnnealFunc
-from pytorch_toolbox.core.utils import if_none, camel2snake, is_listy, is_tuple, Phase
+from pytorch_toolbox.core.utils import if_none, camel2snake, is_listy, is_tuple, Phase, listify
 
 
 # __all__ = ["Callback", "CallbackHandler", "LearnerCallback", "CallbackList"]
@@ -262,7 +262,12 @@ class Scheduler:
     "Used to \"step\" from start,end (`vals`) over `n_iter` iterations on a schedule defined by `func`"
 
     def __init__(self, vals: StartOptEnd, n_iter: int, func: Optional[AnnealFunc] = None):
-        self.start, self.end = (vals[0], vals[1]) if is_tuple(vals) else (vals, 0)
+        if is_tuple(vals):
+            self.start, self.end = (vals[0], vals[1])
+        elif is_listy(vals):
+            self.start, self.end = vals, listify(0, vals)
+        else:
+            self.start, self.end = vals, 0
         self.n_iter = max(1, n_iter)
         if func is None:
             self.func = annealing_linear if is_tuple(vals) else annealing_no
