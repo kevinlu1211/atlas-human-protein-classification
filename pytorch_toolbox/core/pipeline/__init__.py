@@ -30,11 +30,17 @@ class PipelineGraph:
             node_references = find_node_references(node_config)
             pipeline_graph.add_node(node_name, config=node_config, references=node_references)
 
-        for node, attributes in pipeline_graph.nodes(data=True):
-            refer_to_nodes = list(set(list(ref.keys())[0] for ref in attributes['references']))
-            for refer_to_node in refer_to_nodes:
-                pipeline_graph.add_edge(refer_to_node, node)
-        return PipelineGraph(graph=pipeline_graph, config=config)
+        try:
+            for node, attributes in pipeline_graph.nodes(data=True):
+                refer_to_nodes = list(set(list(ref.keys())[0] for ref in attributes['references']))
+                for refer_to_node in refer_to_nodes:
+                    pipeline_graph.add_edge(refer_to_node, node)
+            return PipelineGraph(graph=pipeline_graph, config=config)
+        except RuntimeError as e:
+            logging.error(e)
+            logging.error(f"Try checking if the Refs in node: {node} is referencing a valid node, this is most likely a spelling mistake in the node name")
+            exit(1)
+
 
     def get_node(self, name):
         return self.graph.nodes(data=True)[name]

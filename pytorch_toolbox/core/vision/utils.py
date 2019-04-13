@@ -64,31 +64,31 @@ def rle_decode_with_nans(rle, shape):
     return rle_decode(str(rle[0])) if str(rle[0]) != 'nan' else np.zeros(shape).astype(np.uint8)
 
 
-def normalize(tensor, *, mean, sd):
+def normalize(tensor, *, mean, std):
     mean = torch.Tensor(mean)
-    sd = torch.Tensor(sd)
-    tensor = ((tensor - mean[..., None, None]) / sd[..., None, None])
+    std = torch.Tensor(std)
+    tensor = ((tensor - mean[..., None, None]) / std[..., None, None])
     return tensor
 
 
-def denormalize(tensor, *, mean, sd):
+def denormalize(tensor, *, mean, std):
     mean = torch.Tensor(mean)
-    sd = torch.Tensor(sd)
-    tensor = tensor * sd[..., None, None] + mean[..., None, None]
+    std = torch.Tensor(std)
+    tensor = tensor * std[..., None, None] + mean[..., None, None]
     return tensor
 
 
 IMAGE_NET_STATS = {'mean': [0.485, 0.456, 0.406],
-                   'sd': [0.229, 0.224, 0.225]}
+                   'std': [0.229, 0.224, 0.225]}
 
 FOUR_CHANNEL_PNASNET5LARGE_STATS = {
     'mean': [0.5, 0.5, 0.5, 0.5],
-    'sd': [0.5, 0.5, 0.5, 0.5]
+    'std': [0.5, 0.5, 0.5, 0.5]
 }
 
 FOUR_CHANNEL_IMAGE_NET_STATS = {
     'mean': [0.485, 0.456, 0.406, 0.485],
-    'sd': [0.229, 0.224, 0.224, 0.229]
+    'std': [0.229, 0.224, 0.224, 0.229]
 }
 image_net_normalize = partial(normalize, **IMAGE_NET_STATS)
 image_net_denormalize = partial(denormalize, **IMAGE_NET_STATS)

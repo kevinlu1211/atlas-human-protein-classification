@@ -9,16 +9,18 @@ if not sys.warnoptions:
 
 import time
 from functools import partial
+from itertools import chain
 import logging
 from typing import List, Union, Tuple
 from pathlib import Path
 from collections import Counter
-import click
 import yaml
+
+import click
 import numpy as np
 import pandas as pd
 from torch.utils.data import WeightedRandomSampler
-from sklearn.metrics import f1_score
+from miniutils.progress_bar import parallel_progbar, progbar
 import scipy.optimize as opt
 
 sys.path.append("../..")
@@ -126,6 +128,21 @@ def load_testing_data(root_image_paths, use_n_samples=None):
     if use_n_samples:
         X = X[:use_n_samples]
     return np.array(X)
+
+def calculate_mean_and_std_for_dataset(data_paths):
+    flattened_data_paths = list(chain(*data_paths))
+    means, stds = list(zip(*parallel_progbar(calculate_mean_and_std, flattened_data_paths)))
+    mean = np.stack(means).mean(axis=0)
+    std = np.stack(stds).mean(axis=0)
+    logging.info(f"Mean of dataset is: {mean}")
+    logging.info(f"Standard deviation of dataset is: {sd}")
+    return mean, std
+
+def calculate_mean_and_std(img_path):
+    img = open_numpy(img_path, with_image_wrapper=True).px
+    mean = np.mean(img, axis=(0, 1))
+    std = np.std(img, axis=(0, 1))
+    return mean, std
 
 
 def create_data_bunch(train_idx, val_idx, train_X, train_y_one_hot, train_y, test_X, train_ds, train_bs, val_ds, val_bs,
@@ -412,6 +429,7 @@ lookups = {
     "open_numpy": open_numpy,
     "load_training_data": load_training_data,
     "load_testing_data": load_testing_data,
+    "calculate_mean_and_std_for_dataset": calculate_mean_and_std_for_dataset,
     "create_data_bunch": create_data_bunch,
     "create_data_bunch_for_inference": create_data_bunch_for_inference,
     "create_sampler": create_sampler,
