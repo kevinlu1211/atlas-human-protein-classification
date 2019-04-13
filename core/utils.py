@@ -42,8 +42,10 @@ def is_tuple(x: Any) -> bool:
 def str_to_float(x):
     if isinstance(x, str):
         return float(x)
-    else:
+    elif is_listy(x):
         return [str_to_float(s) for s in x]
+    else:
+        return x
 
 
 def range_of(x):

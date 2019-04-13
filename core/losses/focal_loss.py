@@ -42,6 +42,7 @@ def calculate_focal_loss(input, target, gamma=2):
         raise ValueError("Target size ({}) must be the same as input size ({})"
                          .format(target.size(), input.size()))
 
+    target = target.float()
     max_val = (-input).clamp(min=0)
     loss = input - input * target + max_val + \
            ((-max_val).exp() + (-input - max_val).exp()).log()

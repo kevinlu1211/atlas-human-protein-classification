@@ -251,12 +251,30 @@ def mean(l, ignore_nan=True, empty=0):
     return acc / n
 
 
-class LovaszHingeFlatLoss:
+from pytorch_toolbox.core.losses import BaseLoss
+
+
+class LovaszHingeFlatLoss(BaseLoss):
+
+    @property
+    def unreduced_loss(self):
+        return self._unreduced_loss
+
+    @property
+    def per_sample_loss(self):
+        return self._per_sample_loss
+
+    @property
+    def reduced_loss(self):
+        return self._reduced_loss
+
     def __call__(self, out, *yb):
-        prediction = out
-        target = yb[0]
-        original_shape = target.shape
-        lovasz_loss = lovasz_hinge_flat(prediction.flatten(), target.flatten(), reduce=False)
-        self.per_sample_loss = lovasz_loss.view(*original_shape).sum(dim=1)
-        self.loss = lovasz_loss.view(*original_shape)
-        return lovasz_loss.view(*original_shape).sum(dim=1).mean()
+        predictions = out
+        targets = yb[0]
+        lovasz_loss = []
+        for prediction, target in zip(predictions, targets):
+            lovasz_loss.append(lovasz_hinge_flat(prediction, target, reduce=False))
+        self._unreduced_loss = torch.stack(lovasz_loss)
+        self._per_sample_loss = self._unreduced_loss.sum(dim=1)
+        self._reduced_loss = self._per_sample_loss.mean()
+        return self._reduced_loss

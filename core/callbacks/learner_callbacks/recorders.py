@@ -1,3 +1,4 @@
+import logging
 from itertools import repeat, cycle
 from collections import defaultdict
 from typing import Collection, Any
@@ -201,6 +202,7 @@ class TensorBoardRecorder(LearnerCallback):
         super().__init__(learn)
         log_path = Path(
             self.learn.path if save_path_creator is None else save_path_creator()) / f"{file_name}.log"
+        logging.info(f"To see tensorboard: tensorboard --purge_orphaned_data false --logdir {log_path}")
         self.tb_writer = SummaryWriter(log_dir=str(log_path))
         self.train_step_idx = 0
         self.val_step_idx = 0
@@ -211,7 +213,7 @@ class TensorBoardRecorder(LearnerCallback):
             self._record_losses_for_step(phase, self.train_step_idx)
             self._record_optimizer_hyperparameters(self.train_step_idx)
             self.train_step_idx += 1
-        if phase == Phase.TRAIN or phase == Phase.VAL:
+        if phase == Phase.VAL:
             self._record_losses_for_step(phase, self.val_step_idx)
             self.val_step_idx += 1
 
@@ -222,13 +224,14 @@ class TensorBoardRecorder(LearnerCallback):
 
         for hp_name in available_optimizer_hyperparameters:
             if hp_name == "betas":
-                for i, layer_group_val in enumerate(listify(optimizer.read_val(hp_name))):
-                    optimizer_hyperparameters_tag_scalar_dict[f"layer_{i}-beta1"] = layer_group_val[0]
-                    optimizer_hyperparameters_tag_scalar_dict[f"layer_{i}-beta2"] = layer_group_val[1]
+                beta_1_for_layers, beta_2_for_layers = optimizer.read_val(hp_name)
+                for layer_idx, (beta_1, beta_2) in enumerate(zip(beta_1_for_layers, beta_2_for_layers)):
+                    optimizer_hyperparameters_tag_scalar_dict[f"layer_{layer_idx}-beta1"] = beta_1
+                    optimizer_hyperparameters_tag_scalar_dict[f"layer_{layer_idx}-beta2"] = beta_2
 
             else:
-                for i, layer_group_val in enumerate(listify(optimizer.read_val(hp_name))):
-                    optimizer_hyperparameters_tag_scalar_dict[f"layer_{i}-{hp_name}"] = layer_group_val
+                for layer_idx, layer_group_val in enumerate(optimizer.read_val(hp_name)):
+                    optimizer_hyperparameters_tag_scalar_dict[f"layer_{layer_idx}-{hp_name}"] = layer_group_val
         self.tb_writer.add_scalars("optimizer_hyperparameter", optimizer_hyperparameters_tag_scalar_dict,
                                    global_step=step_idx)
 

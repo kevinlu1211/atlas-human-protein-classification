@@ -10,7 +10,8 @@ class OneCycleScheduler(Callback):
 
     def __init__(self, learn, lr_max: float, moms: Floats = (0.95, 0.85), div_factor: float = 25.,
                  pct_start: float = 0.3):
-        super().__init__(learn)
+        super().__init__()
+        self.learn = learn
         self.lr_max = lr_max
         self.moms = moms
         self.div_factor = div_factor
