@@ -33,7 +33,7 @@ from pytorch_toolbox.core.losses import LossWrapper, loss_lookup
 from pytorch_toolbox.core.metrics import metric_lookup
 
 from src.data import make_one_hot, open_numpy, dataset_lookup, \
-    sampler_weight_lookup, split_method_lookup, Image
+    sampler_weight_lookup, split_method_lookup, Image, DataPaths, single_class_counter
 from src.training import training_scheme_lookup
 from src.models import model_lookup
 from src.transforms import augment_fn_lookup
@@ -236,48 +236,101 @@ def save_config(save_path_creator, state_dict):
         yaml.dump(state_dict["config"], yaml_file, default_flow_style=False)
 
 
+# Determine phase callback is here only for backwards compatibility, will remove after all the config files are updated
 def record_results(learner, result_recorder_callback, determine_phase_callback, save_path_creator):
-    save_path = save_path_creator()
+    root_save_path = save_path_creator()
 
-    # Save the optimal threshold result
-    learner.predict_on_val_dl(callback_fns=[result_recorder_callback, determine_phase_callback])
-    res_recorder = learner.result_recorder
-    targets = np.stack(res_recorder.targets)
-    pred_probs = np.stack(res_recorder.prob_preds)
-    th = fit_val(pred_probs, targets)
-    pickle.dump(th, open(save_path / "thresholds.csv", "wb"))
-    th[th < 0.1] = 0.1
-    print('Thresholds: ', th)
-    print('F1 macro: ', f1_score(targets, pred_probs > th, average='macro'))
-    print('F1 macro (th = 0.5): ', f1_score(targets, pred_probs > 0.5, average='macro'))
-    print('F1 micro: ', f1_score(targets, pred_probs > th, average='micro'))
+    _, val_pred_probs, val_targets = create_predictions_for_dl(learner, result_recorder_callback, dl_type="VAL")
+    test_names, test_pred_probs, test_targets = create_predictions_for_dl(learner, result_recorder_callback,
+                                                                          dl_type="TEST")
 
-    learner.predict_on_test_dl(callback_fns=[result_recorder_callback, determine_phase_callback])
-    res_recorder = learner.result_recorder
-    names = np.stack(res_recorder.names)
-    pred_probs = np.stack(res_recorder.prob_preds)
-    predicted = []
-    predicted_optimal = []
-    for pred in pred_probs:
-        classes = [str(c) for c in np.where(pred > 0.5)[0]]
-        classes_optimal = [str(c) for c in np.where(pred > th)[0]]
-        if len(classes) == 0:
-            classes = [str(np.argmax(pred[0]))]
-        if len(classes_optimal) == 0:
-            classes_optimal = [str(np.argmax(pred[0]))]
-        predicted.append(" ".join(classes))
-        predicted_optimal.append(" ".join(classes_optimal))
+    # non-optimized threshold
+    create_and_save_submissions(test_names, test_pred_probs, threshold=0.5,
+                                save_path=root_save_path / "submission_threshold_0.5.csv")
 
+    # threshold optimized to maximize F1 soft on validation set
+    val_optimal_threshold = optimize_threshold_for_val_dl(val_pred_probs, val_targets)
+    pickle.dump(val_optimal_threshold, open(root_save_path / "val_optimal_threshold.csv", "wb"))
+    create_and_save_submissions(test_names, test_pred_probs, threshold=val_optimal_threshold,
+                                save_path=root_save_path / "submission_threshold_val_optimized.p")
+
+    # threshold optimized to make ratio of labels in test set, same as the train set
+    thresholds_for_same_class_ratio_as_train = optimize_thresholds_for_class_ratios(test_pred_probs,
+                                                                                    target_class_ratio=calculate_kaggle_train_label_ratios())
+    pickle.dump(thresholds_for_same_class_ratio_as_train,
+                open(root_save_path / "train_class_ratio_threshold.csv", "wb"))
+    create_and_save_submissions(test_names, test_pred_probs, threshold=thresholds_for_same_class_ratio_as_train,
+                                save_path=root_save_path / "submission_threshold_val_optimized.p")
+
+
+def create_predictions_for_dl(learner, result_recorder_callback, dl_type):
+    predict_fn = {
+        "TRAIN": learner.predict_on_train_dl,
+        "VAL": learner.predict_on_val_dl,
+        "TEST": learner.predict_on_test_dl
+    }
+    predict_fn[dl_type](callback_fns=[result_recorder_callback])
+    result_recorder = learner.result_recorder
+    names = np.stack(result_recorder.names)
+    pred_probs = np.stack(result_recorder.prob_preds)
+    try:
+        targets = np.stack(result_recorder.targets)
+    except Exception:
+        targets = None
+    return names, pred_probs, targets
+
+
+def create_and_save_submissions(test_names, test_pred_probs, threshold, save_path):
+    predictions = []
+    for pred in test_pred_probs:
+        predictions.append(" ".join(create_prediction_from_threshold(pred, threshold)))
     submission_df = pd.DataFrame({
-        "Id": names,
-        "Predicted": predicted
+        "Id": test_names,
+        "Predicted": predictions
     })
-    submission_df.to_csv(save_path / "submission.csv", index=False)
-    optimal_submission_df = pd.DataFrame({
-        "Id": names,
-        "Predicted": predicted_optimal
-    })
-    optimal_submission_df.to_csv(save_path / "submission_optimal_threshold.csv", index=False)
+    submission_df.to_csv(save_path, index=False)
+
+
+def optimize_threshold_for_val_dl(pred_probs, targets):
+    thresholds = fit_val(pred_probs, targets)
+    thresholds[thresholds < 0.1] = 0.1
+    return thresholds
+
+
+def create_prediction_from_threshold(prediction_probs, threshold):
+    classes = [str(c) for c in np.where(prediction_probs > threshold)[0]]
+    if len(classes) == 0:
+        classes = [str(np.argmax(prediction_probs[0]))]
+    return classes
+
+
+def calculate_kaggle_train_label_ratios():
+    kaggle_labels = load_training_labels(DataPaths.TRAIN_LABELS)
+    class_label_and_class_counts = single_class_counter(kaggle_labels['Target'], inv_proportions=False)
+    total_kaggle_classes = sum([t[1] for t in class_label_and_class_counts])
+    kaggle_class_ratios = np.array([(class_label, class_count / total_kaggle_classes)[1] for (class_label, class_count) in class_label_and_class_counts])
+
+    return kaggle_class_ratios
+
+
+def optimize_thresholds_for_class_ratios(pred_probs, target_class_ratio):
+    p = []
+    for idx in range(len(target_class_ratio)):
+        prediction_for_class_idx = pred_probs[:, idx]
+        ratio_for_class_idx = target_class_ratio[idx]
+        min_error = np.inf
+        min_p = 0
+        for _p in np.linspace(0, 1, 10000):
+            error = np.abs((prediction_for_class_idx > _p).mean() - ratio_for_class_idx)
+            if error < min_error:
+                min_error = error
+                min_p = _p
+            elif error == min_error and (np.abs(_p - 0.5) < np.abs(min_p - 0.5)):
+                min_error = error
+                min_p = _p
+        p.append(min_p)
+    p = np.array(p)
+    return p
 
 
 def create_time_stamped_save_path(save_path, state_dict):

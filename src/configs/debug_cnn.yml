@@ -229,26 +229,30 @@ RunTrainingLoop:
         Ref:
           RunRecordResults: ResultRecorder
 
-#CreateTrainingScheme:
-#  type: training_scheme_fit
-#  properties:
-#    callable_arguments:
-#      epochs: 5
-#      lr: [5e-3, 5e-2]
-#    partial_callable: true
-#  output: TrainingScheme
-
 CreateTrainingScheme:
-  type: training_scheme_multi_step
+  type: training_scheme_fit
   properties:
     callable_arguments:
-      epochs_for_step_for_hyperparameters: [[0, 2, 5, 10], [0, 2, 5, 13]]
-      hyperparameter_names: ["lr", "wd"]
-      hyperparameter_values: [[[3e-2, 9e-3, 3e-3, 9e-4], [3e-3, 9e-4, 3e-4, 9e-5]],
-                              [1e-5, 3e-5, 6e-5, 9e-5]]
-      end_epoch: 15
+      epochs: 1
+      lr: [5e-3, 5e-2]
     partial_callable: true
   output: TrainingScheme
+
+#CreateTrainingScheme:
+#  type: training_scheme_multi_step
+#  properties:
+#    callable_arguments:
+#      epochs_for_step_for_hyperparameters: [[0, 2, 5, 10], [0, 2, 5, 13]]
+#      hyperparameter_names: ["lr", "wd"]
+#      hyperparameter_values: [
+#                              [
+#                                [3e-2, 9e-3, 3e-3, 9e-4], [3e-3, 9e-4, 3e-4, 9e-5]
+#                              ],
+#                                [1e-5, 3e-5, 6e-5, 9e-5]
+#                             ]
+#      end_epoch: 15
+#    partial_callable: true
+#  output: TrainingScheme
 
 
 
@@ -269,8 +273,8 @@ CreateLearner:
           - CreateFocalLossMetric: FocalLossMetric
       loss_funcs:
         Ref:
-#          - CreateLovaszHingeFlatLoss: LovaszHingeFlatLoss
-          - CreateSoftF1Loss: SoftF1Loss
+          - CreateLovaszHingeFlatLoss: LovaszHingeFlatLoss
+#          - CreateSoftF1Loss: SoftF1Loss
           - CreateFocalLoss: FocalLoss
       callbacks_creator:
         Ref:

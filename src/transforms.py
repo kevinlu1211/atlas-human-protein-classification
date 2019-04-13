@@ -64,8 +64,28 @@ def very_simple_aug_with_elastic_transform(p=1, height=None, width=None, with_im
         return augs
 
 
-def very_simple_aug_with_elastic_transform_and_crop(height=None, width=None,
-                                                    crop_height=None, crop_width=None, with_image_wrapper=False):
+def crop_rotate90_flip(height=None, width=None, crop_height=None, crop_width=None, with_image_wrapper=False):
+    augs = [
+        RandomCrop(crop_height, crop_width),
+        RandomRotate90(),
+        Flip(),
+    ]
+    if height is None and width is None:
+        augs = Compose(augs, p=1)
+    else:
+        if height is not None and width is None:
+            width = height
+        if width is not None and height is None:
+            height = width
+        augs = Compose([Resize(height=height, width=width, always_apply=True)] + augs, p=1)
+    if with_image_wrapper:
+        return partial(albumentations_transform_wrapper, augment_fn=augs)
+    else:
+        return augs
+
+
+def crop_rotate90_flip_brightness_elastic(height=None, width=None,
+                                          crop_height=None, crop_width=None, with_image_wrapper=False):
     augs = [
         RandomCrop(crop_height, crop_width),
         RandomRotate90(),
@@ -159,11 +179,12 @@ def five_crop_tta_transform(img_tensor, crop_height, crop_width):
     return torch.stack([top_left, top_right, bottom_left, bottom_right, center])
 
 
-
 augment_fn_lookup = {
     "very_simple_aug": very_simple_aug,
+    "crop_rotate90_flip": crop_rotate90_flip,
     "very_simple_aug_with_elastic_transform": very_simple_aug_with_elastic_transform,
-    "very_simple_aug_with_elastic_transform_and_crop": very_simple_aug_with_elastic_transform_and_crop,
+    "very_simple_aug_with_elastic_transform_and_crop": crop_rotate90_flip_brightness_elastic,
+    "crop_rotate90_flip_brightness_elastic": crop_rotate90_flip_brightness_elastic,
     "simple_aug": simple_aug,
     "simple_aug_lower_prob": simple_aug_lower_prob,
     "resize_aug": resize_aug,

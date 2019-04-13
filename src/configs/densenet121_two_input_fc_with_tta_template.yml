@@ -92,7 +92,7 @@ CreateOpenImageFunction:
   output: OpenImageFunction
 
 CreateAugmentationFunction:
-  type: very_simple_aug_with_elastic_transform_and_crop
+  type: crop_rotate90_flip_brightness_elastic
   properties:
     callable_arguments:
       height: 768
@@ -151,7 +151,7 @@ CreateDataBunch:
       test_X:
         Ref:
           LoadTestingData: test_X
-      train_bs: 16
+      train_bs: 32
       test_bs: 4
       val_bs: 4
       train_ds:
@@ -228,12 +228,23 @@ RunTrainingLoop:
         Ref:
           RunRecordResults: ResultRecorder
 
+#CreateTrainingScheme:
+#  type: training_scheme_one_cycle
+#  properties:
+#    callable_arguments:
+#      epochs: 80
+#      lr: 8e-4
+#    partial_callable: true
+#  output: TrainingScheme
+
 CreateTrainingScheme:
-  type: training_scheme_one_cycle
+  type: training_scheme_multi_step
   properties:
     callable_arguments:
-      epochs: 80
-      lr: 8e-4
+      epochs_for_step_for_hyperparameters: [[0, 25, 30, 35, 40]]
+      hyperparameter_names: ["lr"]
+      hyperparameter_values: [[30e-5, 15e-5, 7.5e-5, 3e-5, 1e-5]]
+      end_epoch: 60
     partial_callable: true
   output: TrainingScheme
 
@@ -253,11 +264,11 @@ CreateLearner:
         Ref:
           - CreateAccuracyMetric: AccuracyMetric
           - CreateF1SoftMetric: F1SoftMetric
-#          - CreateFocalLossMetric: FocalLossMetric
+          - CreateFocalLossMetric: FocalLossMetric
       loss_funcs:
         Ref:
-#          - CreateLovaszHingeFlatLoss: LovaszHingeFlatLoss
-          - CreateSoftF1Loss: SoftF1Loss
+          - CreateLovaszHingeFlatLoss: LovaszHingeFlatLoss
+#          - CreateSoftF1Loss: SoftF1Loss
           - CreateFocalLoss: FocalLoss
       callbacks_creator:
         Ref:
@@ -265,7 +276,7 @@ CreateLearner:
       callback_fns_creator:
         Ref:
           CreateLearnerCallbacks: LearnerCallbacksCreator
-      to_fp16: false
+      to_fp16: true
   output: LearnerCreator
 
 CreateCallbacks:
@@ -414,7 +425,7 @@ CreateModel:
   type: densenet121_four_channel_input_two_fc
   properties:
     callable_arguments:
-      pretrained: false
+      pretrained: true
     partial_callable: true
   output: Model
 

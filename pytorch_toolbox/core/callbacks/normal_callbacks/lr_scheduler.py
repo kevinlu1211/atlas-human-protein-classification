@@ -66,7 +66,6 @@ class GeneralScheduler(Callback):
             current_hp_name_and_scheduler_pairs = self.current_phase.hyperparameter_and_scheduler_pairs
             for hp_name, scheduler in current_hp_name_and_scheduler_pairs:
                 hp_value = scheduler.step()
-                print(f"name: {hp_name}\nvalue: {hp_value}")
                 setattr(self.opt, hp_name, hp_value)
 
             if self.current_phase.is_done:

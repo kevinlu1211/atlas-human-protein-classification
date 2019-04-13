@@ -46,13 +46,13 @@ def _hyperparameter_value_is_for_layer_groups(hyperparameter_values: Union[List[
 
 
 def fit_multi_step(learn, epochs_for_step_for_hyperparameters: List[List[Number]], hyperparameter_names: List[str],
-                   hyperparameter_values: Union[List[List[List[Number]]], List[List[Number]]],
-                   start_epoch: Optional[int] = None, end_epoch: Optional[int] = None,
+                   hyperparameter_values, start_epoch: Optional[int] = None, end_epoch: Optional[int] = None,
                    wd: float = None, callbacks: Optional[CallbackList] = None):
     """
 
     :param learn: The Learner class
     :param epochs_for_step_for_hyperparameters: the epochs at which there will be a step in the value for the hyper parameter
+           List[Union[List[List[Number]]], [List[Number]]
     :param hyperparameter_names: the names of the hyperparameters
     :param hyperparameter_values: the values of the hyperparameters
     :param start_epoch:
