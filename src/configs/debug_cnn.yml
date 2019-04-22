@@ -135,29 +135,45 @@ CreateNormalizeFunction:
   type: normalize
   properties:
     callable_arguments:
-      mean:
-        Ref:
-          CalculateMeanAndStdForDataset: mean
-      std:
-        Ref:
-          CalculateMeanAndStdForDataset: std
+      mean: [12.14099732, 10.9779429,   5.46488976, 22.30204426]
+      std: [18.48077492, 17.25324061, 13.88083803, 32.78388995]
     partial_callable: true
   output: NormalizeFunction
-
-
 
 CreateDenormalizeFunction:
   type: denormalize
   properties:
     callable_arguments:
-      mean:
-        Ref:
-          CalculateMeanAndStdForDataset: mean
-      std:
-        Ref:
-          CalculateMeanAndStdForDataset: std
+      mean: [12.14099732, 10.9779429,   5.46488976, 22.30204426]
+      std: [18.48077492, 17.25324061, 13.88083803, 32.78388995]
     partial_callable: true
   output: DenormalizeFunction
+
+#CreateNormalizeFunction:
+#  type: normalize
+#  properties:
+#    callable_arguments:
+#      mean:
+#        Ref:
+#          CalculateMeanAndStdForDataset: mean
+#      std:
+#        Ref:
+#          CalculateMeanAndStdForDataset: std
+#    partial_callable: true
+#  output: NormalizeFunction
+#
+#CreateDenormalizeFunction:
+#  type: denormalize
+#  properties:
+#    callable_arguments:
+#      mean:
+#        Ref:
+#          CalculateMeanAndStdForDataset: mean
+#      std:
+#        Ref:
+#          CalculateMeanAndStdForDataset: std
+#    partial_callable: true
+#  output: DenormalizeFunction
 
 # Data holding/loading functions
 

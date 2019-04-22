@@ -99,6 +99,8 @@ CreateAugmentationFunction:
       width: 768
       crop_height: 512
       crop_width: 512
+      brightness_transform_p: 0
+      elastic_transform_p: 0
       with_image_wrapper: true
   output: AugmentationFunction
 
@@ -136,12 +138,8 @@ CreateNormalizeFunction:
   type: normalize
   properties:
     callable_arguments:
-      mean:
-        Ref:
-          CalculateMeanAndStdForDataset: mean
-      std:
-        Ref:
-          CalculateMeanAndStdForDataset: std
+      mean: [12.14099732, 10.9779429,   5.46488976, 22.30204426]
+      std: [18.48077492, 17.25324061, 13.88083803, 32.78388995]
     partial_callable: true
   output: NormalizeFunction
 
@@ -149,14 +147,22 @@ CreateDenormalizeFunction:
   type: denormalize
   properties:
     callable_arguments:
-      mean:
-        Ref:
-          CalculateMeanAndStdForDataset: mean
-      std:
-        Ref:
-          CalculateMeanAndStdForDataset: std
+      mean: [12.14099732, 10.9779429,   5.46488976, 22.30204426]
+      std: [18.48077492, 17.25324061, 13.88083803, 32.78388995]
     partial_callable: true
   output: DenormalizeFunction
+
+#CreateNormalizeFunction:
+#  type: identity
+#  properties:
+#    partial_callable: true
+#  output: NormalizeFunction
+#
+#CreateDenormalizeFunction:
+#  type: identity
+#  properties:
+#    partial_callable: true
+#  output: DenormalizeFunction
 
 # Data holding/loading functions
 
@@ -177,7 +183,7 @@ CreateDataBunch:
       test_X:
         Ref:
           LoadTestingData: test_X
-      train_bs: 32
+      train_bs: 16
       test_bs: 4
       val_bs: 4
       train_ds:
@@ -224,7 +230,7 @@ CreateDataSplitter:
     initialization_arguments:
       n_splits: 3
       test_size: 0.1
-      random_state: 4233
+      random_state: 6969
     callable_function_name: split
     partial_callable: true
   type: MultilabelStratifiedShuffleSplit
@@ -302,7 +308,7 @@ CreateLearner:
       callback_fns_creator:
         Ref:
           CreateLearnerCallbacks: LearnerCallbacksCreator
-      to_fp16: true
+      to_fp16: false
   output: LearnerCreator
 
 CreateCallbacks:
@@ -448,10 +454,16 @@ RunRecordResults:
   output: ResultRecorder
 
 CreateModel:
-  type: densenet121_four_channel_input_two_fc
+  type: densenet121_four_channel_input_one_fc
   properties:
     callable_arguments:
       pretrained: true
+      fc1_dropout: 0.5
+      fc1_bias: true
+      fc1_out: 28
+      fc2_dropout: 0.5
+      fc2_bias: true
+      fc2_out: 28
     partial_callable: true
   output: Model
 
@@ -514,7 +526,7 @@ CreateLearnerForInference:
       callbacks_creator:
         Ref:
           CreateCallbacksForInference: CallbacksCreator
-      to_fp16: false
+      to_fp16: true
       model_path: /media/hd/Kaggle/human-protein-image-classification/results/saved_results/se_resnext_50_2_fc_lovasz_loss_20190201-102757/Fold_1/model_checkpoints/cycle_0_epoch_56.pth
 
   output: LearnerCreator

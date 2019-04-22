@@ -92,13 +92,15 @@ CreateOpenImageFunction:
   output: OpenImageFunction
 
 CreateAugmentationFunction:
-  type: very_simple_aug_with_elastic_transform_and_crop
+  type: crop_rotate90_flip_brightness_elastic
   properties:
     callable_arguments:
       height: 768
       width: 768
       crop_height: 512
       crop_width: 512
+      brightness_transform_p: 0
+      elastic_transform_p: 0
       with_image_wrapper: true
   output: AugmentationFunction
 
@@ -120,17 +122,47 @@ CreateFiveCropTTAFunction:
       crop_width: 512
   output: FiveCropTTAFunction
 
-CreateNormalizeFunction:
-  type: identity
+CalculateMeanAndStdForDataset:
+  type: calculate_mean_and_std_for_dataset
   properties:
+    callable_arguments:
+      data_paths:
+        Ref:
+          - LoadTrainingData: train_X
+          - LoadTestingData: test_X
+  output:
+    - mean
+    - std
+
+CreateNormalizeFunction:
+  type: normalize
+  properties:
+    callable_arguments:
+      mean: [12.14099732, 10.9779429,   5.46488976, 22.30204426]
+      std: [18.48077492, 17.25324061, 13.88083803, 32.78388995]
     partial_callable: true
   output: NormalizeFunction
 
 CreateDenormalizeFunction:
-  type: identity
+  type: denormalize
   properties:
+    callable_arguments:
+      mean: [12.14099732, 10.9779429,   5.46488976, 22.30204426]
+      std: [18.48077492, 17.25324061, 13.88083803, 32.78388995]
     partial_callable: true
   output: DenormalizeFunction
+
+#CreateNormalizeFunction:
+#  type: identity
+#  properties:
+#    partial_callable: true
+#  output: NormalizeFunction
+#
+#CreateDenormalizeFunction:
+#  type: identity
+#  properties:
+#    partial_callable: true
+#  output: DenormalizeFunction
 
 # Data holding/loading functions
 
@@ -198,7 +230,7 @@ CreateDataSplitter:
     initialization_arguments:
       n_splits: 3
       test_size: 0.1
-      random_state: 4233
+      random_state: 6969
     callable_function_name: split
     partial_callable: true
   type: MultilabelStratifiedShuffleSplit
@@ -228,12 +260,23 @@ RunTrainingLoop:
         Ref:
           RunRecordResults: ResultRecorder
 
+#CreateTrainingScheme:
+#  type: training_scheme_one_cycle
+#  properties:
+#    callable_arguments:
+#      epochs: 80
+#      lr: 8e-4
+#    partial_callable: true
+#  output: TrainingScheme
+
 CreateTrainingScheme:
-  type: training_scheme_one_cycle
+  type: training_scheme_multi_step
   properties:
     callable_arguments:
-      epochs: 80
-      lr: 8e-4
+      epochs_for_step_for_hyperparameters: [[0, 25, 30, 35, 40]]
+      hyperparameter_names: ["lr"]
+      hyperparameter_values: [[30e-5, 15e-5, 7.5e-5, 3e-5, 1e-5]]
+      end_epoch: 60
     partial_callable: true
   output: TrainingScheme
 
@@ -253,11 +296,11 @@ CreateLearner:
         Ref:
           - CreateAccuracyMetric: AccuracyMetric
           - CreateF1SoftMetric: F1SoftMetric
-#          - CreateFocalLossMetric: FocalLossMetric
+          - CreateFocalLossMetric: FocalLossMetric
       loss_funcs:
         Ref:
-#          - CreateLovaszHingeFlatLoss: LovaszHingeFlatLoss
-          - CreateSoftF1Loss: SoftF1Loss
+          - CreateLovaszHingeFlatLoss: LovaszHingeFlatLoss
+#          - CreateSoftF1Loss: SoftF1Loss
           - CreateFocalLoss: FocalLoss
       callbacks_creator:
         Ref:
@@ -291,6 +334,7 @@ CreateLearnerCallbacks:
           - CreateGradientClippingLearnerCallback: GradientClippingLearnerCallback
           - CreateSaveModelCallback: SaveModelCallback
           - CreateDeterminePhaseCallback: DeterminePhaseCallback
+          - CreateTensorBoardRecorderLearnerCallback: TensorBoardRecorder
   output: LearnerCallbacksCreator
 
 
@@ -338,6 +382,16 @@ CreateCSVLoggerLearnerCallback:
         Ref:
           CreateTimeStampedSavePath: SavePathCreator
   output: CSVLoggerLearnerCallback
+
+CreateTensorBoardRecorderLearnerCallback:
+  type: TensorBoardRecorder
+  properties:
+    partial_initialization: true
+    initialization_arguments:
+      save_path_creator:
+        Ref:
+          CreateTimeStampedSavePath: SavePathCreator
+  output: TensorBoardRecorder
 
 CreateOutputRecorderLearnerCallback:
   type: create_output_recorder
@@ -400,10 +454,13 @@ RunRecordResults:
   output: ResultRecorder
 
 CreateModel:
-  type: se_resnext50_32x4d_four_channel_input_two_fc
+  type: densenet121_four_channel_input_one_fc
   properties:
     callable_arguments:
-      pretrained: false
+      pretrained: true
+      fc1_dropout: 0.5
+      fc1_bias: true
+      fc1_out: 28
     partial_callable: true
   output: Model
 
@@ -466,7 +523,7 @@ CreateLearnerForInference:
       callbacks_creator:
         Ref:
           CreateCallbacksForInference: CallbacksCreator
-      to_fp16: false
+      to_fp16: true
       model_path: /media/hd/Kaggle/human-protein-image-classification/results/saved_results/se_resnext_50_2_fc_lovasz_loss_20190201-102757/Fold_1/model_checkpoints/cycle_0_epoch_56.pth
 
   output: LearnerCreator
