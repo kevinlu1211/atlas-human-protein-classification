@@ -13,7 +13,7 @@ LoadTrainingData:
   type: load_training_data_for_metric_learning
   properties:
     callable_arguments:
-      remove_labels_below_count: 10
+      labels_below_count: 10
       root_image_paths:
         - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined
         - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined_HPAv18

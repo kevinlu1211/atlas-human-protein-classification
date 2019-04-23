@@ -454,13 +454,13 @@ RunRecordResults:
   output: ResultRecorder
 
 CreateModel:
-  type: densenet121_four_channel_input_one_fc
+  type: densenet121_four_channel_input_two_fc
   properties:
     callable_arguments:
       pretrained: true
       fc1_dropout: 0.5
       fc1_bias: true
-      fc1_out: 28
+      fc1_out: 128
       fc2_dropout: 0.5
       fc2_bias: true
       fc2_out: 28
