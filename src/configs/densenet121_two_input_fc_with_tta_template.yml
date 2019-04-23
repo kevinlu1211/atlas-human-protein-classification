@@ -333,7 +333,6 @@ CreateLearnerCallbacks:
           - CreateOutputRecorderLearnerCallback: OutputRecorderLearnerCallback
           - CreateGradientClippingLearnerCallback: GradientClippingLearnerCallback
           - CreateSaveModelCallback: SaveModelCallback
-          - CreateDeterminePhaseCallback: DeterminePhaseCallback
           - CreateTensorBoardRecorderLearnerCallback: TensorBoardRecorder
   output: LearnerCallbacksCreator
 
@@ -365,13 +364,6 @@ CreateSaveModelCallback:
     partial_initialization: true
   output: SaveModelCallback
 
-CreateDeterminePhaseCallback:
-  type: DeterminePhaseCallback
-  properties:
-    initialization_arguments:
-      label_key: "label"
-    partial_initialization: true
-  output: DeterminePhaseCallback
 
 CreateCSVLoggerLearnerCallback:
   type: create_csv_logger
@@ -444,9 +436,6 @@ RunRecordResults:
       result_recorder_callback:
         Ref:
           CreateResultRecorder: ResultRecorderCreator
-      determine_phase_callback:
-        Ref:
-          CreateDeterminePhaseCallback: DeterminePhaseCallback
       save_path_creator:
         Ref:
           CreateTimeStampedSavePath: SavePathCreator
@@ -567,8 +556,5 @@ CreateInference:
       result_recorder_callback:
         Ref:
           CreateResultRecorder: ResultRecorderCreator
-      determine_phase_callback:
-        Ref:
-          CreateDeterminePhaseCallback: DeterminePhaseCallback
   output: Inference
 
