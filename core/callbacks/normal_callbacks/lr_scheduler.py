@@ -122,7 +122,6 @@ class MultiStepScheduler(GeneralScheduler):
         for hp_name, hp_val, n_iterations in zip(cycle([self.hyperparameter_name]),
                                                  self.hyperparameter_values_for_step,
                                                  self.epochs_to_iterations):
-            print(hp_name, hp_val)
             training_phase = TrainingPhase(length=n_iterations)
             training_phase = training_phase.schedule_hp(hp_name, hp_val, anneal=annealing_no)
             training_phases.append(training_phase)

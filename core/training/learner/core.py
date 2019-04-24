@@ -21,6 +21,7 @@ from pytorch_toolbox.core.training.utils import flatten_model, to_detach, requir
 
 AdamW = partial(Adam, betas=(0.9, 0.99))
 
+## TODO: refactor fit, validate, and predict_on_dl as they share a lot of common functionality
 
 class Learner:
     def __init__(self, data: DataBunch, model: nn.Module, loss_func: Callable, opt_func: Callable = AdamW,
@@ -99,20 +100,22 @@ class Learner:
                     print(p.requires_grad)
 
     def _predict_on_dl(self, dl, phase, callbacks=None, callback_fns=None, metrics=None):
-        assert dl is not None
-        metrics = if_none(metrics, self.metrics)
+        assert dl is not None, "A dataloader must be provided"
+        assert phase is not None, "A phase must be provided: {Phase.TRAIN, Phase.VAL, Phase.TEST}"
         callbacks_fns = [cb(self) for cb in if_none(callback_fns, [])]
-        cb_handler = CallbackHandler(self.callbacks + if_none(callbacks, []) + callbacks_fns, metrics)
+        cb_handler = CallbackHandler(callbacks=self.callbacks + if_none(callbacks, []) + if_none(callbacks_fns, []),
+                                     metrics=if_none(metrics, self.metrics))
         with torch.no_grad():
             self.model.eval()
+            cb_handler.on_epoch_begin()
             for xb, yb in progbar(dl):
-                if cb_handler:
-                    xb, yb = cb_handler.on_batch_begin(xb, yb, train=False, phase=phase)
+                xb, yb = cb_handler.on_batch_begin(xb, yb, train=False, phase=phase)
                 cb_handler = if_none(cb_handler, CallbackHandler())
                 if not is_listy(xb):
                     xb = [xb]
                 out = self.model(*xb)
-                _ = cb_handler.on_loss_begin(out)
+                out = cb_handler.on_loss_begin(out)
+                out = cb_handler.on_batch_end(out)
 
     def predict_on_train_dl(self, callbacks=None, callback_fns=None, metrics=None):
         dl = self.data.train_dl

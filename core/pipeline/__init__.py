@@ -16,7 +16,7 @@ class PipelineGraph:
             "config": copy.deepcopy(config)
         }
 
-    def ___getitem__(self, item):
+    def __getitem__(self, item):
         try:
             return getattr(self, item)
         except AttributeError:
@@ -38,7 +38,7 @@ class PipelineGraph:
             return PipelineGraph(graph=pipeline_graph, config=config)
         except RuntimeError as e:
             logging.error(e)
-            logging.error(f"Try checking if the Refs in node: {node} is referencing a valid node, this is most likely a spelling mistake in the node name")
+            logging.error(f"Try checking if the Refs in node {node} is referencing a valid node. This is most likely a spelling mistake in the reference node")
             exit(1)
 
 
@@ -117,13 +117,18 @@ class PipelineGraph:
         sorted_node_names = self.sorted_node_names
 
         for name in sorted_node_names:
-            logging.info(f"Currently running step: {name}")
+            logging.debug(f"Currently running step: {name}")
             node = self.get_node(name)
             node_config = node['config']
             node_output = node_config.get('output')
 
             node_properties = node_config.get("properties")
-            node_callable = reference_lookup[node_config['type']]
+            try:
+                node_callable = reference_lookup[node_config['type']]
+            except KeyError as e:
+                logging.info(e)
+                logging.info(f"Is {node_config['type']} defined in the lookup being passed into the pipeline?")
+
             if node_properties is not None:
                 initialization_arguments, callable_arguments = self._replace_argument_references_for_node(node)
 
@@ -143,7 +148,7 @@ class PipelineGraph:
                         initialization_arguments) == 0, f"Function: {node_callable.__name__} cannot have initialization arguments: {initialization_arguments}, only callable arguments"
 
                     if partial_callable:
-                        assert node_output is not None, f"An output for node: {name} was not found, please specify a value for the node, if it is specified check the spelling for the output key"
+                        assert node_output is not None, f"An output for node {name} was not found, please specify an output for the node. If an output is specified check the spelling for the output key"
                         assert not len(
                             node_output) == 1, f"If this is a partial callable, then there should be one output for this step, please specify a value for the output key"
                         if needs_state_dict:

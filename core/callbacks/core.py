@@ -81,7 +81,8 @@ class CallbackHandler:
 
     def __call__(self, cb_name, call_mets=True, **kwargs) -> None:
         "Call through to all of the `CallbackHandler` functions."
-        if call_mets: [getattr(met, f'on_{cb_name}')(**self.state_dict, **kwargs) for met in self.metrics]
+        if call_mets:
+            [getattr(met, f'on_{cb_name}')(**self.state_dict, **kwargs) for met in self.metrics]
         return [getattr(cb, f'on_{cb_name}')(**self.state_dict, **kwargs) for cb in self.callbacks]
 
     @staticmethod
@@ -219,7 +220,8 @@ class AverageMetric(Callback):
         self.val, self.count = 0., 0
 
     def on_batch_end(self, last_output, last_target, train, **kwargs):
-        if not is_listy(last_target): last_target = [last_target]
+        if not is_listy(last_target):
+            last_target = [last_target]
         self.count += last_target[0].size(0)
         self.val += last_target[0].size(0) * self.func(last_output, *last_target).detach().cpu()
 
