@@ -85,10 +85,34 @@ def crop_rotate90_flip(height=None, width=None, crop_height=None, crop_width=Non
 
 
 def crop_rotate90_flip_brightness_elastic(height=None, width=None,
-                                          crop_height=None, crop_width=None, with_image_wrapper=False):
+                                          crop_height=None, crop_width=None, brightness_transform_p=0.5, elastic_transform_p=0.5,
+                                          with_image_wrapper=False):
     augs = [
         RandomCrop(crop_height, crop_width),
         RandomRotate90(),
+        Flip(),
+        RandomBrightnessContrast(brightness_limit=3, contrast_limit=0.5, p=brightness_transform_p),
+        ElasticTransform(sigma=50, alpha_affine=50, p=elastic_transform_p),
+    ]
+    if height is None and width is None:
+        augs = Compose(augs, p=1)
+    else:
+        if height is not None and width is None:
+            width = height
+        if width is not None and height is None:
+            height = width
+        augs = Compose([Resize(height=height, width=width, always_apply=True)] + augs, p=1)
+    if with_image_wrapper:
+        return partial(albumentations_transform_wrapper, augment_fn=augs)
+    else:
+        return augs
+
+
+def crop_shift_scan_rotate_flip_brightness_elastic(height=None, width=None,
+                                                   crop_height=None, crop_width=None, with_image_wrapper=False):
+    augs = [
+        RandomCrop(crop_height, crop_width),
+        ShiftScaleRotate(shift_limit=0.05, scale_limit=0.2, rotate_limit=90, p=1),
         Flip(),
         RandomBrightnessContrast(brightness_limit=3, contrast_limit=0.5),
         ElasticTransform(sigma=50, alpha_affine=50, p=0.5),
@@ -184,6 +208,7 @@ augment_fn_lookup = {
     "crop_rotate90_flip": crop_rotate90_flip,
     "very_simple_aug_with_elastic_transform": very_simple_aug_with_elastic_transform,
     "very_simple_aug_with_elastic_transform_and_crop": crop_rotate90_flip_brightness_elastic,
+    "crop_shift_scan_rotate_flip_brightness_elastic": crop_shift_scan_rotate_flip_brightness_elastic,
     "crop_rotate90_flip_brightness_elastic": crop_rotate90_flip_brightness_elastic,
     "simple_aug": simple_aug,
     "simple_aug_lower_prob": simple_aug_lower_prob,

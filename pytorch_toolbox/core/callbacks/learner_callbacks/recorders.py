@@ -254,3 +254,5 @@ class TensorBoardRecorder(LearnerCallback):
     def _record_metrics_for_epoch(self, epoch):
         self.tb_writer.add_scalars("metrics_for_epoch", self.learn.recorder.get_metrics_for_epoch(epoch),
                                    global_step=epoch)
+
+

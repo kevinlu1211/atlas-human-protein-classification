@@ -4,7 +4,7 @@ import torch
 import numpy as np
 
 
-def tensor2img(image_tensor, imtype=np.uint8, denormalize_fn=None):
+def tensor2img(image_tensor, imtype=np.uint8, denormalize_fn=None, scale_factor=255.0):
     shape = image_tensor.shape
     image_tensor = image_tensor.cpu()
     if denormalize_fn is not None:
@@ -26,7 +26,8 @@ def tensor2img(image_tensor, imtype=np.uint8, denormalize_fn=None):
     else:
         print("Expected a Tensor of C x H x W or B x C x H x W")
         return
-    return (ret * 255.0).astype(imtype)
+    return (ret * scale_factor).astype(imtype)
+
 
 
 # ref.: https://www.kaggle.com/stainsby/fast-tested-rle

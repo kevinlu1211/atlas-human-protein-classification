@@ -125,17 +125,17 @@ CreateFiveCropTTAFunction:
       crop_width: 512
   output: FiveCropTTAFunction
 
-CalculateMeanAndStdForDataset:
-  type: calculate_mean_and_std_for_dataset
-  properties:
-    callable_arguments:
-      data_paths:
-        Ref:
-          - LoadTrainingData: train_X
-          - LoadTestingData: test_X
-  output:
-    - mean
-    - std
+#CalculateMeanAndStdForDataset:
+#  type: calculate_mean_and_std_for_dataset
+#  properties:
+#    callable_arguments:
+#      data_paths:
+#        Ref:
+#          - LoadTrainingData: train_X
+#          - LoadTestingData: test_X
+#  output:
+#    - mean
+#    - std
 
 CreateNormalizeFunction:
   type: normalize

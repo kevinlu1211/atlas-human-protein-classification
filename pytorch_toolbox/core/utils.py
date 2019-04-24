@@ -1,8 +1,6 @@
 import re
 from enum import Enum
 
-import numpy as np
-
 from pytorch_toolbox.core.defaults import *
 
 
@@ -91,3 +89,4 @@ def make_one_hot(labels, n_classes=28):
             one_hot[label_idx] = 1
         one_hots.append(one_hot.astype(np.float32))
     return one_hots
+

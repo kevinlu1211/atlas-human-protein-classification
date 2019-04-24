@@ -4,7 +4,8 @@ import pandas as pd
 import imagehash
 from PIL import Image
 
-from src.data import DataPaths, open_numpy
+from src.data import DataPaths
+from src.image import open_numpy
 
 
 def load_names_and_image_paths():

@@ -1,9 +1,15 @@
+import uuid
+from pathlib import Path
+
+import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import random
 
-from .data import open_numpy, DataPaths, label_to_string, string_to_label
+import torch
+
+from .data import DataPaths, label_to_string, string_to_label
 
 
 def register_cmap():
@@ -129,3 +135,54 @@ def get_unique_classes(k=10):
     if k == "ALL":
         return unique_classes
     return random.sample(unique_classes, k)
+
+
+def open_rgby(path, with_image_wrapper=True):  # a function that reads RGBY image
+    colors = ['red', 'green', 'blue', 'yellow']
+    flags = cv2.IMREAD_GRAYSCALE
+    img_id = Path(path).name
+    img = [cv2.imread(f"{str(path)}_{color}.jpg", flags).astype(np.uint8) for color in colors]
+    if with_image_wrapper:
+        return Image(px=np.stack(img, axis=-1), name=img_id)
+    else:
+        return {
+            "image": np.stack(img, axis=-1),
+            "name": img_id
+        }
+
+
+def open_numpy(path, with_image_wrapper=True):
+    img = np.load(path, allow_pickle=True)
+    img_id = path.stem
+    if with_image_wrapper:
+        return Image(px=img, name=img_id)
+    else:
+        return {
+            "image": img,
+            "name": path.stem
+        }
+
+
+class Image:
+    def __init__(self, px, name=None):
+        self._px = px
+        self._tensor = None
+        self.name = str(uuid.uuid4()) if name is None else name
+
+    @property
+    def px(self):
+        return self._px
+
+    @px.setter
+    def px(self, px):
+        self._px = px
+
+    @property
+    def tensor(self):
+        return torch.from_numpy((self._px.astype(np.float32)).transpose(2, 0, 1))
+
+    def __getattr__(self, name):
+        if name not in ["px", "tensor"]:
+            return getattr(self.px, name)
+        else:
+            return getattr(self, name)

@@ -8,8 +8,8 @@ from tqdm import tqdm_notebook
 import matplotlib.pyplot as plt
 from miniutils.progress_bar import parallel_progbar, progbar
 
-from src.image import plot_rgby
-from src.data import open_numpy, DataPaths
+from src.image import plot_rgby, open_numpy
+from src.data import DataPaths
 
 COLORS = ['red', 'green', 'blue', 'yellow']
 KAGGLE_IMAGE_EXTENSION = "png"

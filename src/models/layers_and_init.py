@@ -22,4 +22,7 @@ class AdaptiveConcatPool2d(nn.Module):
 def kaiming_init(m):
     if type(m) == nn.Linear:
         torch.nn.init.kaiming_normal(m.weight)
-        m.bias.data.fill_(0.01)
+        try:
+            m.bias.data.fill_(0.01)
+        except AttributeError: # if the bias doesn't exist
+            pass

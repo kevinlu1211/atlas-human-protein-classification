@@ -1,13 +1,11 @@
 from pathlib import Path
 from collections import Counter
 
-import uuid
 import torch
 import torch.utils.data
-import cv2
 import numpy as np
 import pandas as pd
-from sklearn.model_selection import ShuffleSplit
+from sklearn.model_selection import ShuffleSplit, StratifiedShuffleSplit
 from iterstrat.ml_stratifiers import MultilabelStratifiedShuffleSplit
 
 from pytorch_toolbox.core.utils import make_one_hot
@@ -62,57 +60,6 @@ class DataPaths:
     TEST_COMBINED_IMAGES = Path(ROOT_DATA_PATH, "test_combined")
 
 
-def open_rgby(path, with_image_wrapper=True):  # a function that reads RGBY image
-    colors = ['red', 'green', 'blue', 'yellow']
-    flags = cv2.IMREAD_GRAYSCALE
-    img_id = Path(path).name
-    img = [cv2.imread(f"{str(path)}_{color}.jpg", flags).astype(np.uint8) for color in colors]
-    if with_image_wrapper:
-        return Image(px=np.stack(img, axis=-1), name=img_id)
-    else:
-        return {
-            "image": np.stack(img, axis=-1),
-            "name": img_id
-        }
-
-
-def open_numpy(path, with_image_wrapper=True):
-    img = np.load(path, allow_pickle=True)
-    img_id = path.stem
-    if with_image_wrapper:
-        return Image(px=img, name=img_id)
-    else:
-        return {
-            "image": img,
-            "name": path.stem
-        }
-
-
-class Image:
-    def __init__(self, px, name=None):
-        self._px = px
-        self._tensor = None
-        self.name = str(uuid.uuid4()) if name is None else name
-
-    @property
-    def px(self):
-        return self._px
-
-    @px.setter
-    def px(self, px):
-        self._px = px
-
-    @property
-    def tensor(self):
-        return torch.from_numpy((self._px.astype(np.float32) / 255).transpose(2, 0, 1))
-
-    def __getattr__(self, name):
-        if name not in ["px", "tensor"]:
-            return getattr(self.px, name)
-        else:
-            return getattr(self, name)
-
-
 class ProteinClassificationDataset(torch.utils.data.Dataset):
     @staticmethod
     def collate_fn(batch):
@@ -126,10 +73,12 @@ class ProteinClassificationDataset(torch.utils.data.Dataset):
             y['label'] = default_collate_batch['label']
         return x, y
 
-    def __init__(self, inputs, open_image_fn=open_numpy, image_cached=False, augment_fn=None, normalize_fn=None,
+    def __init__(self, inputs, open_image_fn=None, image_cached=False, augment_fn=None, normalize_fn=None,
                  labels=None, tta_fn=None):
+        # TODO: refactor to get rid of the lazy import
+        from src.image import open_numpy
         self.inputs = inputs
-        self.open_image_fn = open_image_fn
+        self.open_image_fn = open_numpy if open_image_fn is None else open_image_fn
         self.image_cached = image_cached
         self.augment_fn = augment_fn
         self.normalize_fn = normalize_fn
@@ -249,5 +198,6 @@ dataset_lookup = {
 
 split_method_lookup = {
     "ShuffleSplit": ShuffleSplit,
+    "StratifiedShuffleSplit": StratifiedShuffleSplit,
     "MultilabelStratifiedShuffleSplit": MultilabelStratifiedShuffleSplit
 }

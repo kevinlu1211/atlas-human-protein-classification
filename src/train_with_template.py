@@ -1,12 +1,6 @@
 # coding: utf-8
 
-import sys
-import warnings
 import pickle
-
-if not sys.warnoptions:
-    warnings.simplefilter("ignore")
-
 import time
 from functools import partial
 from itertools import chain
@@ -20,10 +14,8 @@ import click
 import numpy as np
 import pandas as pd
 from torch.utils.data import WeightedRandomSampler
-from miniutils.progress_bar import parallel_progbar, progbar
+from miniutils.progress_bar import parallel_progbar
 import scipy.optimize as opt
-
-sys.path.append("../..")
 
 from pytorch_toolbox.core.pipeline import PipelineGraph
 from pytorch_toolbox.core.training.learner import Learner
@@ -34,12 +26,24 @@ from pytorch_toolbox.core.utils import listify
 from pytorch_toolbox.core.losses import LossWrapper, loss_lookup
 from pytorch_toolbox.core.metrics import metric_lookup
 
-from src.data import make_one_hot, open_numpy, dataset_lookup, \
-    sampler_weight_lookup, split_method_lookup, Image, DataPaths, single_class_counter
+from src.data import make_one_hot, dataset_lookup, \
+    sampler_weight_lookup, split_method_lookup, DataPaths, single_class_counter
+from src.image import open_numpy, Image
 from src.training import training_scheme_lookup
 from src.models import model_lookup
 from src.transforms import augment_fn_lookup
-from src.callbacks import OutputRecorder, ResultRecorder
+from src.callbacks import OutputRecorder, ResultRecorder, OutputHookRecorder
+
+
+@click.command()
+@click.option('-cfg', '--config_file_path')
+@click.option('-log-lvl', '--log_level', default="INFO")
+def main(config_file_path, log_level):
+    set_logger(log_level)
+    with Path(config_file_path).open("r") as f:
+        config = yaml.load(f)
+    pipeline_graph = PipelineGraph.create_pipeline_graph_from_config(config)
+    pipeline_graph.run(reference_lookup=lookups)
 
 
 def set_logger(log_level):
@@ -56,31 +60,73 @@ def set_logger(log_level):
     )
 
 
-@click.command()
-@click.option('-cfg', '--config_file_path')
-@click.option('-log-lvl', '--log_level', default="INFO")
-def main(config_file_path, log_level):
-    set_logger(log_level)
-    with Path(config_file_path).open("r") as f:
-        config = yaml.load(f)
-    pipeline_graph = PipelineGraph.create_pipeline_graph_from_config(config)
-    pipeline_graph.run(reference_lookup=lookups)
-    # pipeline_graph.run(reference_lookup=lookups, to_node="CreateInference")
-    # create_inference_fn = pipeline_graph.get_node_output("CreateInference")
-    # image = get_image_from_class(('Plasma membrane', 'Cell junctions'))[0]
-    # names, prediction_probs = create_inference_fn(image)
+def load_training_data_for_metric_learning(root_image_paths: Union[List[str], str], root_label_paths: List[str],
+                                           labels_below_count: int,
+                                           use_n_samples: Union[None, int] = None) -> Tuple[
+    np.ndarray, np.ndarray, np.ndarray]:
+    train_df = load_training_data_df(root_image_paths, root_label_paths, use_n_samples)
+    train_df = add_number_of_labels_column(train_df)
+    train_df = remove_labels_below_count(train_df, labels_below_count)
+    train_df = add_one_hot_labels_index_column(train_df)
+    labels = train_df['OneHotLabelIndex'].values
+    labels_one_hot = make_one_hot([[l] for l in labels], n_classes=len(train_df['OneHotLabelIndex'].unique()))
+    return train_df['ImagePath'].values, np.array(labels), np.array(labels_one_hot)
+
+
+def load_training_data(root_image_paths: Union[List[str], str], root_label_paths: List[str],
+                       use_n_samples: Union[None, int] = None) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    train_df = load_training_data_df(root_image_paths, root_label_paths, use_n_samples)
+    labels = train_df['Target'].values
+    labels_one_hot = make_one_hot(labels, n_classes=28)
+    return np.array(train_df['ImagePath'].values), np.array(labels), np.array(labels_one_hot)
+
+
+def load_training_data_df(root_image_paths, root_label_paths, use_n_samples):
+    labels_df = load_training_labels(root_label_paths)
+    labels_df.sort_values(["Id"], ascending=[True], inplace=True)
+    labels_df_sorted_by_id = labels_df
+
+    # As some duplicate images were removed, we only use the images that have labels
+    image_paths = load_training_images(root_image_paths)
+    image_paths_with_labels = filter_image_paths_with_labels(image_paths, labels_df)
+
+    # Sort by ID so that the labels and the image matches up
+    train_df = labels_df_sorted_by_id
+    image_paths_sorted_by_id = sorted(image_paths_with_labels, key=lambda path: path.stem)
+    train_df["ImagePath"] = image_paths_sorted_by_id
+
+    if use_n_samples is not None:
+        train_df = train_df.sample(use_n_samples)
+    return train_df
 
 
 def load_training_labels(training_labels_path):
     labels_df = pd.read_csv(training_labels_path)
     labels_df['Target'] = [[int(i) for i in s.split()] for s in labels_df['Target']]
+    labels_df['TargetTuple'] = [tuple(t) for t in labels_df['Target']]
     return labels_df
 
 
-def create_image_id_lookups(labels_df):
-    image_id_with_labels = labels_df['Id']
-    image_id_with_labels_lookup = Counter(image_id_with_labels)
-    return image_id_with_labels_lookup
+def add_number_of_labels_column(train_df):
+    train_df.sort_values(["TargetTuple"], ascending=[True])
+    label_counts = Counter([tuple(l) for l in train_df['Target'].values])
+    train_df['Count'] = [label_counts[tuple(l)] for l in train_df['Target']]
+    return train_df
+
+
+def add_one_hot_labels_index_column(train_df):
+    target_tuple_to_label = {v: k for k, v in enumerate(train_df['TargetTuple'].unique())}
+    train_df['OneHotLabelIndex'] = train_df['TargetTuple'].map(lambda x: target_tuple_to_label[x])
+    return train_df
+
+
+def remove_labels_below_count(train_df, labels_below_count):
+    train_df = train_df[train_df['Count'].map(lambda x: x >= labels_below_count)]
+    return train_df
+
+
+def calculate_number_of_unique_classes(labels_one_hot):
+    return len(labels_one_hot[0])
 
 
 def load_training_images(training_images_path):
@@ -92,35 +138,10 @@ def load_training_images(training_images_path):
 
 def filter_image_paths_with_labels(image_paths, labels_df):
     # We use a Counter to filter in O(n) instead of O(n^2) time
-    image_id_with_labels_lookup = create_image_id_lookups(labels_df)
+    image_id_with_labels_lookup = Counter(labels_df['Id'])
     image_paths_used_for_training = [Path(p) for p in image_paths if
                                      image_id_with_labels_lookup.get(Path(p).stem) is not None]
-    return image_paths_used_for_training
-
-
-def load_training_data(root_image_paths: Union[List[str], str], root_label_paths: List[str],
-                       use_n_samples: Union[None, int] = None) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    labels_df = load_training_labels(root_label_paths)
-    image_paths = load_training_images(root_image_paths)
-    image_paths_with_labels = filter_image_paths_with_labels(image_paths, labels_df)
-
-    sorted_labels_df = labels_df.sort_values(["Id"], ascending=[True])
-    sorted_image_paths_used_for_training = sorted(image_paths_with_labels, key=lambda x: x.stem)
-
-    if len(sorted_image_paths_used_for_training) != len(sorted_labels_df["Id"]):
-        logging.warning("Number of images don't match up with number of labels")
-    else:
-        if not (np.all(np.array([p.stem for p in sorted_image_paths_used_for_training]) == sorted_labels_df["Id"])):
-            logging.warning("Images and training labels aren't matched up!")
-
-    if use_n_samples is not None:
-        sampled_idx = np.random.choice(len(sorted_image_paths_used_for_training), size=use_n_samples).flatten()
-        sorted_image_paths_used_for_training = np.array(sorted_image_paths_used_for_training)[sampled_idx]
-        sorted_labels_df = sorted_labels_df.iloc[sampled_idx]
-
-    labels = sorted_labels_df['Target'].values
-    labels_one_hot = make_one_hot(labels, n_classes=28)
-    return np.array(sorted_image_paths_used_for_training), np.array(labels), np.array(labels_one_hot)
+    return np.array(image_paths_used_for_training)
 
 
 def load_testing_data(root_image_paths, use_n_samples=None):
@@ -129,25 +150,26 @@ def load_testing_data(root_image_paths, use_n_samples=None):
         X = X[:use_n_samples]
     return np.array(X)
 
+
 def calculate_mean_and_std_for_dataset(data_paths):
     flattened_data_paths = list(chain(*data_paths))
     means, stds = list(zip(*parallel_progbar(calculate_mean_and_std, flattened_data_paths)))
     mean = np.stack(means).mean(axis=0)
     std = np.stack(stds).mean(axis=0)
     logging.info(f"Mean of dataset is: {mean}")
-    logging.info(f"Standard deviation of dataset is: {sd}")
+    logging.info(f"Standard deviation of dataset is: {std}")
     return mean, std
 
+
 def calculate_mean_and_std(img_path):
-    img = open_numpy(img_path, with_image_wrapper=True).px
-    mean = np.mean(img, axis=(0, 1))
-    std = np.std(img, axis=(0, 1))
+    img = open_numpy(img_path, with_image_wrapper=True).tensor
+    mean = np.mean(img.numpy(), axis=(1, 2))
+    std = np.std(img.numpy(), axis=(1, 2))
     return mean, std
 
 
 def create_data_bunch(train_idx, val_idx, train_X, train_y_one_hot, train_y, test_X, train_ds, train_bs, val_ds, val_bs,
-                      test_ds,
-                      test_bs, sampler, num_workers):
+                      test_ds, test_bs, sampler, num_workers):
     sampler = sampler(y=train_y[train_idx])
     train_ds = train_ds(inputs=train_X[train_idx], labels=train_y_one_hot[train_idx])
     val_ds = val_ds(inputs=train_X[val_idx], labels=train_y_one_hot[val_idx])
@@ -168,21 +190,18 @@ def create_sampler(y=None, sampler_fn=None):
     sampler = None
     if sampler_fn is not None:
         weights = np.array(sampler_fn(y))
-
         sampler = WeightedRandomSampler(weights=weights, num_samples=len(weights))
-    else:
-        pass
-
-    if sampler is not None:
-        label_cnt = Counter()
-        n_samples = len(weights)
-        for idx in np.random.choice(len(y), n_samples, p=weights / weights.sum()):
-            labels = y[idx]
-            for l in labels:
-                label_cnt[l] += 1
-        # print("Weighted sampled proportions:")
-        # pprint(sorted({k: v / sum(label_cnt.values()) for k, v in label_cnt.items()}.items()))
-        # pprint(sorted({k: v for k, v in name_cnt.items()}.items(), key=lambda x: x[1]))
+    # else:
+    # if sampler is not None:
+    #     label_cnt = Counter()
+    #     n_samples = len(weights)
+    #     for idx in np.random.choice(len(y), n_samples, p=weights / weights.sum()):
+    #         labels = y[idx]
+    #         for l in labels:
+    #             label_cnt[l] += 1
+    # print("Weighted sampled proportions:")
+    # pprint(sorted({k: v / sum(label_cnt.values()) for k, v in label_cnt.items()}.items()))
+    # pprint(sorted({k: v for k, v in name_cnt.items()}.items(), key=lambda x: x[1]))
     # else:
     #     print("No weighted sampling")
     return sampler
@@ -247,14 +266,15 @@ def training_loop(create_learner, data_bunch_creator, config_saver, data_splitte
 
 
 def save_config(save_path_creator, state_dict):
-    save_path = save_path_creator()
-    save_path.mkdir(parents=True, exist_ok=True)
-    with (save_path / "config.yml").open('w') as yaml_file:
+    save_path = save_path_creator() / "config.yml"
+    save_path.parent.mkdir(parents=True, exist_ok=True)
+    logging.info(f"Configuration file is saved at: {save_path}")
+    with save_path.open('w') as yaml_file:
         yaml.dump(state_dict["config"], yaml_file, default_flow_style=False)
 
 
 # Determine phase callback is here only for backwards compatibility, will remove after all the config files are updated
-def record_results(learner, result_recorder_callback, determine_phase_callback, save_path_creator):
+def record_results(learner, result_recorder_callback, save_path_creator):
     root_save_path = save_path_creator()
 
     _, val_pred_probs, val_targets = create_predictions_for_dl(learner, result_recorder_callback, dl_type="VAL")
@@ -267,17 +287,17 @@ def record_results(learner, result_recorder_callback, determine_phase_callback, 
 
     # threshold optimized to maximize F1 soft on validation set
     val_optimal_threshold = optimize_threshold_for_val_dl(val_pred_probs, val_targets)
-    pickle.dump(val_optimal_threshold, open(root_save_path / "val_optimal_threshold.csv", "wb"))
+    pickle.dump(val_optimal_threshold, open(root_save_path / "val_optimal_threshold.p", "wb"))
     create_and_save_submissions(test_names, test_pred_probs, threshold=val_optimal_threshold,
-                                save_path=root_save_path / "submission_threshold_val_optimized.p")
+                                save_path=root_save_path / "submission_threshold_val_optimized.csv")
 
     # threshold optimized to make ratio of labels in test set, same as the train set
     thresholds_for_same_class_ratio_as_train = optimize_thresholds_for_class_ratios(test_pred_probs,
                                                                                     target_class_ratio=calculate_kaggle_train_label_ratios())
     pickle.dump(thresholds_for_same_class_ratio_as_train,
-                open(root_save_path / "train_class_ratio_threshold.csv", "wb"))
+                open(root_save_path / "train_class_ratio_threshold.p", "wb"))
     create_and_save_submissions(test_names, test_pred_probs, threshold=thresholds_for_same_class_ratio_as_train,
-                                save_path=root_save_path / "submission_threshold_val_optimized.p")
+                                save_path=root_save_path / "submission_threshold_train_class_ratio.csv")
 
 
 def create_predictions_for_dl(learner, result_recorder_callback, dl_type):
@@ -325,7 +345,9 @@ def calculate_kaggle_train_label_ratios():
     kaggle_labels = load_training_labels(DataPaths.TRAIN_LABELS)
     class_label_and_class_counts = single_class_counter(kaggle_labels['Target'], inv_proportions=False)
     total_kaggle_classes = sum([t[1] for t in class_label_and_class_counts])
-    kaggle_class_ratios = np.array([(class_label, class_count / total_kaggle_classes)[1] for (class_label, class_count) in class_label_and_class_counts])
+    kaggle_class_ratios = np.array(
+        [(class_label, class_count / total_kaggle_classes)[1] for (class_label, class_count) in
+         class_label_and_class_counts])
 
     return kaggle_class_ratios
 
@@ -359,7 +381,6 @@ def create_time_stamped_save_path(save_path, state_dict):
     path = Path(save_path, current_time)
     if current_fold is not None:
         path = path / f"Fold_{current_fold}"
-    logging.info(f"Root path of experiment is: {path.parent}")
     return path
 
 
@@ -392,11 +413,11 @@ def fit_val(x, y):
     return p
 
 
-def create_inference(image, inference_data_bunch_creator, inference_learner_creator, determine_phase_callback,
+def create_inference(image, inference_data_bunch_creator, inference_learner_creator,
                      result_recorder_callback):
     inference_data_bunch = inference_data_bunch_creator([Image(image)])
     inference_learner = inference_learner_creator(inference_data_bunch)
-    inference_learner.predict_on_test_dl(callback_fns=[determine_phase_callback, result_recorder_callback])
+    inference_learner.predict_on_test_dl(callback_fns=[result_recorder_callback])
     result_recorder = inference_learner.result_recorder
     return np.stack(result_recorder.names), np.stack(result_recorder.prob_preds)
 
@@ -409,6 +430,7 @@ learner_callback_lookup = {
 
 callback_lookup = {
     "ResultRecorder": ResultRecorder,
+    "OutputHookRecorder": OutputHookRecorder,
     **callback_lookup,
 }
 
@@ -427,6 +449,7 @@ lookups = {
     **learner_callback_lookup,
     **training_scheme_lookup,
     "open_numpy": open_numpy,
+    "load_training_data_for_metric_learning": load_training_data_for_metric_learning,
     "load_training_data": load_training_data,
     "load_testing_data": load_testing_data,
     "calculate_mean_and_std_for_dataset": calculate_mean_and_std_for_dataset,
@@ -440,7 +463,8 @@ lookups = {
     "training_loop": training_loop,
     "record_results": record_results,
     "save_config": save_config,
-    "create_inference": create_inference
+    "create_inference": create_inference,
+    "calculate_number_of_unique_classes": calculate_number_of_unique_classes
 }
 
 if __name__ == '__main__':

@@ -4,8 +4,26 @@ import torch
 import numpy as np
 import pandas as pd
 
-from pytorch_toolbox.core.callbacks import LearnerCallback
+from pytorch_toolbox.core.callbacks import Callback, LearnerCallback
+from pytorch_toolbox.core.callbacks.learner_callbacks.hooks import hook_output
 from pytorch_toolbox.core.utils import Phase, to_numpy
+from pytorch_toolbox.core.training.utils import flatten_model
+
+
+class OutputHookRecorder(Callback):
+    def __init__(self, learn, module=None):
+        super().__init__()
+        self._hook_outputs = []
+        if module is None:
+            module = flatten_model(learn.model)[-1]
+        self.hook = hook_output(module)
+
+    @property
+    def hook_outputs(self):
+        return np.concatenate(self._hook_outputs, axis=0)
+
+    def on_batch_end(self, **kwargs):
+        self._hook_outputs.append(to_numpy(self.hook.stored))
 
 
 class ResultRecorder(LearnerCallback):
