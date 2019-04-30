@@ -21,6 +21,7 @@ from pytorch_toolbox.core.training.utils import flatten_model, to_detach, requir
 
 AdamW = partial(Adam, betas=(0.9, 0.99))
 
+
 ## TODO: refactor fit, validate, and predict_on_dl as they share a lot of common functionality
 
 class Learner:
@@ -103,14 +104,19 @@ class Learner:
         assert dl is not None, "A dataloader must be provided"
         assert phase is not None, "A phase must be provided: {Phase.TRAIN, Phase.VAL, Phase.TEST}"
         callbacks_fns = [cb(self) for cb in if_none(callback_fns, [])]
-        cb_handler = CallbackHandler(callbacks=self.callbacks + if_none(callbacks, []) + if_none(callbacks_fns, []),
-                                     metrics=if_none(metrics, self.metrics))
+        callbacks = self.callbacks + if_none(callbacks, []) + if_none(callbacks_fns, [])
+
+        if phase is not Phase.TEST:
+            metrics = if_none(metrics, self.metrics)
+        else:
+            metrics = []
+        cb_handler = CallbackHandler(callbacks=callbacks,
+                                     metrics=metrics)
         with torch.no_grad():
             self.model.eval()
             cb_handler.on_epoch_begin()
             for xb, yb in progbar(dl):
                 xb, yb = cb_handler.on_batch_begin(xb, yb, train=False, phase=phase)
-                cb_handler = if_none(cb_handler, CallbackHandler())
                 if not is_listy(xb):
                     xb = [xb]
                 out = self.model(*xb)
@@ -211,7 +217,8 @@ def fit(epochs: int, model: nn.Module, loss_func: LossFunction, opt: optim.Optim
             for xb, yb in progress_bar(data.train_dl, parent=pbar):
                 xb, yb = cb_handler.on_batch_begin(xb, yb, phase=Phase.TRAIN)
                 loss = loss_batch(model, xb, yb, loss_func, opt, cb_handler)
-                if cb_handler.on_batch_end(loss): break
+                if cb_handler.on_batch_end(loss):
+                    break
 
             if hasattr(data, 'valid_dl') and data.valid_dl is not None:
                 val_loss = validate(model, data.valid_dl, loss_func=loss_func,
@@ -224,30 +231,6 @@ def fit(epochs: int, model: nn.Module, loss_func: LossFunction, opt: optim.Optim
         raise e
     finally:
         cb_handler.on_train_end(exception)
-
-
-def validate(model: nn.Module, dl: DataLoader, loss_func: OptionalLossFunction = None,
-             cb_handler: Optional[CallbackHandler] = None,
-             pbar: Optional[PBar] = None, average=True, n_batch: Optional[int] = None) -> Iterator[
-    Tuple[Union[Tensor, int], ...]]:
-    "Calculate loss and metrics for the validation set."
-    model.eval()
-    with torch.no_grad():
-        val_losses, nums = [], []
-        for xb, yb in progress_bar(dl, parent=pbar, leave=(pbar is not None)):
-            if cb_handler:
-                xb, yb = cb_handler.on_batch_begin(xb, yb, train=False, phase=Phase.VAL)
-            val_losses.append(loss_batch(model, xb, yb, loss_func, cb_handler=cb_handler))
-            if not is_listy(yb):
-                yb = [yb]
-            nums.append(yb[0].shape[0])
-            if cb_handler and cb_handler.on_batch_end(val_losses[-1]): break
-            if n_batch and (len(nums) >= n_batch): break
-        nums = np.array(nums, dtype=np.float32)
-        if average:
-            return (to_numpy(torch.stack(val_losses)) * nums).sum() / nums.sum()
-        else:
-            return val_losses
 
 
 def loss_batch(model: nn.Module, xb: Tensor, yb: Tensor, loss_func: OptionalLossFunction = None,
@@ -275,3 +258,27 @@ def loss_batch(model: nn.Module, xb: Tensor, yb: Tensor, loss_func: OptionalLoss
         opt.zero_grad()
 
     return loss.detach().cpu()
+
+
+def validate(model: nn.Module, dl: DataLoader, loss_func: OptionalLossFunction = None,
+             cb_handler: Optional[CallbackHandler] = None,
+             pbar: Optional[PBar] = None, average=True, n_batch: Optional[int] = None) -> Iterator[
+    Tuple[Union[Tensor, int], ...]]:
+    "Calculate loss and metrics for the validation set."
+    model.eval()
+    with torch.no_grad():
+        val_losses, nums = [], []
+        for xb, yb in progress_bar(dl, parent=pbar, leave=(pbar is not None)):
+            if cb_handler:
+                xb, yb = cb_handler.on_batch_begin(xb, yb, train=False, phase=Phase.VAL)
+            val_losses.append(loss_batch(model, xb, yb, loss_func, cb_handler=cb_handler))
+            if not is_listy(yb):
+                yb = [yb]
+            nums.append(yb[0].shape[0])
+            if cb_handler and cb_handler.on_batch_end(val_losses[-1]): break
+            if n_batch and (len(nums) >= n_batch): break
+        nums = np.array(nums, dtype=np.float32)
+        if average:
+            return (to_numpy(torch.stack(val_losses)) * nums).sum() / nums.sum()
+        else:
+            return val_losses
