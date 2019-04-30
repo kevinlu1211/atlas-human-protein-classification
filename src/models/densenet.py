@@ -1,7 +1,9 @@
 import pretrainedmodels
 from .layers_and_init import *
 
-def densenet121_four_channel_input_two_fc(pretrained=True, fc1_dropout=0.5, fc1_bias=True, fc1_out=1024, fc2_dropout=0.5, fc2_bias=True, fc2_out=28):
+
+def densenet121_four_channel_input_two_fc(pretrained=True, fc1_dropout=0.5, fc1_out=1024, fc1_bias=True,
+                                          fc2_dropout=0.5, fc2_out=28, fc2_bias=True):
     if pretrained:
         model = pretrainedmodels.densenet121(num_classes=1000, pretrained='imagenet')
 
@@ -20,7 +22,7 @@ def densenet121_four_channel_input_two_fc(pretrained=True, fc1_dropout=0.5, fc1_
         nn.BatchNorm1d(2048, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
         nn.Dropout(p=fc1_dropout),
         nn.Linear(in_features=2048, out_features=fc1_out, bias=fc1_bias),
-        nn.Sigmoid(),
+        nn.ReLU(),
         nn.BatchNorm1d(fc1_out, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
         nn.Dropout(p=fc2_dropout),
         nn.Linear(in_features=fc1_out, out_features=fc2_out, bias=fc2_bias)
@@ -33,6 +35,7 @@ def densenet121_four_channel_input_two_fc(pretrained=True, fc1_dropout=0.5, fc1_
         *fc_layers
     )
     return model
+
 
 def densenet121_four_channel_input_one_fc(pretrained=True, fc1_dropout=0.5, fc1_bias=True, fc1_out=28):
     if pretrained:
@@ -63,6 +66,3 @@ def densenet121_four_channel_input_one_fc(pretrained=True, fc1_dropout=0.5, fc1_
         *fc_layers
     )
     return model
-
-
-

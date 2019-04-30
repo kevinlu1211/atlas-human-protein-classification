@@ -1,6 +1,7 @@
 from collections import defaultdict
 
 import torch
+import torch.nn.functional as F
 import numpy as np
 import pandas as pd
 
@@ -22,7 +23,7 @@ class OutputHookRecorder(Callback):
     def hook_outputs(self):
         return np.concatenate(self._hook_outputs, axis=0)
 
-    def on_batch_end(self, **kwargs):
+    def on_batch_end(self, phase, **kwargs):
         self._hook_outputs.append(to_numpy(self.hook.stored))
 
 
@@ -69,13 +70,12 @@ class OutputRecorder(LearnerCallback):
             self.current_batch['label'] = label
 
     def on_loss_begin(self, last_output, epoch, **kwargs):
-        model_output = to_numpy(last_output)
-        prediction_probs = 1 / (1 + np.exp(-model_output))
+        prediction_probs = to_numpy(torch.sigmoid(last_output))
         self.current_batch['prediction_probs'] = prediction_probs
-        prediction = prediction_probs.copy()
-        prediction[prediction < 0.5] = 0
-        prediction[prediction >= 0.5] = 1
-        self.current_batch['prediction'] = prediction
+        # prediction = prediction_probs.copy()
+        # prediction[prediction < 0.5] = 0
+        # prediction[prediction >= 0.5] = 1
+        # self.current_batch['prediction'] = prediction
 
     def on_batch_end(self, **kwargs):
         for loss in self.learn.loss_func.losses:

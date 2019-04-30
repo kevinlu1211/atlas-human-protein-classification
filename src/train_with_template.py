@@ -25,6 +25,7 @@ from pytorch_toolbox.core.data import DataBunch
 from pytorch_toolbox.core.utils import listify
 from pytorch_toolbox.core.losses import LossWrapper, loss_lookup
 from pytorch_toolbox.core.metrics import metric_lookup
+from pytorch_toolbox.core.defaults import default_wd
 
 from src.data import make_one_hot, dataset_lookup, \
     sampler_weight_lookup, split_method_lookup, DataPaths, single_class_counter
@@ -228,13 +229,15 @@ def create_learner_callbacks(learner_callback_references):
 
 
 def create_learner(data, model_creator, loss_funcs=[], metrics=None,
-                   callbacks_creator=None, callback_fns_creator=None, to_fp16=False, model_path=None):
+                   callbacks_creator=None, callback_fns_creator=None,
+                   weight_decay=default_wd, to_fp16=False, model_path=None):
     model = model_creator()
     callbacks = callbacks_creator() if callbacks_creator is not None else None
     callback_fns = callback_fns_creator() if callback_fns_creator is not None else None
 
     learner = Learner(data=data,
                       model=model,
+                      weight_decay=weight_decay,
                       layer_groups=get_layer_groups(model),
                       loss_func=LossWrapper(loss_funcs),
                       metrics=metrics,
@@ -273,7 +276,6 @@ def save_config(save_path_creator, state_dict):
         yaml.dump(state_dict["config"], yaml_file, default_flow_style=False)
 
 
-# Determine phase callback is here only for backwards compatibility, will remove after all the config files are updated
 def record_results(learner, result_recorder_callback, save_path_creator):
     root_save_path = save_path_creator()
 

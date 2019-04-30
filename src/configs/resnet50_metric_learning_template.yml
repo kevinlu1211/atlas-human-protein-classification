@@ -18,6 +18,7 @@ LoadTrainingData:
         - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined
         - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined_HPAv18
       root_label_paths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_all_no_dupes.csv
+#      use_n_samples: 500
   output:
     - train_X
     - train_y
@@ -62,9 +63,6 @@ CreateValidationDataset:
       normalize_fn:
         Ref:
           CreateNormalizeFunction: NormalizeFunction
-      tta_fn:
-        Ref:
-          CreateFiveCropTTAFunction: FiveCropTTAFunction
   output: ValidationDataset
 
 CreateTestingDataset:
@@ -81,9 +79,6 @@ CreateTestingDataset:
       normalize_fn:
         Ref:
           CreateNormalizeFunction: NormalizeFunction
-      tta_fn:
-        Ref:
-          CreateFiveCropTTAFunction: FiveCropTTAFunction
   output: TestingDataset
 
 # Image / Augmentation
@@ -201,7 +196,6 @@ CreateDataBunch:
       sampler:
         Ref:
           CreateSampler: Sampler
-      #      num_workers: 0
       num_workers: 28
     partial_callable: true
 
@@ -319,7 +313,6 @@ CreateCallbacks:
       callback_references:
         Ref:
           - CreateLabelExtractorCallback: LabelExtractorCallback
-          - CreateFiveCropTTAPredictionCallback: FiveCropTTAPredictionCallback
   output: CallbacksCreator
 
 CreateLearnerCallbacks:
@@ -333,7 +326,7 @@ CreateLearnerCallbacks:
           - CreateOutputRecorderLearnerCallback: OutputRecorderLearnerCallback
           - CreateGradientClippingLearnerCallback: GradientClippingLearnerCallback
           - CreateSaveModelCallback: SaveModelCallback
-#          - CreateOutputHookRecorder: OutputHookRecorder
+          - CreateOutputHookRecorder: OutputHookRecorder
           - CreateTensorBoardRecorderLearnerCallback: TensorBoardRecorder
   output: LearnerCallbacksCreator
 
@@ -416,7 +409,7 @@ CreateFiveCropTTAPredictionCallback:
   type: FiveCropTTAPredictionCallback
   properties:
     initialization_arguments:
-      aggregate_mode: MAX
+      aggregate_mode: MEAN
   output: FiveCropTTAPredictionCallback
 
 SaveConfiguration:

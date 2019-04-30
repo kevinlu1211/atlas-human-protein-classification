@@ -183,9 +183,9 @@ CreateDataBunch:
       test_X:
         Ref:
           LoadTestingData: test_X
-      train_bs: 16
-      test_bs: 4
-      val_bs: 4
+      train_bs: 32
+      test_bs: 12
+      val_bs: 12
       train_ds:
         Ref:
           CreateTrainingDataset: TrainingDataset
@@ -228,8 +228,8 @@ CreateDataSplitter:
         Ref:
           LoadTrainingData: train_y_one_hot
     initialization_arguments:
-      n_splits: 3
-      test_size: 0.1
+      n_splits: 5
+      test_size: 0.2
       random_state: 6969
     callable_function_name: split
     partial_callable: true
@@ -276,7 +276,7 @@ CreateTrainingScheme:
       epochs_for_step_for_hyperparameters: [[0, 25, 30, 35, 40]]
       hyperparameter_names: ["lr"]
       hyperparameter_values: [[30e-5, 15e-5, 7.5e-5, 3e-5, 1e-5]]
-      end_epoch: 60
+      end_epoch: 200
     partial_callable: true
   output: TrainingScheme
 
@@ -308,7 +308,7 @@ CreateLearner:
       callback_fns_creator:
         Ref:
           CreateLearnerCallbacks: LearnerCallbacksCreator
-      to_fp16: false
+      to_fp16: true
   output: LearnerCreator
 
 CreateCallbacks:
@@ -447,12 +447,6 @@ CreateModel:
   properties:
     callable_arguments:
       pretrained: true
-      fc1_dropout: 0.5
-      fc1_bias: true
-      fc1_out: 128
-      fc2_dropout: 0.5
-      fc2_bias: true
-      fc2_out: 28
     partial_callable: true
   output: Model
 
