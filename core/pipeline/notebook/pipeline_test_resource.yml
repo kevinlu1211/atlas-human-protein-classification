@@ -1,0 +1,133 @@
+# Training functions
+
+# Data loading
+
+Variables:
+  single_variable: hello
+  list_variable:
+    - foo
+    - bar
+
+Resources:
+  TestNoArgumentNoOutput:
+    properties:
+      pointer: test_no_argument_no_output
+  TestNoArgumentOneOutput:
+    properties:
+      pointer: test_no_argument_one_output
+      output_names:
+        - output_one
+  TestNoArgumentMultipleOutputs:
+    properties:
+      pointer: test_no_argument_multiple_outputs
+      output_names:
+        - output_one
+        - output_two
+        - output_three
+  TestMultipleArgumentsMultipleOutputs:
+    properties:
+      pointer: test_multiple_arguments_with_multiple_outputs
+      arguments:
+        arg_one: 1
+        arg_two: 2
+        arg_three:
+          - 3
+          - 3
+          - 3
+      output_names:
+        - output_one
+        - output_two
+        - output_three
+  TestMultipleArgumentsWithPartial:
+    properties:
+      pointer: test_multiple_arguments_with_multiple_outputs
+      partial: true
+      arguments:
+        arg_one: 1
+        arg_two: 2
+      output_names:
+        - partial_fn
+
+  ReferenceForReplacementTest:
+    properties:
+      pointer: mock_reference
+      output_names:
+        - mock_reference_output
+
+  TestReferenceReplacement:
+    properties:
+      pointer: test_reference_replacement
+      arguments:
+        ref_arg: !Ref MockReference.mock_reference_output
+      output_names:
+        - output_one
+
+  TestOneArgumentVariableReplacement:
+    properties:
+      pointer: test_variable_replacement
+      arguments:
+        var_arg: !Var test_var
+      output_names:
+        - output_one
+
+  TestNestedInListOneArgumentVariableReplacement:
+    properties:
+      pointer: test_variable_replacement
+      arguments:
+        var_arg:
+          - !Var test_var
+      output_names:
+        - output_one
+
+  TestDoubleNestedInListOneArgumentVariableReplacement:
+    properties:
+      pointer: test_variable_replacement
+      arguments:
+        var_arg:
+          -
+            - !Var test_var
+      output_names:
+        - output_one
+
+  Reference1:
+    properties:
+      pointer: mock_reference
+      output_names:
+        - mock_reference_output
+
+  Reference2:
+    properties:
+      pointer: mock_reference
+      output_names:
+        - mock_reference_output
+
+  Node1:
+    properties:
+      pointer: node_with_no_reference
+
+  Node2:
+    properties:
+      pointer: node_with_one_reference
+      arguments:
+        arg_1: !Ref Reference1.mock_reference_output
+
+  Node3:
+    properties:
+      pointer: node_with_two_references
+      arguments:
+        arg_1: !Ref Reference1.mock_reference_output
+        arg_2: !Ref Reference2.mock_reference_output
+      output_names:
+        - output_one
+        - output_two
+
+  Node4:
+    properties:
+      pointer: node_with_one_reference
+      arguments:
+        arg_1: !Ref Node3.output_one
+
+
+
+
+

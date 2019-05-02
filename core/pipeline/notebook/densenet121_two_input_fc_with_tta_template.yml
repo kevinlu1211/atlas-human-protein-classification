@@ -9,6 +9,8 @@ Variables:
 # Data loading
 
 Resources:
+
+
   Preprocessing:
     CalculateMeanAndStdForDataset:
       properties:
@@ -28,7 +30,7 @@ Resources:
       properties:
         pointer: load_testing_data
         arguments:
-          use_n_samples: 500
+          use_n_samples: 5
           root_image_paths: !Var test_image_paths
         output_names:
           - test_X
@@ -37,7 +39,7 @@ Resources:
       properties:
         pointer: load_training_data
         arguments:
-          use_n_samples: 500
+          use_n_samples: 5
           root_image_paths: !Var train_image_paths
           root_label_paths: !Var train_label_paths
         output_names:
