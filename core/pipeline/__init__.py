@@ -6,6 +6,7 @@ import logging
 
 import networkx as nx
 
+from .pipeline import Pipeline
 
 class PipelineGraph:
 
