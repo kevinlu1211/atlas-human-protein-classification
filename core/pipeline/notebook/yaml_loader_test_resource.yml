@@ -20,7 +20,12 @@ Resources:
     - dict_1: !Var single_variable
     - dict_2: !Var list_variable
 
-  
+  TestNestedDictionaryReplacement:
+    Nest_1:
+      Nest_2:
+        hello: !Var single_variable
+
+
   MockReferenceForTest:
     output:
       - some_reference

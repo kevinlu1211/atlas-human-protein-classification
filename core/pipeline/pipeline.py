@@ -1,3 +1,4 @@
+import logging
 import functools
 from copy import deepcopy
 import networkx as nx
@@ -14,13 +15,13 @@ class Pipeline:
         }
 
     @classmethod
-    def create_graph_from_config(cls, config, lookups):
+    def create_from_config(cls, config, lookups):
         assert config.get("Resources") is not None, "There is no Resources key in the configuration file"
         graph = nx.DiGraph()
         flattened_resources = flatten_dict(config["Resources"])
         graph = cls._add_nodes_to_graph(graph, flattened_resources, lookups)
         graph = cls._add_edges_to_graph(graph)
-        return cls(graph, config, lookups)
+        return cls(graph, config)
 
     @staticmethod
     def _add_nodes_to_graph(graph, resources, lookups):
@@ -86,7 +87,10 @@ class Node:
         self.output = None
 
     def create_output(self):
-        assert self.output_names is not None, f"There are no outputs defined for node: {self.name}"
+        if self.output_names is None:
+            logging.warning(f"Node: {self.name} has no output")
+        else:
+            assert not isinstance(self.output_names, str), f"The output_names for node: {self.name} can't be a string, only a list"
         if self.partial:
             assert len(
                 self.output_names) == 1, "If the output of node: {self.name} is partial, then there should be one output, {len(self.output_names)} outputs are found"

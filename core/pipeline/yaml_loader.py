@@ -3,7 +3,9 @@ from copy import deepcopy
 from dataclasses import dataclass
 
 class PyTorchToolboxLoader(yaml.SafeLoader):
-    pass
+    @staticmethod
+    def replace_config_variables(config):
+        return replace_config_variables(config)
 
 
 def var_constructor(loader, node):
@@ -30,11 +32,8 @@ class Reference:
 
 def replace_config_variables(config, resource_key="Resources", variable_key="Variables"):
     config = deepcopy(config)
-    try:
-        replaced_resources = replace_variables(config[resource_key], config[variable_key])
-        config[resource_key] = replaced_resources
-    except KeyError:
-        return config
+    replaced_resources = replace_variables(config[resource_key], config[variable_key])
+    config[resource_key] = replaced_resources
     return config
 
 
@@ -46,6 +45,7 @@ def replace_variables(resources, variables):
         for i, resource in enumerate(resources):
             resources[i] = replace_variables(resource, variables)
     elif isinstance(resources, Variable):
+        assert resources.name in variables, f"The Variable: {resources.name} does not exist in the configuration file"
         resources = variables[resources.name]
     else:
         return resources
