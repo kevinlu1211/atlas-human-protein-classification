@@ -17,7 +17,7 @@ from torch.utils.data import WeightedRandomSampler
 from miniutils.progress_bar import parallel_progbar
 import scipy.optimize as opt
 
-from pytorch_toolbox.core.pipeline import Pipeline
+from pytorch_toolbox.core.pipeline import Pipeline, PyTorchToolboxLoader
 from pytorch_toolbox.core.training.learner import Learner
 from pytorch_toolbox.core.callbacks import callback_lookup, learner_callback_lookup
 from pytorch_toolbox.core.vision.utils import denormalize_fn_lookup, normalize_fn_lookup, tensor2img
@@ -42,8 +42,9 @@ from src.callbacks import OutputRecorder, ResultRecorder, OutputHookRecorder
 def main(config_file_path, log_level):
     set_logger(log_level)
     with Path(config_file_path).open("r") as f:
-        config = yaml.load(f)
-    pipeline_graph = Pipeline.create_pipeline_graph_from_config(config, lookups)
+        config = yaml.load(f, Loader=PyTorchToolboxLoader)
+        config = PyTorchToolboxLoader.replace_config_variables(config)
+    pipeline_graph = Pipeline.create_from_config(config, lookups)
     pipeline_graph.run()
 
 
@@ -169,6 +170,10 @@ def calculate_mean_and_std(img_path):
     return mean, std
 
 
+def create_split_indices(data_splitter, X, y):
+    return data_splitter.split(X, y)
+
+
 def create_data_bunch(train_idx, val_idx, train_X, train_y_one_hot, train_y, test_X, train_ds, train_bs, val_ds, val_bs,
                       test_ds, test_bs, sampler, num_workers):
     sampler = sampler(y=train_y[train_idx])
@@ -257,9 +262,9 @@ def get_layer_groups(model):
         return None
 
 
-def training_loop(create_learner, data_bunch_creator, config_saver, data_splitter_iterable, training_scheme,
+def training_loop(create_learner, data_bunch_creator, config_saver, split_indices, training_scheme,
                   record_results, state_dict):
-    for i, (train_idx, val_idx) in enumerate(data_splitter_iterable(), 1):
+    for i, (train_idx, val_idx) in enumerate(split_indices, 1):
         state_dict["current_fold"] = i
         config_saver()
         data = data_bunch_creator(train_idx, val_idx)
@@ -466,7 +471,8 @@ lookups = {
     "record_results": record_results,
     "save_config": save_config,
     "create_inference": create_inference,
-    "calculate_number_of_unique_classes": calculate_number_of_unique_classes
+    "calculate_number_of_unique_classes": calculate_number_of_unique_classes,
+    "create_split_indices": create_split_indices
 }
 
 if __name__ == '__main__':
