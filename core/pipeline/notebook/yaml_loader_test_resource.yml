@@ -3,6 +3,8 @@
 # Data loading
 
 Variables:
+  TestSingleVariableReplacement:
+    single_variable: pickaboo
   single_variable: hello
   list_variable:
     - foo
@@ -10,7 +12,7 @@ Variables:
 
 Resources:
   TestSingleVariableReplacement:
-    single_variable: !Var single_variable
+    single_variable: !Var TestSingleVariableReplacement.single_variable
   TestListVariableReplacement:
     list_variable: !Var list_variable
   TestVariableInListReplacement:

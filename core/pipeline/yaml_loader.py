@@ -2,6 +2,7 @@ import yaml
 from copy import deepcopy
 from dataclasses import dataclass
 
+
 class PyTorchToolboxLoader(yaml.SafeLoader):
     @staticmethod
     def replace_config_variables(config):
@@ -45,14 +46,27 @@ def replace_variables(resources, variables):
         for i, resource in enumerate(resources):
             resources[i] = replace_variables(resource, variables)
     elif isinstance(resources, Variable):
-        assert resources.name in variables, f"The Variable: {resources.name} does not exist in the configuration file"
-        resources = variables[resources.name]
+        if "." in resources.name:
+            resources = nested_variable_replacement(resources, variables)
+        else:
+            resources = variables[resources.name]
     else:
         return resources
     return resources
 
 
-# This tells the loader that when it sees "!Var" it will pass the value proceeding the !path value into the var constructor
+def nested_variable_replacement(resource, variables):
+    resource_name_and_variable_name = resource.name.split(".")
+    assert len(
+        resource_name_and_variable_name) == 2, f"{resource.name} is not in the correct format, there can only be one '.'"
+    resource_name, variable_name = resource_name_and_variable_name
+    return variables[resource_name][variable_name]
+
+
+# This tells the loader that when it sees "!Var"
+# it will pass the value proceeding the !path value into the var constructor
 PyTorchToolboxLoader.add_constructor('!Var', var_constructor)
-# This tells the loader that when it sees "!Ref" it will pass the value proceeding the !path value into the var constructor
+
+# This tells the loader that when it sees "!Ref"
+# it will pass the value proceeding the !path value into the var constructor
 PyTorchToolboxLoader.add_constructor('!Ref', ref_constructor)
