@@ -1,0 +1,497 @@
+# Training functions
+
+# Data loading
+
+Variables:
+  TestImagePaths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/test_combined
+  TrainImagePaths:
+    - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined
+    - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined_HPAv18
+  TrainLabelPaths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_all_no_dupes.csv
+
+Resources:
+  Data:
+    Loading:
+      LoadTestingData:
+        properties:
+          pointer: load_testing_data
+          arguments:
+            root_image_paths: !Var TestImagePaths
+          output_names: test_X
+
+      LoadTrainingData:
+        properties:
+          pointer: load_training_data
+          arguments:
+            root_image_paths: !Var TrainImagePaths
+            root_label_paths: !Var TrainLabelPaths
+          output_names:
+            - train_X
+            - train_y
+            - train_y_one_hot
+    Dataset:
+      CreateTrainingDataset:
+        properties:
+          output_names:
+            - TrainingDataset
+          partial: true
+          arguments:
+            augment_fn: !Ref CreateAugmentationFunction.AugmentationFunction
+            open_image_fn: !Ref CreateOpenImageFunction.OpenImageFunction
+            normalize_fn: !Ref CreateNormalizeFunction.NormalizeFunction
+          pointer: ProteinClassificationDataset
+
+      CreateValidationDataset:
+        properties:
+          pointer: ProteinClassificationDataset
+          partial: true
+          arguments:
+            augment_fn: !Ref CreateTestAugmentationFunction.TestAugmentationFunction
+            open_image_fn: !Ref CreateOpenImageFunction.OpenImageFunction
+            normalize_fn: !Ref CreateNormalizeFunction.NormalizeFunction
+            tta_fn: !Ref CreateFiveCropTTAFunction.FiveCropTTAFunction
+          output_names:
+            - ValidationDataset
+
+      CreateTestingDataset:
+        properties:
+          pointer: ProteinClassificationDataset
+          partial: true
+          arguments:
+            augment_fn: !Ref CreateTestAugmentationFunction.TestAugmentationFunction
+            open_image_fn: !Ref CreateOpenImageFunction.OpenImageFunction
+            normalize_fn: !Ref CreateNormalizeFunction.NormalizeFunction
+            tta_fn: !Ref CreateFiveCropTTAFunction.FiveCropTTAFunction
+          output_names:
+            - TestingDataset
+
+      CreateDataBunch:
+        properties:
+          pointer: create_data_bunch
+          partial: true
+          arguments:
+            train_X: !Ref LoadTrainingData.train_X
+            train_y_one_hot: !Ref LoadTrainingData.train_y_one_hot
+            train_y: !Ref LoadTrainingData.train_y
+            test_X: !Ref LoadTestingData.test_X
+            train_bs: !Var TrainBatchSize
+            test_bs: !Var ValBatchSize
+            val_bs: !Var TestVatchSize
+            train_ds: !Ref CreateTrainingDataset.TrainingDataset
+            val_ds: !Ref CreateValidationDataset.ValidationDataset
+            test_ds: !Ref CreateTestingDataset.TestingDataset
+            sampler: !Ref CreateSampler.Sampler
+            num_workers: !Var NumDataBunchWorkers
+          output_names:
+            - DataBunch
+    Sampling:
+      CreateSamplerFunction:
+        properties:
+          pointer: !Var SamplerFunctionName
+          partial: true
+          output_names:
+            - SamplerFunction
+
+      CreateSampler:
+        properties:
+          pointer: create_sampler
+          arguments:
+            sampler_fn: !Ref CreateSamplerFunction.SamplerFunction
+          partial: true
+          output_names:
+            - Sampler
+
+      CreateSplitIndices:
+        properties:
+          pointer: create_split_indices
+          arguments:
+            data_splitter: !Ref CreateDataSplitter.DataSplitter
+            X: !Ref LoadTrainingData.train_X
+            y: !Ref LoadTrainingData.train_y_one_hot
+          output_names:
+            - SplitIndices
+
+      CreateDataSplitter:
+        properties:
+          pointer: MultilabelStratifiedShuffleSplit
+          arguments:
+            n_splits: 5
+            test_size: 0.2
+            random_state: 6969
+          partial: true
+          output_names:
+            - DataSplitter
+  Image:
+    Loading:
+      CreateOpenImageFunction:
+        properties:
+          pointer: open_numpy
+          arguments:
+            with_image_wrapper: true
+          partial: true
+        output_names:
+          - OpenImageFunction
+
+    Augmentation:
+      CreateAugmentationFunction:
+        properties:
+          pointer: crop_rotate90_flip_brightness_elastic
+          arguments:
+            height: !Var TrainResizeHeight
+            width: !Var TrainResizeWidth
+            crop_height: !Var TrainCropHeight
+            crop_width: !Var TrainCropWidth
+            brightness_transform_p: !Var TrainBrightnessTransformProb
+            elastic_transform_p: !Var TrainElasticTransformProb
+            with_image_wrapper: true
+        output_names:
+          - AugmentationFunction
+
+      CreateTestAugmentationFunction:
+        properties:
+          pointer: resize_aug
+          arguments:
+            height: !Var TestResizeHeight
+            width: !Var TestResizeWidth
+            with_image_wrapper: true
+          output_names:
+            - TestAugmentationFunction
+
+      CreateFiveCropTTAFunction:
+        properties:
+          pointer: five_crop_tta_transform
+          partial: true
+          arguments:
+            crop_height: !Var FiveCropTTACropHeight
+            crop_width: !Var FiveCropTTACropWidth
+          output_names:
+            - FiveCropTTAFunction
+    Preprocessing:
+      CalculateMeanAndStdForDataset:
+        properties:
+          pointer: calculate_mean_and_std_for_dataset
+          arguments:
+            data_paths:
+              - !Ref LoadTrainingData.train_X
+              - !Ref LoadTestingData.test_X
+          output_names:
+            - mean
+            - std
+
+      CreateNormalizeFunction:
+        properties:
+          pointer: normalize
+          arguments:
+            mean: !Var NormalizeMean
+            std: !Var NormalizeStd
+          partial: true
+          output_names:
+            - NormalizeFunction
+
+      CreateDenormalizeFunction:
+        properties:
+          pointer: denormalize
+          callable_arguments:
+            mean: [12.14099732, 10.9779429,   5.46488976, 22.30204426]
+            std: [18.48077492, 17.25324061, 13.88083803, 32.78388995]
+          partial: true
+          output_names:
+            - DenormalizeFunction
+
+  #      CreateNormalizeFunction:
+  #        properties:
+  #          pointer: identity
+  #          partial: true
+  #          output_names:
+  #            - NormalizeFunction
+  #
+  #      CreateDenormalizeFunction:
+  #        properties:
+  #          pointer: identity
+  #          partial: true
+  #          output_names:
+  #            - DenormalizeFunction
+  Training:
+    RunTrainingLoop:
+      properties:
+        pointer: training_loop
+        arguments:
+          create_learner: !Ref CreateLearner.LearnerCreator
+          data_bunch_creator: !Ref.CreateDataBunch: DataBunch
+          config_saver: !Ref SaveConfiguration.ConfigSaver
+          data_splitter_iterable: !Ref CreateSplitIndices.SplitIndices
+          training_scheme: !Ref CreateTrainingScheme.TrainingScheme
+          record_results: !Ref RunRecordResults.ResultRecorder
+
+    #    CreateTrainingScheme:
+    #      properties:
+    #        pointer: training_scheme_one_cycle
+    #        arguments:
+    #          epochs: 80
+    #          lr: 8e-4
+    #        partial: true
+    #        output_names:
+    #          - TrainingScheme
+
+    CreateTrainingScheme:
+      properties:
+        pointer: training_scheme_multi_step
+        arguments:
+          epochs_for_step_for_hyperparameters: !Var EpochsForStepForHyperparameters
+          hyperparameter_values: !Var HyperparameterValues
+          hyperparameter_names: !Var HyperparameterNames
+          end_epoch: !Var EndEpoch
+        partial: true
+        output_names:
+          - TrainingScheme
+
+    CreateLearner:
+      properties:
+        pointer: create_learner
+        partial: true
+        arguments:
+          model_creator: !Ref CreateModel.Model
+          metrics:
+            - !Ref CreateAccuracyMetric.AccuracyMetric
+            - !Ref CreateF1SoftMetric.F1SoftMetric
+            - !Ref CreateFocalLossMetric.FocalLossMetric
+          loss_funcs:
+            - !Ref CreateLovaszHingeFlatLoss.LovaszHingeFlatLoss
+            #              - !Ref CreateSoftF1Loss.SoftF1Loss
+            - !Ref CreateFocalLoss.FocalLoss
+          callbacks_creator: !Ref CreateCallbacks.CallbacksCreator
+          callback_fns_creator: !Ref CreateLearnerCallbacks.LearnerCallbacksCreator
+          to_fp16: true
+        output_names:
+          - LearnerCreator
+
+    CreateModel:
+      properties:
+        pointer: !ModelName
+        arguments:
+          pretrained: !Var ModelPretrained
+        partial: true
+        output_names:
+          - Model
+
+    Metric:
+      CreateAccuracyMetric:
+        properties:
+          pointer: accuracy
+          partial: true
+          output_names:
+            - AccuracyMetric
+
+      CreateF1SoftMetric:
+        properties:
+          pointer: f1_soft
+          partial: true
+          output_names:
+            - F1SoftMetric
+
+      CreateFocalLossMetric:
+        properties:
+          pointer: focal_loss
+          partial: true
+          arguments:
+            gamma: 2
+        output_names:
+          - FocalLossMetric
+
+    Loss:
+      CreateFocalLoss:
+        properties:
+          pointer: FocalLoss
+          arguments:
+            gamma: 2
+        output_names:
+           - FocalLoss
+
+      CreateSoftF1Loss:
+        properties:
+          pointer: SoftF1Loss
+          output_names:
+            - SoftF1Loss
+
+      CreateLovaszHingeFlatLoss:
+        properties:
+          pointer: LovaszHingeFlatLoss
+          output_names:
+            - LovaszHingeFlatLoss
+
+  Callbacks:
+    CreateCallbacks:
+      properties:
+        pointer: create_callbacks
+        partial: true
+        arguments:
+          callback_references:
+            - !Ref CreateLabelExtractorCallback.LabelExtractorCallback
+            - !Ref CreateFiveCropTTAPredictionCallback.FiveCropTTAPredictionCallback
+        output_names:
+          - CallbacksCreator
+
+    CreateLearnerCallbacks:
+      properties:
+        pointer: create_learner_callbacks
+        partial: true
+        arguments:
+          learner_callback_references:
+            - !Ref CreateCSVLoggerLearnerCallback.CSVLoggerLearnerCallback
+            - !Ref CreateOutputRecorderLearnerCallback.OutputRecorderLearnerCallback
+            - !Ref CreateGradientClippingLearnerCallback.GradientClippingLearnerCallback
+            - !Ref CreateSaveModelCallback.SaveModelCallback
+            - !Ref CreateTensorBoardRecorderLearnerCallback.TensorBoardRecorder
+        output_names:
+          - LearnerCallbacksCreator
+
+    CreateLabelExtractorCallback:
+      properties:
+        pointer: LabelExtractorCallback
+        partial: true
+        output_names:
+          - LabelExtractorCallback
+
+    CreateSaveModelCallback:
+      properties:
+        pointer: SaveModelCallback
+        arguments:
+          monitor: val_focal_loss
+          save_path_creator: !Ref CreateTimeStampedSavePath.SavePathCreator
+        partial: true
+        output_names:
+          - SaveModelCallback
+
+
+    CreateCSVLoggerLearnerCallback:
+      properties:
+        pointer: create_csv_logger
+        partial: true
+        arguments:
+          save_path_creator: !Ref CreateTimeStampedSavePath.SavePathCreator
+        output_names:
+          - CSVLoggerLearnerCallback
+
+    CreateTensorBoardRecorderLearnerCallback:
+      properties:
+        pointer: TensorBoardRecorder
+        partial: true
+        arguments:
+          save_path_creator: !Ref CreateTimeStampedSavePath.SavePathCreator
+        output_names: TensorBoardRecorder
+
+    CreateOutputRecorderLearnerCallback:
+      properties:
+        pointer: create_output_recorder
+        partial: true
+        arguments:
+          save_path_creator: !Ref CreateTimeStampedSavePath.SavePathCreator
+          denormalize_fn: !Ref CreateDenormalizeFunction.DenormalizeFunction
+        output_names:
+          OutputRecorderLearnerCallback
+
+    CreateGradientClippingLearnerCallback:
+      properties:
+        pointer: GradientClipping
+        partial: true
+        arguments:
+          clip: 1.0
+        output_names:
+          GradientClippingLearnerCallback
+
+    CreateFiveCropTTAPredictionCallback:
+      properties:
+        pointer: FiveCropTTAPredictionCallback
+        arguments:
+          aggregate_mode: MAX
+        output_names: FiveCropTTAPredictionCallback
+
+
+  Output:
+    CreateTimeStampedSavePath:
+      properties:
+        pointer: create_time_stamped_save_path
+        partial: true
+        arguments:
+          save_path: !Var RootSavePathForTimeStampedSavePath
+        output_names:
+          - SavePathCreator
+
+    SaveConfiguration:
+      properties:
+        pointer: save_config
+        arguments:
+          save_path_creator: !Ref CreateTimeStampedSavePath.SavePathCreator
+        partial: true
+        output_names:
+          - ConfigSaver
+
+    CreateResultRecorder:
+      properties:
+        pointer: ResultRecorder
+        partial: true
+        output_names:
+          - ResultRecorderCreator
+
+    RunRecordResults:
+      properties:
+        pointer: record_results
+        arguments:
+          result_recorder_callback: !Ref CreateResultRecorder.ResultRecorderCreator
+          save_path_creator: !Ref CreateTimeStampedSavePath.SavePathCreator
+        partial: true
+        output_names:
+          - ResultRecorder
+
+
+  Inference:
+    CreateLearnerForInference:
+      properties:
+        pointer: create_learner
+        partial: true
+        arguments:
+          model_creator: !Ref CreateModel.Model
+          metrics:
+              - !Ref CreateAccuracyMetric.AccuracyMetric
+              - !Ref CreateF1SoftMetric.F1SoftMetric
+          loss_funcs:
+              - !Ref CreateLovaszHingeFlatLoss.LovaszHingeFlatLoss
+              - !Ref CreateFocalLoss.FocalLoss
+          callbacks_creator: !Ref CreateCallbacksForInference.CallbacksCreator
+          to_fp16: true
+          model_path: !Var InferenceModelPath
+        output_names:
+          - LearnerCreator
+
+    CreateCallbacksForInference:
+      properties:
+        pointer: create_callbacks
+        partial: true
+        arguments:
+          callback_references:
+              - !Ref CreateLabelExtractorCallback.LabelExtractorCallback
+              - !Ref CreateFiveCropTTAPredictionCallback.FiveCropTTAPredictionCallback
+        output_names:
+          - CallbacksCreator
+
+    CreateDataBunchForInference:
+      properties:
+        pointer: create_data_bunch_for_inference
+        arguments:
+          ds: !Ref CreateTestingDataset.TestingDataset
+          num_workers: 0
+        partial: true
+        output_names:
+          - DataBunchCreator
+
+    CreateInference:
+      properties:
+        pointer: create_inference
+        partial: true
+        arguments:
+          inference_data_bunch_creator: !Ref CreateDataBunchForInference.DataBunchCreator
+          inference_learner_creator: !Ref CreateLearnerForInference.LearnerCreator
+          result_recorder_callback: !Ref CreateResultRecorder.ResultRecorderCreator
+      output_names:
+         - Inference
+
