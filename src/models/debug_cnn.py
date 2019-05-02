@@ -1,7 +1,7 @@
 from pytorch_toolbox.core.training.utils import flatten_model, split_model_idx
 from .layers_and_init import *
 
-def debug_cnn():
+def debug_cnn(pretrained=None):
     model = nn.Sequential(
         nn.Conv2d(4, 32, kernel_size=3, stride=2, padding=1), nn.BatchNorm2d(32), nn.ReLU(),
         nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1), nn.BatchNorm2d(64), nn.ReLU(),

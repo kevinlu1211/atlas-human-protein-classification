@@ -1,10 +1,12 @@
 Variables:
   # Data
-  TestImagePaths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/test_combined
   TrainImagePaths:
     - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined
     - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined_HPAv18
   TrainLabelPaths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_all_no_dupes.csv
+  TrainSamplesToUse: 500
+  TestImagePaths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/test_combined
+  TestSamplesToUse: 500
   TrainBatchSize: 32
   ValBatchSize: 12
   TestBatchSize: 12
@@ -16,8 +18,8 @@ Variables:
   TrainResizeWidth: 768
   TrainCropHeight: 512
   TrainCropWidth: 512
-  TrainBrightnessTransformProb: 0
-  TrainElasticTransformProb: 0
+  TrainBrightnessTransformProb: 0.8
+  TrainElasticTransformProb: 0.8
   TestResizeHeight: 768
   TestResizeWidth: 768
   FiveCropTTACropHeight: 512
@@ -26,11 +28,25 @@ Variables:
   NormalizeStd: [18.48077492, 17.25324061, 13.88083803, 32.78388995]
 
   # Training
-  EpochsForStepForHyperparameters: [[0, 25, 30, 35, 40]]
-  HyperparameterValues: [[30e-5, 15e-5, 7.5e-5, 3e-5, 1e-5]]
-  HyperparameterNames: ["lr"]
-  EndEpoch: 200
-  ModelName: densenet121_four_channel_input_two_fc
+#  CreateTrainingScheme:
+#    TrainingSchemeName: training_scheme_multi_step
+#    EpochsForStepForHyperparameters: [[0, 25, 30, 35, 40]]
+#    HyperparameterValues: [[30e-5, 15e-5, 7.5e-5, 3e-5, 1e-5]]
+#    HyperparameterNames: ["lr"]
+#    EndEpoch: 60
+
+#  CreateTrainingScheme:
+#    EpochsForStepForHyperparameters: [[0]]
+#    HyperparameterValues: [[30e-5]]
+#    HyperparameterNames: ["lr"]
+#    EndEpoch: 2
+
+  CreateTrainingScheme:
+    TrainingSchemeName: training_scheme_one_cycle
+    LearningRate: [3e-5, 5e-5]
+    Epochs: 40
+
+  ModelName: debug_cnn
   ModelPretrained: true
 
   # Output
@@ -47,6 +63,7 @@ Resources:
           pointer: load_testing_data
           arguments:
             root_image_paths: !Var TestImagePaths
+            use_n_samples: !Var TestSamplesToUse
           output_names:
             - test_X
 
@@ -56,6 +73,7 @@ Resources:
           arguments:
             root_image_paths: !Var TrainImagePaths
             root_label_paths: !Var TrainLabelPaths
+            use_n_samples: !Var TrainSamplesToUse
           output_names:
             - train_X
             - train_y
@@ -239,14 +257,24 @@ Resources:
           training_scheme: !Ref CreateTrainingScheme.TrainingScheme
           record_results: !Ref RunRecordResults.ResultRecorder
 
+#    CreateTrainingScheme:
+#      properties:
+#        pointer: !Var CreateTrainingScheme.TrainingSchemeName
+#        arguments:
+#          epochs_for_step_for_hyperparameters: !Var CreateTrainingScheme.EpochsForStepForHyperparameters
+#          hyperparameter_values: !Var CreateTrainingScheme.HyperparameterValues
+#          hyperparameter_names: !Var CreateTrainingScheme.HyperparameterNames
+#          end_epoch: !Var CreateTrainingScheme.EndEpoch
+#        partial: true
+#        output_names:
+#          - TrainingScheme
+
     CreateTrainingScheme:
       properties:
-        pointer: training_scheme_multi_step
+        pointer: !Var CreateTrainingScheme.TrainingSchemeName
         arguments:
-          epochs_for_step_for_hyperparameters: !Var EpochsForStepForHyperparameters
-          hyperparameter_values: !Var HyperparameterValues
-          hyperparameter_names: !Var HyperparameterNames
-          end_epoch: !Var EndEpoch
+          lr: !Var CreateTrainingScheme.LearningRate
+          epochs: !Var CreateTrainingScheme.Epochs
         partial: true
         output_names:
           - TrainingScheme

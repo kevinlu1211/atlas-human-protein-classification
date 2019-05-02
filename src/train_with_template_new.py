@@ -266,11 +266,17 @@ def training_loop(create_learner, data_bunch_creator, config_saver, split_indice
                   record_results, state_dict):
     for i, (train_idx, val_idx) in enumerate(split_indices, 1):
         state_dict["current_fold"] = i
-        config_saver()
         data = data_bunch_creator(train_idx, val_idx)
         learner = create_learner(data)
         training_scheme(learner)
         record_results(learner)
+        update_config_for_inference_model_save_path(learner, state_dict)
+        config_saver()
+
+
+def update_config_for_inference_model_save_path(learner, state_dict):
+    best_model_save_path = learner.save_model_callback.save_path
+    state_dict["config"]["Variables"]["InferenceModelPath"] = best_model_save_path
 
 
 def save_config(save_path_creator, state_dict):
