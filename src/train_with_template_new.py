@@ -325,10 +325,11 @@ def create_predictions_for_dl(learner, result_recorder_callback, dl_type):
     result_recorder = learner.result_recorder
     names = np.stack(result_recorder.names)
     pred_probs = np.stack(result_recorder.prob_preds)
-    try:
-        targets = np.stack(result_recorder.targets)
-    except Exception:
+    targets = result_recorder.targets
+    if len(targets) == 0:
         targets = None
+    else:
+        targets = np.stack(targets)
     return names, pred_probs, targets
 
 

@@ -45,7 +45,7 @@ Variables:
   CreateTrainingScheme:
     TrainingSchemeName: training_scheme_one_cycle
     LearningRate: [3e-5, 5e-5]
-    Epochs: 2
+    Epochs: 1
 
   Model:
     Name: debug_cnn
