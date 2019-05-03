@@ -1,10 +1,9 @@
 import logging
 import functools
-from copy import deepcopy
 import networkx as nx
 
 from .yaml_loader import load_config_from_path
-from .graph_construction import flatten_dict, find_references, load_properties_with_default_values, replace_arguments
+from .graph_construction import flatten_resources_dict, find_references, load_properties_with_default_values, replace_arguments
 
 
 class Pipeline:
@@ -19,7 +18,7 @@ class Pipeline:
     def create_from_config(cls, config, lookups, state_dict={}):
         assert config.get("Resources") is not None, "There is no Resources key in the configuration file"
         graph = nx.DiGraph()
-        flattened_resources = flatten_dict(config["Resources"])
+        flattened_resources = flatten_resources_dict(config["Resources"])
         graph = cls._add_nodes_to_graph(graph, flattened_resources, lookups)
         graph = cls._add_edges_to_graph(graph)
         return cls(graph, config, state_dict)
@@ -78,7 +77,8 @@ class Pipeline:
             self._run_node(node)
 
     def _run_node(self, node):
-        replace_arguments(self.graph, self.state_dict, node)
+        reference_replaced_arguments = replace_arguments(self.graph, self.state_dict, node)
+        node.reference_replaced_arguments.update(**reference_replaced_arguments)
         node.create_output()
 
 
@@ -90,7 +90,7 @@ class Node:
         self.arguments = arguments
         self.output_names = output_names
         self.partial = partial
-        self.reference_replaced_arguments = None
+        self.reference_replaced_arguments = {}
         self.output = None
 
     def create_output(self):
