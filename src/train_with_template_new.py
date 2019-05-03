@@ -43,6 +43,7 @@ from src.callbacks import OutputRecorder, ResultRecorder, OutputHookRecorder
 def main(config_file_path, log_level):
     set_logger(log_level)
     pipeline_graph = Pipeline.create_from_config_path(config_file_path, lookups)
+    print(pipeline_graph.sorted_node_names)
     # with Path(config_file_path).open("r") as f:
     #     config = yaml.load(f, Loader=PyTorchToolboxLoader)
     #     config = PyTorchToolboxLoader.replace_config_variables(config)
@@ -272,21 +273,22 @@ def training_loop(create_learner, data_bunch_creator, config_saver, split_indice
         learner = create_learner(data)
         training_scheme(learner)
         record_results(learner)
-        update_config_for_inference_model_save_path(learner, state_dict)
-        config_saver()
+        config_saver(learner)
 
 
-def update_config_for_inference_model_save_path(learner, state_dict):
+def update_config_for_inference_model_save_path(root_save_path, learner, state_dict):
     best_model_save_path = learner.save_model_callback.save_path
     state_dict["raw_config"]["Variables"]["InferenceModelPath"] = str(best_model_save_path)
 
 
-def save_config(save_path_creator, state_dict):
+def save_config(learner, save_path_creator, state_dict):
+    root_save_path = save_path_creator()
+    update_config_for_inference_model_save_path(root_save_path, learner, state_dict)
     config = state_dict["raw_config"]
-    save_path = save_path_creator() / "config.yml"
-    save_path.parent.mkdir(parents=True, exist_ok=True)
-    logging.info(f"Configuration file is saved at: {save_path}")
-    dump_config_to_path(config, save_path=save_path)
+    config_save_path = root_save_path / "config.yml"
+    config_save_path.parent.mkdir(parents=True, exist_ok=True)
+    logging.info(f"Configuration file is saved at: {config_save_path}")
+    dump_config_to_path(config, save_path=root_save_path)
 
 
 def record_results(learner, result_recorder_callback, save_path_creator):
@@ -429,6 +431,28 @@ def fit_val(x, y):
     return p
 
 
+def create_inference_model_save_path(relative_model_save_path, local_root_save_path, docker_root_save_path):
+    local_save_path = Path(local_root_save_path) / Path(relative_model_save_path)
+    docker_save_path = Path(docker_root_save_path) / Path(relative_model_save_path)
+    if local_save_path.exists():
+        return local_save_path
+    elif docker_save_path.exists():
+        return docker_save_path
+    else:
+        logging.error(
+            f"Local save path: {str(local_save_path)} not found \nDocker save path: {str(docker_save_path)} not found")
+        raise FileNotFoundError
+
+
+def check_if_run_inference_model_save_path(relative_model_save_path, local_root_save_path, docker_root_save_path):
+    if relative_model_save_path is None:
+        return False
+    if local_root_save_path is not None or docker_root_save_path is not None:
+        return True
+    else:
+        return False
+
+
 def create_inference(image, inference_data_bunch_creator, inference_learner_creator,
                      result_recorder_callback):
     inference_data_bunch = inference_data_bunch_creator([Image(image)])
@@ -465,6 +489,8 @@ lookups = {
     **learner_callback_lookup,
     **training_scheme_lookup,
     "open_numpy": open_numpy,
+    "check_if_run_inference_model_save_path": check_if_run_inference_model_save_path,
+    "create_inference_model_save_path": create_inference_model_save_path,
     "load_training_data_for_metric_learning": load_training_data_for_metric_learning,
     "load_training_data": load_training_data,
     "load_testing_data": load_testing_data,

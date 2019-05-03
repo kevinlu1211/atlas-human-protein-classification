@@ -55,7 +55,10 @@ Variables:
   RootSavePathForTimeStampedSavePath: /media/hd/Kaggle/human-protein-image-classification/results
 
   #Inference
-  InferenceModelPath: null
+  Inference:
+    RelativeModelSavePath: null
+    LocalRootSavePath: null
+    DockerRootSavePath: /app/model_artifacts/
 
 Resources:
   Data:
@@ -483,6 +486,27 @@ Resources:
 
 
   Inference:
+    CheckIfRunInferenceModelSavePath:
+      properties:
+        pointer: check_if_run_inference_model_save_path
+        arguments:
+          relative_model_save_path: !Var Inference.RelativeModelSavePath
+          local_root_save_path: !Var Inference.LocalRootSavePath
+          docker_root_save_path: !Var Inference.DockerRootSavePath
+        output_names:
+          - ShouldRun
+
+    CreateInferenceModelSavePath:
+      properties:
+        pointer: create_inference_model_save_path
+        should_run: !Ref CheckIfRunInferenceModelSavePath.ShouldRun
+        arguments:
+          relative_model_save_path: !Var Inference.RelativeModelSavePath
+          local_root_save_path: !Var Inference.LocalRootSavePath
+          docker_root_save_path: !Var Inference.DockerRootSavePath
+        output_names:
+          - Path
+
     CreateLearnerForInference:
       properties:
         pointer: create_learner
@@ -497,7 +521,7 @@ Resources:
             - !Ref CreateFocalLoss.FocalLoss
           callbacks_creator: !Ref CreateCallbacksForInference.CallbacksCreator
           to_fp16: true
-          model_path: !Var InferenceModelPath
+          model_path: !Ref CreateInferenceModelSavePath.Path
         output_names:
           - LearnerCreator
 

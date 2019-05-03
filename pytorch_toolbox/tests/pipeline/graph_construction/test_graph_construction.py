@@ -151,4 +151,3 @@ def test_replace_references():
         "arg2": 2
     }
 
-    pass

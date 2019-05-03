@@ -42,6 +42,10 @@ def replace_arguments(graph, state_dict, node):
         return {}
 
 
+def replace_should_run(graph, node):
+    return replace_references(graph, deepcopy(node.should_run))
+
+
 def replace_references(graph, arguments):
     if isinstance(arguments, dict):
         for name, argument in arguments.items():
@@ -69,5 +73,6 @@ def load_properties_with_default_values(properties, lookups):
         "pointer": lookups[pointer_name],
         "partial": properties.get("partial", False),
         "arguments": properties.get("arguments", {}),
-        "output_names": properties.get("output_names")
+        "output_names": properties.get("output_names"),
+        "should_run": properties.get("should_run", True)
     }
