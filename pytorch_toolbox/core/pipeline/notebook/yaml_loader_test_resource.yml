@@ -12,6 +12,8 @@ Variables:
 
 Resources:
   TestSingleVariableReplacement:
+    single_variable: !Var single_variable
+  TestNestedSingleVariableReplacement:
     single_variable: !Var TestSingleVariableReplacement.single_variable
   TestListVariableReplacement:
     list_variable: !Var list_variable
@@ -28,17 +30,4 @@ Resources:
         hello: !Var single_variable
 
 
-  MockReferenceForTest:
-    output:
-      - some_reference
-  
-  TestFindReference:
-    ref_var: !Ref MockReferenceForTest.some_reference
-  
-  TestFindReferenceInList:
-      - !Ref MockReferenceForTest.some_reference
-  
-  TestFindReferenceInListOfDictionary:
-    ref_var_in_list_of_dictionary:
-      - key_1: !Ref MockReferenceForTest.some_reference
 

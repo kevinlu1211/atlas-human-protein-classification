@@ -1,4 +1,5 @@
 Variables:
+
   # Data
   TrainImagePaths:
     - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined

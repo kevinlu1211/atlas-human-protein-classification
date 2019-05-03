@@ -7,7 +7,7 @@ import logging
 import networkx as nx
 
 from .pipeline import Pipeline
-from .yaml_loader import PyTorchToolboxLoader
+from .yaml_loader import load_config, save_config, load_config_with_variable_replacement
 
 class PipelineGraph:
 
