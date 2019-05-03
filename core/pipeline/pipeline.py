@@ -3,25 +3,32 @@ import functools
 from copy import deepcopy
 import networkx as nx
 
+from .yaml_loader import load_config_from_path
 from .graph_construction import flatten_dict, find_references, load_properties_with_default_values, replace_arguments
 
 
 class Pipeline:
-    def __init__(self, graph, config):
+    def __init__(self, graph, config, state_dict={}):
         self.graph = graph
         self.config = config
         self.state_dict = {
-            "config": deepcopy(config)
+            **state_dict
         }
 
     @classmethod
-    def create_from_config(cls, config, lookups):
+    def create_from_config(cls, config, lookups, state_dict={}):
         assert config.get("Resources") is not None, "There is no Resources key in the configuration file"
         graph = nx.DiGraph()
         flattened_resources = flatten_dict(config["Resources"])
         graph = cls._add_nodes_to_graph(graph, flattened_resources, lookups)
         graph = cls._add_edges_to_graph(graph)
-        return cls(graph, config)
+        return cls(graph, config, state_dict)
+
+    @classmethod
+    def create_from_config_path(cls, config_path, lookups):
+        raw_config = load_config_from_path(config_path)
+        replaced_config = load_config_from_path(config_path, with_variable_replacement=True)
+        return cls.create_from_config(replaced_config, lookups, state_dict=dict(raw_config=raw_config))
 
     @staticmethod
     def _add_nodes_to_graph(graph, resources, lookups):
