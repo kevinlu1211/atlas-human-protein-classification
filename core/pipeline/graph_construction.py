@@ -4,33 +4,14 @@ from copy import deepcopy
 from .yaml_loader import Reference
 
 
-def flatten_dict(d):
+def flatten_resources_dict(d):
     flattened = dict()
     for k, v in d.items():
         if v.get("properties") is not None:
             flattened.update(**{k: v})
         else:
-            flattened.update(**flatten_dict(v))
+            flattened.update(**flatten_resources_dict(v))
     return flattened
-
-
-# d = {
-#     "A": {
-#          "B": {
-#              "C": {
-#                  "properties": "WOW"
-#              }
-#          }
-#     },
-#     "D": {
-#         "E": {
-#             "properties": "NOW"
-#         }
-#     },
-#     "F": {
-#         "properties": "NOW"
-#     },
-# }
 
 
 def find_references(resource):
@@ -56,10 +37,9 @@ def replace_arguments(graph, state_dict, node):
             reference_replaced_arguments = replace_references(graph, deepcopy(arguments))
             if needs_state_dict:
                 reference_replaced_arguments["state_dict"] = state_dict
-            node.reference_replaced_arguments = reference_replaced_arguments
+            return reference_replaced_arguments
     except AttributeError as e:
-        print(e)
-        pass
+        return {}
 
 
 def replace_references(graph, arguments):

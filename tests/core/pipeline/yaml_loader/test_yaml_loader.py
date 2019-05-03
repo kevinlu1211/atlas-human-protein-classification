@@ -1,4 +1,34 @@
-from core.pipeline import load_config_from_string
+from core.pipeline.yaml_loader import load_config_from_string, Reference, Variable
+
+
+def test_load_reference():
+    document = """
+    Resources:
+      ResourceBar:
+        arg1: !Ref Foo.Bar
+    """
+
+    config = load_config_from_string(document, with_variable_replacement=False)
+    assert config == {
+        'Resources': {'ResourceBar': {'arg1': Reference(ref_node_name="Foo", output_name="Bar")}}
+    }
+
+
+def test_load_variable():
+    document = """
+    Variables:
+      ResourceBarVar:
+        Bar: bar
+    Resources:
+      ResourceBar:
+        arg1: !Var ResourceBarVar.Bar
+    """
+
+    config = load_config_from_string(document, with_variable_replacement=False)
+    assert config == {
+        'Variables': {'ResourceBarVar': {'Bar': 'bar'}},
+        'Resources': {'ResourceBar': {'arg1': Variable(variable_group="ResourceBarVar", variable_name="Bar")}}
+    }
 
 
 def test_variable_replacement():

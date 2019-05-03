@@ -1,4 +1,5 @@
 # Pytorch Toolbox
 
-This code is based heavily of off FastAI, though I have made some modifications and implemented some new functionality
+The concept of callbacks is based of off FastAI's code so I have borrow some code from there especially in the learning 
+module.
 
