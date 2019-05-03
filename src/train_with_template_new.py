@@ -17,7 +17,8 @@ from torch.utils.data import WeightedRandomSampler
 from miniutils.progress_bar import parallel_progbar
 import scipy.optimize as opt
 
-from pytorch_toolbox.core.pipeline import Pipeline, PyTorchToolboxLoader
+from pytorch_toolbox.core.pipeline import Pipeline, dump_config_to_path, dump_config_to_string, load_config_from_path, \
+    load_config_from_string
 from pytorch_toolbox.core.training.learner import Learner
 from pytorch_toolbox.core.callbacks import callback_lookup, learner_callback_lookup
 from pytorch_toolbox.core.vision.utils import denormalize_fn_lookup, normalize_fn_lookup, tensor2img
@@ -41,10 +42,11 @@ from src.callbacks import OutputRecorder, ResultRecorder, OutputHookRecorder
 @click.option('-log-lvl', '--log_level', default="INFO")
 def main(config_file_path, log_level):
     set_logger(log_level)
-    with Path(config_file_path).open("r") as f:
-        config = yaml.load(f, Loader=PyTorchToolboxLoader)
-        config = PyTorchToolboxLoader.replace_config_variables(config)
-    pipeline_graph = Pipeline.create_from_config(config, lookups)
+    pipeline_graph = Pipeline.create_from_config_path(config_file_path, lookups)
+    # with Path(config_file_path).open("r") as f:
+    #     config = yaml.load(f, Loader=PyTorchToolboxLoader)
+    #     config = PyTorchToolboxLoader.replace_config_variables(config)
+    # pipeline_graph = Pipeline.create_from_config(config, lookups)
     pipeline_graph.run()
 
 
@@ -276,15 +278,15 @@ def training_loop(create_learner, data_bunch_creator, config_saver, split_indice
 
 def update_config_for_inference_model_save_path(learner, state_dict):
     best_model_save_path = learner.save_model_callback.save_path
-    state_dict["config"]["Variables"]["InferenceModelPath"] = best_model_save_path
+    state_dict["raw_config"]["Variables"]["InferenceModelPath"] = str(best_model_save_path)
 
 
 def save_config(save_path_creator, state_dict):
+    config = state_dict["raw_config"]
     save_path = save_path_creator() / "config.yml"
     save_path.parent.mkdir(parents=True, exist_ok=True)
     logging.info(f"Configuration file is saved at: {save_path}")
-    with save_path.open('w') as yaml_file:
-        yaml.dump(state_dict["config"], yaml_file, default_flow_style=False)
+    dump_config_to_path(config, save_path=save_path)
 
 
 def record_results(learner, result_recorder_callback, save_path_creator):

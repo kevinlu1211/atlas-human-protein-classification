@@ -5,13 +5,13 @@ Variables:
     - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined
     - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined_HPAv18
   TrainLabelPaths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_all_no_dupes.csv
-  TrainSamplesToUse: 500
+  TrainSamplesToUse: 100
   TestImagePaths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/test_combined
-  TestSamplesToUse: 500
+  TestSamplesToUse: 50
   TrainBatchSize: 32
   ValBatchSize: 12
   TestBatchSize: 12
-  NumDataBunchWorkers: 28
+  NumDataBunchWorkers: 0
   SamplerFunctionName: uniform_weights
 
   # Image & Augmentation
@@ -45,10 +45,11 @@ Variables:
   CreateTrainingScheme:
     TrainingSchemeName: training_scheme_one_cycle
     LearningRate: [3e-5, 5e-5]
-    Epochs: 40
+    Epochs: 2
 
-  ModelName: debug_cnn
-  ModelPretrained: true
+  Model:
+    Name: debug_cnn
+    Pretrained: False
 
   # Output
   RootSavePathForTimeStampedSavePath: /media/hd/Kaggle/human-protein-image-classification/results
@@ -302,9 +303,9 @@ Resources:
 
     CreateModel:
       properties:
-        pointer: !Var ModelName
+        pointer: !Var Model.Name
         arguments:
-          pretrained: !Var ModelPretrained
+          pretrained: !Var Model.Pretrained
         partial: true
         output_names:
           - Model

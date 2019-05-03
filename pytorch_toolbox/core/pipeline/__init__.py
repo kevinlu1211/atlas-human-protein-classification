@@ -7,7 +7,8 @@ import logging
 import networkx as nx
 
 from .pipeline import Pipeline
-from .yaml_loader import load_config, save_config, load_config_with_variable_replacement
+from .yaml_loader import load_config_from_string, load_config_from_path, dump_config_to_string, dump_config_to_path
+
 
 class PipelineGraph:
 
@@ -40,9 +41,9 @@ class PipelineGraph:
             return PipelineGraph(graph=pipeline_graph, config=config)
         except RuntimeError as e:
             logging.error(e)
-            logging.error(f"Try checking if the Refs in node {node} is referencing a valid node. This is most likely a spelling mistake in the reference node")
+            logging.error(
+                f"Try checking if the Refs in node {node} is referencing a valid node. This is most likely a spelling mistake in the reference node")
             exit(1)
-
 
     def get_node(self, name):
         return self.graph.nodes(data=True)[name]
