@@ -3,8 +3,8 @@ from dataclasses import dataclass
 
 import torch
 
-from pytorch_toolbox.core.utils import Phase
-from pytorch_toolbox.core.callbacks import Callback
+from core.utils import Phase
+from core.callbacks import Callback
 
 
 @dataclass

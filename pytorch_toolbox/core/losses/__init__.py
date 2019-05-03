@@ -1,9 +1,9 @@
 from functools import partial
 from .core import BaseLoss, LossWrapper
-from pytorch_toolbox.core.losses.arcface_loss import ArcFaceLoss
-from pytorch_toolbox.core.losses.lovasz_loss import LovaszHingeFlatLoss
-from pytorch_toolbox.core.losses.soft_f_score_loss import SoftFScoreLoss
-from pytorch_toolbox.core.losses.focal_loss import FocalLoss
+from .arcface_loss import ArcFaceLoss
+from .lovasz_loss import LovaszHingeFlatLoss
+from .soft_f_score_loss import SoftFScoreLoss
+from .focal_loss import FocalLoss
 
 loss_lookup = {
     "ArcFaceLoss": ArcFaceLoss,

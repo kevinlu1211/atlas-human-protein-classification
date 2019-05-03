@@ -1,5 +1,5 @@
-from pytorch_toolbox.core.defaults import TensorOrNumber, Any
-from pytorch_toolbox.core.callbacks import LearnerCallback, annealing_exp, Scheduler
+from core.defaults import TensorOrNumber, Any
+from core.callbacks import LearnerCallback, annealing_exp, Scheduler
 
 
 class LRFinder(LearnerCallback):

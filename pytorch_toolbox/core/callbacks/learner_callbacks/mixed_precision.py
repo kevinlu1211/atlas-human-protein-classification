@@ -1,9 +1,9 @@
 from torch._utils import _unflatten_dense_tensors
 from torch.nn.utils import parameters_to_vector
 
-from pytorch_toolbox.core.callbacks import Callback
-from pytorch_toolbox.core.defaults import *
-from pytorch_toolbox.core.training.utils import split_layers_into_batch_norm_and_non_batch_norm
+from core.callbacks import Callback
+from core.defaults import *
+from core.training.utils import split_layers_into_batch_norm_and_non_batch_norm
 
 
 def get_master(layer_groups: ModuleList, flat_master: bool = False) -> Tuple[List[List[Tensor]], List[List[Tensor]]]:

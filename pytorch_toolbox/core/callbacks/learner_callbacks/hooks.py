@@ -1,10 +1,10 @@
 from abc import abstractmethod
 import torch.nn as nn
 
-from pytorch_toolbox.core.callbacks import LearnerCallback
-from pytorch_toolbox.core.utils import is_listy
-from pytorch_toolbox.core.training.utils import flatten_model
-from pytorch_toolbox.core.defaults import Tensor, Tensors, Collection, Sequence, HookFunc
+from core.callbacks import LearnerCallback
+from core.utils import is_listy
+from core.training.utils import flatten_model
+from core.defaults import Tensor, Tensors, Collection, Sequence, HookFunc
 
 
 class HookCallback(LearnerCallback):

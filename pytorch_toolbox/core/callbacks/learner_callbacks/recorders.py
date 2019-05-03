@@ -9,9 +9,9 @@ from matplotlib import pyplot as plt
 from torch import Tensor
 from tensorboardX import SummaryWriter
 
-from pytorch_toolbox.core.callbacks import LearnerCallback
-from pytorch_toolbox.core.defaults import PBar, MetricsList, TensorOrNumberList, Callable, Optional
-from pytorch_toolbox.core.utils import range_of, to_numpy, camel2snake, Phase, listify
+from core.callbacks import LearnerCallback
+from core.defaults import PBar, MetricsList, TensorOrNumberList, Callable, Optional
+from core.utils import range_of, to_numpy, camel2snake, Phase, listify
 
 
 class BaseRecorder(LearnerCallback):
