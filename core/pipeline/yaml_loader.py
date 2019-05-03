@@ -3,6 +3,9 @@ import yaml
 from copy import deepcopy
 from dataclasses import dataclass
 
+RESOURCE_KEY = "Resources"
+VARIABLE_KEY = "Variables"
+
 
 class PyTorchToolboxLoader(yaml.SafeLoader):
     pass
@@ -55,7 +58,7 @@ def ref_constructor(loader, node):
 
 def ref_representer(dumper, data):
     value = f"{data.ref_node_name}.{data.output_name}"
-    return dumper.represent_scalar('!Var', f"{value}")
+    return dumper.represent_scalar('!Ref', f"{value}")
 
 
 def replace_config_variables(config, resource_key, variable_key):
@@ -97,7 +100,7 @@ PyTorchToolboxDumper.add_representer(Reference, ref_representer)
 def load_config_from_string(config_string, with_variable_replacement=False):
     config = yaml.load(config_string, Loader=PyTorchToolboxLoader)
     if with_variable_replacement:
-        config = replace_config_variables(config)
+        config = replace_config_variables(config, resource_key=RESOURCE_KEY, variable_key=VARIABLE_KEY)
     return config
 
 
@@ -107,6 +110,10 @@ def load_config_from_path(path, with_variable_replacement=False):
     return config
 
 
-def save_config(config, save_path):
+def dump_config_to_string(config):
+    return yaml.dump(config, Dumper=PyTorchToolboxDumper, default_flow_style=False)
+
+
+def dump_config_to_path(config, save_path):
     with save_path.open('w') as yaml_file:
         yaml.dump(config, yaml_file, Dumper=PyTorchToolboxDumper, default_flow_style=False)
