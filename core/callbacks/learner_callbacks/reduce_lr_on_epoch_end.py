@@ -3,8 +3,8 @@ from pathlib import Path
 
 import pandas as pd
 
-from pytorch_toolbox.core.defaults import Callable, Optional
-from pytorch_toolbox.core.callbacks import TrackerCallback
+from core.defaults import Callable, Optional
+from core.callbacks import TrackerCallback
 
 
 class ReduceLROnEpochEndCallback(TrackerCallback):

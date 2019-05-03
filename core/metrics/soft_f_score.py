@@ -1,8 +1,8 @@
 import numpy as np
 import torch
 
-from pytorch_toolbox.core.losses.soft_f_score_loss import calculate_soft_f_score_loss
-from pytorch_toolbox.core.utils import to_numpy
+from core.losses.soft_f_score_loss import calculate_soft_f_score_loss
+from core.utils import to_numpy
 
 
 def sigmoid_np(x):

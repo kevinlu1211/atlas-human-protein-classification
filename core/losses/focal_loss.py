@@ -1,6 +1,6 @@
 from torch.nn import functional as F
 
-from pytorch_toolbox.core.losses import BaseLoss
+from core.losses import BaseLoss
 
 
 class FocalLoss(BaseLoss):

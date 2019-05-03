@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from pytorch_toolbox.core.callbacks import Callback
+from core.callbacks import Callback
 
 
 @dataclass

@@ -1,8 +1,8 @@
 from torch import optim
 
-from pytorch_toolbox.core.defaults import ModuleList, Floats, Union, Callable, Tuple, List, Any, Collection
-from pytorch_toolbox.core.utils import listify, is_tuple
-from pytorch_toolbox.core.training.utils import split_layers_into_batch_norm_and_non_batch_norm, trainable_params
+from core.defaults import ModuleList, Floats, Union, Callable, Tuple, List, Any, Collection
+from core.utils import listify, is_tuple
+from core.training.utils import split_layers_into_batch_norm_and_non_batch_norm, trainable_params
 
 
 class OptimizerWrapper:

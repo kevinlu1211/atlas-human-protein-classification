@@ -1,8 +1,8 @@
 import numpy as np
 
-from pytorch_toolbox.core.defaults import Floats, StartOptEnd, Any
-from pytorch_toolbox.core.callbacks.core import Callback, annealing_linear, annealing_cos, Scheduler
-from pytorch_toolbox.core.utils import listify, is_listy, Phase
+from core.defaults import Floats, StartOptEnd, Any
+from core.callbacks.core import Callback, annealing_linear, annealing_cos, Scheduler
+from core.utils import listify, is_listy, Phase
 
 
 class OneCycleScheduler(Callback):

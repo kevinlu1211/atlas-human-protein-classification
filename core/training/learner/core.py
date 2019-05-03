@@ -10,14 +10,14 @@ import numpy as np
 from fastprogress import progress_bar, master_bar
 from miniutils import progbar
 
-from pytorch_toolbox.core.training.learner.train import fit_one_cycle, fit_multi_step, lr_find, to_fp16
-from pytorch_toolbox.core.callbacks import Callback, CallbackList, CallbackHandler, Recorder
-from pytorch_toolbox.core.data import DataBunch
-from pytorch_toolbox.core.defaults import Floats, default_lr, bn_types, LossFunction, OptionalMetrics, \
+from core.training.learner.train import fit_one_cycle, fit_multi_step, lr_find, to_fp16
+from core.callbacks import Callback, CallbackList, CallbackHandler, Recorder
+from core.data import DataBunch
+from core.defaults import Floats, default_lr, bn_types, LossFunction, OptionalMetrics, \
     OptionalLossFunction, PBar, OptionalOptimizer
-from pytorch_toolbox.core.training.optimizer import OptimizerWrapper
-from pytorch_toolbox.core.utils import listify, if_none, is_listy, to_numpy, even_mults, Phase
-from pytorch_toolbox.core.training.utils import flatten_model, to_detach, requires_grad
+from core.training.optimizer import OptimizerWrapper
+from core.utils import listify, if_none, is_listy, to_numpy, even_mults, Phase
+from core.training.utils import flatten_model, to_detach, requires_grad
 
 AdamW = partial(Adam, betas=(0.9, 0.99))
 

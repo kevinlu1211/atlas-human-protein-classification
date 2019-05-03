@@ -3,8 +3,8 @@ from typing import Optional
 import torch
 from torch import nn, Tensor
 
-from pytorch_toolbox.core.defaults import Tensors, default_hardware, ModuleList, ParamList, List
-from pytorch_toolbox.core.utils import if_none, is_listy
+from core.defaults import Tensors, default_hardware, ModuleList, ParamList, List
+from core.utils import if_none, is_listy
 
 
 def split_model_idx(model: nn.Module, idxs: List[int]) -> ModuleList:

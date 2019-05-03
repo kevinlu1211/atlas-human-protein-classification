@@ -1,7 +1,7 @@
 import re
 from enum import Enum
 
-from pytorch_toolbox.core.defaults import *
+from core.defaults import *
 
 
 def to_numpy(t):

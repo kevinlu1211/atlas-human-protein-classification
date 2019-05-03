@@ -3,8 +3,8 @@ from typing import Callable, Any, Optional
 import torch
 from torch.utils.data import Dataset, DataLoader
 
-from pytorch_toolbox.core.training.utils import to_device
-from pytorch_toolbox.core.defaults import default_collate, default_hardware
+from core.training.utils import to_device
+from core.defaults import default_collate, default_hardware
 
 
 class DeviceDataLoader:

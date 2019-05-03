@@ -2,7 +2,7 @@ from abc import abstractmethod
 
 import torch.nn as nn
 
-from pytorch_toolbox.core.utils import camel2snake
+from core.utils import camel2snake
 
 
 class LossWrapper(nn.Module):

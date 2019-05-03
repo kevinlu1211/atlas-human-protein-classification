@@ -3,7 +3,7 @@ from collections import defaultdict
 import torch
 from torch.nn import functional as F
 
-from pytorch_toolbox.core.defaults import default_hardware
+from core.defaults import default_hardware
 
 
 class SoftDiceLoss:
