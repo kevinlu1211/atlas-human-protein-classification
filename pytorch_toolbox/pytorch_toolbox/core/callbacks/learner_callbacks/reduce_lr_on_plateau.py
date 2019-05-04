@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from pytorch_toolbox.core import TrackerCallback
+from pytorch_toolbox.core.callbacks import TrackerCallback
 
 
 @dataclass

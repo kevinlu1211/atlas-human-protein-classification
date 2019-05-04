@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 
-from pytorch_toolbox.core import calculate_soft_f_score_loss
+from pytorch_toolbox.core.losses import calculate_soft_f_score_loss
 from pytorch_toolbox.core.utils import to_numpy
 
 

@@ -5,6 +5,7 @@ from typing import Optional, Dict, Any, Iterator, Iterable, Sequence, Union, Cal
 
 import numpy as np
 import torch
+import torch.utils.data
 from fastprogress.fastprogress import MasterBar, ProgressBar
 from torch import nn as nn, optim, Tensor
 

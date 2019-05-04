@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from pytorch_toolbox.core import BaseLoss
+from pytorch_toolbox.core.losses import BaseLoss
 from pytorch_toolbox.core.utils import to_numpy
 from pytorch_toolbox.core.defaults import default_hardware
 

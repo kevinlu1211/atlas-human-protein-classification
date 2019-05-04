@@ -251,7 +251,7 @@ def mean(l, ignore_nan=True, empty=0):
     return acc / n
 
 
-from pytorch_toolbox.core import BaseLoss
+from pytorch_toolbox.core.losses import BaseLoss
 
 
 class LovaszHingeFlatLoss(BaseLoss):

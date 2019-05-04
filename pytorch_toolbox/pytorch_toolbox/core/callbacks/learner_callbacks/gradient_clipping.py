@@ -1,6 +1,6 @@
 import torch.nn as nn
 
-from pytorch_toolbox.core import LearnerCallback
+from pytorch_toolbox.core.callbacks import LearnerCallback
 
 
 class GradientClipping(LearnerCallback):

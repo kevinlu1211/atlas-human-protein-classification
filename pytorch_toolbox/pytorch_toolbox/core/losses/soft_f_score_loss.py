@@ -1,6 +1,6 @@
 import torch
 
-from pytorch_toolbox.core import BaseLoss
+from pytorch_toolbox.core.losses import BaseLoss
 
 from torch.nn import functional as F
 

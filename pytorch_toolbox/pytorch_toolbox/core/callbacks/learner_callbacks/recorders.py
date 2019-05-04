@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 from torch import Tensor
 from tensorboardX import SummaryWriter
 
-from pytorch_toolbox.core import LearnerCallback
+from pytorch_toolbox.core.callbacks import LearnerCallback
 from pytorch_toolbox.core.defaults import PBar, MetricsList, TensorOrNumberList, Callable, Optional
 from pytorch_toolbox.core.utils import range_of, to_numpy, camel2snake, Phase
 

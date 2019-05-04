@@ -1,7 +1,5 @@
 import networkx as nx
-from pytorch_toolbox.core import Node
-from pytorch_toolbox.core import Reference
-from pytorch_toolbox.core import flatten_resources_dict, find_references, replace_arguments, \
+from pytorch_toolbox.core.pipeline import Node, Reference, flatten_resources_dict, find_references, replace_arguments, \
     replace_references
 
 
@@ -157,4 +155,3 @@ def test_replace_references():
         "arg1": 1,
         "arg2": 2
     }
-

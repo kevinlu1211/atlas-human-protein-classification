@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import torch
 
 from pytorch_toolbox.core.utils import Phase
-from pytorch_toolbox.core import Callback
+from pytorch_toolbox.core.callbacks import Callback
 
 
 @dataclass

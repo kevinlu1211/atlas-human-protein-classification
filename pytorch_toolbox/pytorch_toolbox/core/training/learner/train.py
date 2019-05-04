@@ -1,7 +1,7 @@
-from pytorch_toolbox.core import CallbackList, LRFinder, OneCycleScheduler, MixedPrecision, MultiStepScheduler
+from pytorch_toolbox.core.callbacks import CallbackList, LRFinder, OneCycleScheduler, MixedPrecision, MultiStepScheduler
 from pytorch_toolbox.core.defaults import *
 from pytorch_toolbox.core.utils import if_none, is_listy
-from pytorch_toolbox.core.training.utils import model2half
+from pytorch_toolbox.core.utils.training import model2half
 
 
 def fit_one_cycle(learn, cyc_len: int, max_lr: Union[Floats, slice] = default_lr,

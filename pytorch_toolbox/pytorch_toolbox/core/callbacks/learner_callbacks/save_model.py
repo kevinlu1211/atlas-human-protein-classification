@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 
 from pytorch_toolbox.core.defaults import Callable, Optional
-from pytorch_toolbox.core import TrackerCallback
+from pytorch_toolbox.core.callbacks import TrackerCallback
 
 
 class SaveModelCallback(TrackerCallback):

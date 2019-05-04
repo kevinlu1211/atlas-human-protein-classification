@@ -79,9 +79,4 @@ class Phase(Enum):
     VAL = 2
     TEST = 3
 
-    # def __eq__(self, other):
-    #     if type(self) != type(other):
-    #         return False
-    #     return self.name == other.name
-
 

@@ -1,4 +1,4 @@
-from pytorch_toolbox.core import FocalLoss
+from pytorch_toolbox.core.losses import FocalLoss
 from pytorch_toolbox.core.losses.focal_loss import calculate_focal_loss
 
 

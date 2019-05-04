@@ -3,7 +3,7 @@ from pathlib import Path
 import pandas as pd
 
 from pytorch_toolbox.core.defaults import StrList, Any, Tensor, MetricsList, Optional, Callable
-from pytorch_toolbox.core import LearnerCallback
+from pytorch_toolbox.core.callbacks import LearnerCallback
 from pytorch_toolbox.core.utils import if_none
 
 

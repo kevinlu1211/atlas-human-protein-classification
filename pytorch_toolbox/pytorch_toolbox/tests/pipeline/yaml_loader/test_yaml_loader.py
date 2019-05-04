@@ -1,4 +1,4 @@
-from pytorch_toolbox.core import load_config_from_string, Reference, Variable
+from pytorch_toolbox.core.pipeline import load_config_from_string, Reference, Variable
 
 
 def test_load_reference():
