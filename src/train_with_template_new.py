@@ -8,7 +8,6 @@ import logging
 from typing import List, Union, Tuple
 from pathlib import Path
 from collections import Counter
-import yaml
 
 import click
 import numpy as np
@@ -17,14 +16,13 @@ from torch.utils.data import WeightedRandomSampler
 from miniutils.progress_bar import parallel_progbar
 import scipy.optimize as opt
 
-from pytorch_toolbox.core.pipeline import Pipeline, dump_config_to_path, dump_config_to_string, load_config_from_path, \
-    load_config_from_string
+from pytorch_toolbox.core import Pipeline, dump_config_to_path
 from pytorch_toolbox.core.training.learner import Learner
-from pytorch_toolbox.core.callbacks import callback_lookup, learner_callback_lookup
+from pytorch_toolbox.core import callback_lookup, learner_callback_lookup
 from pytorch_toolbox.core.vision.utils import denormalize_fn_lookup, normalize_fn_lookup, tensor2img
-from pytorch_toolbox.core.data import DataBunch
+from pytorch_toolbox.core import DataBunch
 from pytorch_toolbox.core.utils import listify
-from pytorch_toolbox.core.losses import LossWrapper, loss_lookup
+from pytorch_toolbox.core import LossWrapper, loss_lookup
 from pytorch_toolbox.core.metrics import metric_lookup
 from pytorch_toolbox.core.defaults import default_wd
 

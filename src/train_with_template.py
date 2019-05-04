@@ -17,13 +17,13 @@ from torch.utils.data import WeightedRandomSampler
 from miniutils.progress_bar import parallel_progbar
 import scipy.optimize as opt
 
-from pytorch_toolbox.core.pipeline import PipelineGraph
+from pytorch_toolbox.core import PipelineGraph
 from pytorch_toolbox.core.training.learner import Learner
-from pytorch_toolbox.core.callbacks import callback_lookup, learner_callback_lookup
+from pytorch_toolbox.core import callback_lookup, learner_callback_lookup
 from pytorch_toolbox.core.vision.utils import denormalize_fn_lookup, normalize_fn_lookup, tensor2img
-from pytorch_toolbox.core.data import DataBunch
+from pytorch_toolbox.core import DataBunch
 from pytorch_toolbox.core.utils import listify
-from pytorch_toolbox.core.losses import LossWrapper, loss_lookup
+from pytorch_toolbox.core import LossWrapper, loss_lookup
 from pytorch_toolbox.core.metrics import metric_lookup
 from pytorch_toolbox.core.defaults import default_wd
 

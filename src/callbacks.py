@@ -1,12 +1,11 @@
 from collections import defaultdict
 
 import torch
-import torch.nn.functional as F
 import numpy as np
 import pandas as pd
 
-from pytorch_toolbox.core.callbacks import Callback, LearnerCallback
-from pytorch_toolbox.core.callbacks.learner_callbacks.hooks import hook_output
+from pytorch_toolbox.core import Callback, LearnerCallback
+from pytorch_toolbox.core.callbacks.learner_callbacks import hook_output
 from pytorch_toolbox.core.utils import Phase, to_numpy
 from pytorch_toolbox.core.training.utils import flatten_model
 
