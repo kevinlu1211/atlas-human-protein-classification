@@ -43,7 +43,6 @@ from src.callbacks import OutputRecorder, ResultRecorder, OutputHookRecorder
 def main(config_file_path, log_level):
     set_logger(log_level)
     pipeline_graph = Pipeline.create_from_config_path(config_file_path, lookups)
-    print(pipeline_graph.sorted_node_names)
     # with Path(config_file_path).open("r") as f:
     #     config = yaml.load(f, Loader=PyTorchToolboxLoader)
     #     config = PyTorchToolboxLoader.replace_config_variables(config)

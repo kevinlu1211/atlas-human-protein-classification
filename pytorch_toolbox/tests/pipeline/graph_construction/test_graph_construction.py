@@ -98,7 +98,7 @@ def test_find_references():
 
 
 def test_replace_arguments():
-    graph, node_a, node_b = _setup_graph_two_dependent_nodes()
+    graph, node_a, _ = _setup_graph_two_dependent_nodes()
     node_a.create_output()
     reference_replaced_arguments = replace_arguments(graph, state_dict={}, node=node_b)
     assert reference_replaced_arguments == {

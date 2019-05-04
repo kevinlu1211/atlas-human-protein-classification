@@ -77,7 +77,6 @@ class Pipeline:
 
     def run(self, to_node=None):
         for node_name in nx.algorithms.dag.topological_sort(self.graph):
-            print(node_name)
             if to_node == node_name:
                 break
             node = self.graph.nodes(data=True)[node_name]["node"]
@@ -89,24 +88,29 @@ class Pipeline:
             self._replace_node_argument_references(node)
             node.create_output()
 
-    def _replace_node_argument_references(self, node):
-        reference_replaced_arguments = replace_arguments(self.graph, self.state_dict, node)
-        node.reference_replaced_arguments.update(**reference_replaced_arguments)
-
     def _update_node_should_run(self, current_node):
-        if isinstance(current_node.should_run, Reference):
-            node_should_run = replace_should_run(self.graph, current_node)
-        else:
-            node_should_run = current_node.should_run
-
-        current_node.should_run = node_should_run
+        current_node_should_run = self._get_node_should_run_property(current_node)
+        current_node.should_run = current_node_should_run
 
         for referenced_node in current_node.referenced_by:
             if isinstance(referenced_node.should_run, Reference) or referenced_node.should_run is False:
                 continue
             else:
-                referenced_node.should_run = node_should_run
+                referenced_node.should_run = current_node_should_run
                 self._update_node_should_run(referenced_node)
+
+    def _get_node_should_run_property(self, node):
+        if isinstance(node.should_run, Reference):
+            node_should_run = replace_should_run(self.graph, node)
+        else:
+            node_should_run = node.should_run
+        return node_should_run
+
+    def _replace_node_argument_references(self, node):
+        reference_replaced_arguments = replace_arguments(self.graph, self.state_dict, node)
+        node.reference_replaced_arguments.update(**reference_replaced_arguments)
+
+
 
 
 class Node:

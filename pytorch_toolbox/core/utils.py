@@ -50,23 +50,6 @@ def range_of(x):
     return list(range(len(x)))
 
 
-class Phase(Enum):
-    TRAIN = 1
-    VAL = 2
-    TEST = 3
-
-
-def determine_phase(train, last_target, label_key="label"):
-    if train:
-        return Phase.TRAIN
-    else:
-        label = last_target.get(label_key)
-        if label is not None:
-            return Phase.VAL
-        else:
-            return Phase.TEST
-
-
 def camel2snake(name: str) -> str:
     _camel_re1 = re.compile('(.)([A-Z][a-z]+)')
     _camel_re2 = re.compile('([a-z0-9])([A-Z])')
@@ -89,4 +72,16 @@ def make_one_hot(labels, n_classes=28):
             one_hot[label_idx] = 1
         one_hots.append(one_hot.astype(np.float32))
     return one_hots
+
+
+class Phase(Enum):
+    TRAIN = 1
+    VAL = 2
+    TEST = 3
+
+    # def __eq__(self, other):
+    #     if type(self) != type(other):
+    #         return False
+    #     return self.name == other.name
+
 
