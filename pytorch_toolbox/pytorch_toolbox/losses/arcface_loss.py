@@ -41,14 +41,14 @@ class ArcFaceLoss(BaseLoss):
         """
         cosine = out
         labels = yb[0]
-        loss = calculate_arc_face_loss(cosine, labels, self.cos_m, self.sin_m, self.th, self.mm, self.scale)
+        loss = arc_face_loss(cosine, labels, self.cos_m, self.sin_m, self.th, self.mm, self.scale)
         self._unreduced_loss = loss
         self._per_sample_loss = loss
         self._reduced_loss = self._per_sample_loss.mean()
         return self._reduced_loss
 
 
-def calculate_arc_face_loss(cosine, labels, cos_m, sin_m, th, mm, scale):
+def arc_face_loss(cosine, labels, cos_m, sin_m, th, mm, scale):
     sine = torch.sqrt(1.0 - torch.pow(cosine, 2))
 
     # Double angle formula cos(A + B) = cos(A)*cos(B) - sin(A)*sin(B)

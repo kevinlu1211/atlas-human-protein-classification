@@ -3,7 +3,7 @@ import torch.nn as nn
 
 from pytorch_toolbox.callbacks import LearnerCallback
 from pytorch_toolbox.utils import is_listy
-from pytorch_toolbox.training.utils import flatten_model
+from pytorch_toolbox.utils.training import flatten_model
 from pytorch_toolbox.defaults import Tensor, Tensors, Collection, Sequence, HookFunc
 
 

@@ -57,7 +57,7 @@ Variables:
   #Inference
   Inference:
     RelativeModelSavePath: null
-    LocalRootSavePath: null
+    LocalRootSavePath: null.
     DockerRootSavePath: /app/model_artifacts/
 
 Resources:
@@ -169,7 +169,7 @@ Resources:
         properties:
           pointer: MultilabelStratifiedShuffleSplit
           arguments:
-            n_splits: 5
+            n_splits: 1
             test_size: 0.2
             random_state: 6969
           output_names:
@@ -245,8 +245,8 @@ Resources:
         properties:
           pointer: denormalize
           callable_arguments:
-            mean: [12.14099732, 10.9779429,   5.46488976, 22.30204426]
-            std: [18.48077492, 17.25324061, 13.88083803, 32.78388995]
+            mean: !Var NormalizeMean
+            std: !Var NormalizeStd
           partial: true
           output_names:
             - DenormalizeFunction
