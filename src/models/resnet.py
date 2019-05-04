@@ -1,7 +1,7 @@
 import torchvision
 
-from pytorch_toolbox.core.training.utils import flatten_model, split_model_idx
-from pytorch_toolbox.core.losses.arcface_loss import ArcMarginProduct
+from pytorch_toolbox.utils.training import flatten_model, split_model_idx
+from pytorch_toolbox.losses.arcface_loss import ArcMarginProduct
 from .layers_and_init import *
 
 

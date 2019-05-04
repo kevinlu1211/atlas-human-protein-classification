@@ -8,7 +8,7 @@ import pandas as pd
 from sklearn.model_selection import ShuffleSplit, StratifiedShuffleSplit
 from iterstrat.ml_stratifiers import MultilabelStratifiedShuffleSplit
 
-from pytorch_toolbox.core.utils import make_one_hot
+from pytorch_toolbox.utils import make_one_hot
 
 label_to_string = {
     0: 'Nucleoplasm',

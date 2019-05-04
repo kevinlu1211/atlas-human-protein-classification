@@ -4,10 +4,10 @@ import torch
 import numpy as np
 import pandas as pd
 
-from pytorch_toolbox.core import Callback, LearnerCallback
-from pytorch_toolbox.core.callbacks.learner_callbacks import hook_output
-from pytorch_toolbox.core.utils import Phase, to_numpy
-from pytorch_toolbox.core.training.utils import flatten_model
+from pytorch_toolbox.callbacks import Callback, LearnerCallback
+from pytorch_toolbox.callbacks import hook_output
+from pytorch_toolbox.utils import Phase, to_numpy
+from pytorch_toolbox.utils.training import flatten_model
 
 
 class OutputHookRecorder(Callback):

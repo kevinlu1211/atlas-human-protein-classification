@@ -17,15 +17,15 @@ from torch.utils.data import WeightedRandomSampler
 from miniutils.progress_bar import parallel_progbar
 import scipy.optimize as opt
 
-from pytorch_toolbox.core import PipelineGraph
-from pytorch_toolbox.core.training.learner import Learner
-from pytorch_toolbox.core import callback_lookup, learner_callback_lookup
-from pytorch_toolbox.core.vision.utils import denormalize_fn_lookup, normalize_fn_lookup, tensor2img
-from pytorch_toolbox.core import DataBunch
-from pytorch_toolbox.core.utils import listify
-from pytorch_toolbox.core import LossWrapper, loss_lookup
-from pytorch_toolbox.core.metrics import metric_lookup
-from pytorch_toolbox.core.defaults import default_wd
+from pytorch_toolbox import PipelineGraph
+from pytorch_toolbox import Learner
+from pytorch_toolbox import callback_lookup, learner_callback_lookup
+from pytorch_toolbox import denormalize_fn_lookup, normalize_fn_lookup, tensor2img
+from pytorch_toolbox import DataBunch
+from pytorch_toolbox import listify
+from pytorch_toolbox import LossWrapper, loss_lookup
+from pytorch_toolbox import metric_lookup
+from pytorch_toolbox import default_wd
 
 from src.data import make_one_hot, dataset_lookup, \
     sampler_weight_lookup, split_method_lookup, DataPaths, single_class_counter

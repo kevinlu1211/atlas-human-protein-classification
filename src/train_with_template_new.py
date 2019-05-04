@@ -16,15 +16,15 @@ from torch.utils.data import WeightedRandomSampler
 from miniutils.progress_bar import parallel_progbar
 import scipy.optimize as opt
 
-from pytorch_toolbox.core import Pipeline, dump_config_to_path
-from pytorch_toolbox.core.training.learner import Learner
-from pytorch_toolbox.core import callback_lookup, learner_callback_lookup
-from pytorch_toolbox.core.vision.utils import denormalize_fn_lookup, normalize_fn_lookup, tensor2img
-from pytorch_toolbox.core import DataBunch
-from pytorch_toolbox.core.utils import listify
-from pytorch_toolbox.core import LossWrapper, loss_lookup
-from pytorch_toolbox.core.metrics import metric_lookup
-from pytorch_toolbox.core.defaults import default_wd
+from pytorch_toolbox.pipeline import Pipeline, dump_config_to_path
+from pytorch_toolbox.training import Learner
+from pytorch_toolbox.callbacks import callback_lookup, learner_callback_lookup
+from pytorch_toolbox.utils.vision import denormalize_fn_lookup, normalize_fn_lookup, tensor2img
+from pytorch_toolbox.data import DataBunch
+from pytorch_toolbox.utils import listify
+from pytorch_toolbox.losses import LossWrapper, loss_lookup
+from pytorch_toolbox.metrics import metric_lookup
+from pytorch_toolbox.defaults import default_wd
 
 from src.data import make_one_hot, dataset_lookup, \
     sampler_weight_lookup, split_method_lookup, DataPaths, single_class_counter
@@ -273,21 +273,6 @@ def training_loop(create_learner, data_bunch_creator, config_saver, split_indice
         config_saver(learner)
 
 
-def update_config_for_inference_model_save_path(root_save_path, learner, state_dict):
-    best_model_save_path = learner.save_model_callback.save_path
-    state_dict["raw_config"]["Variables"]["InferenceModelPath"] = str(best_model_save_path)
-
-
-def save_config(learner, save_path_creator, state_dict):
-    root_save_path = save_path_creator()
-    update_config_for_inference_model_save_path(root_save_path, learner, state_dict)
-    config = state_dict["raw_config"]
-    config_save_path = root_save_path / "config.yml"
-    config_save_path.parent.mkdir(parents=True, exist_ok=True)
-    logging.info(f"Configuration file is saved at: {config_save_path}")
-    dump_config_to_path(config, save_path=root_save_path)
-
-
 def record_results(learner, result_recorder_callback, save_path_creator):
     root_save_path = save_path_creator()
 
@@ -387,6 +372,62 @@ def optimize_thresholds_for_class_ratios(pred_probs, target_class_ratio):
     return p
 
 
+def save_config(learner, save_path_creator, state_dict):
+    root_save_path = save_path_creator()
+
+    update_config_for_inference_model_save_path(root_save_path,
+                                                model_save_path=learner.save_model_callback.save_path,
+                                                state_dict=state_dict)
+    config = state_dict["raw_config"]
+    config_save_path = root_save_path / "config.yml"
+    config_save_path.parent.mkdir(parents=True, exist_ok=True)
+    logging.info(f"Configuration file is saved at: {config_save_path}")
+    dump_config_to_path(config, save_path=config_save_path)
+
+
+def update_config_for_inference_model_save_path(root_save_path, model_save_path, state_dict):
+    relative_model_save_path = find_relative_best_model_save_path(root_save_path, model_save_path)
+    state_dict["raw_config"]["Variables"]["LocalRootSavePath"] = str(root_save_path)
+    state_dict["raw_config"]["Variables"]["RelativeModelSavePath"] = relative_model_save_path
+
+
+def find_relative_best_model_save_path(root_save_path, model_save_path):
+    """
+    There are two scenarios here:
+    1. root_save_path isn't the root directory, therefore the relative_model_save_path is found we will get:
+       root_save_path = /foo/bar
+       model_save_path = /foo/bar/model_weights.p
+       relative_model_save_path = /model_weights.p
+
+       After replacement:
+       relative_model_save_path = relative_model_save_path[1:] = model_weights.p
+
+       The first "/" has to be removed from the relative_model_save_path so that the path can be constructed correctly
+       This can then be used to construct the full path via the LocalRootSavePath or the DockerRootSavePath
+
+       E.g in our example:
+       the model path can be constructed via:
+       root_save_path / relative_model_save_path = /foo/bar/model_weights.p
+
+    2. root_save_path is the root directory, therefore the relative_model_save_path is found we will get:
+       root_save_path = /
+       model_save_path = /model_weights.p
+       relative_model_save_path = model_weights.p
+
+       After replacement:
+       relative_model_save_path = relative_model_save_path = model_weights.p
+
+       Hence there is no need to remove the first "/" from the relative_model_save_path
+    """
+    relative_model_save_path = str(model_save_path).replace(str(root_save_path), "")
+    root_save_path_is_root_directory = Path(root_save_path) == Path("/")
+    if root_save_path_is_root_directory:
+        relative_model_save_path = relative_model_save_path
+    else:
+        relative_model_save_path = relative_model_save_path[1:]
+    return relative_model_save_path
+
+
 def create_time_stamped_save_path(save_path, state_dict):
     current_time = state_dict.get("start_time")
     if current_time is None:
@@ -436,8 +477,7 @@ def create_inference_model_save_path(relative_model_save_path, local_root_save_p
     elif docker_save_path.exists():
         return docker_save_path
     else:
-        logging.error(
-            f"Local save path: {str(local_save_path)} not found \nDocker save path: {str(docker_save_path)} not found")
+        logging.error(e)
         raise FileNotFoundError
 
 

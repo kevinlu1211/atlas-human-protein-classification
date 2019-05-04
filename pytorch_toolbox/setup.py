@@ -7,5 +7,5 @@ setup(name='pytorch_toolbox',
       author='Kevin Lu',
       author_email='kevinyihchyunlu@gmail.com',
       license='MIT',
-      packages=['pytorch_toolbox'],
+      packages=['pytorch_toolbox/core'],
       zip_safe=False)

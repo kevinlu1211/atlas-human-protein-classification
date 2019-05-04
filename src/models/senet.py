@@ -1,5 +1,5 @@
 import pretrainedmodels
-from pytorch_toolbox.core.training.utils import flatten_model, split_model_idx
+from pytorch_toolbox.utils.training import flatten_model, split_model_idx
 
 from .layers_and_init import *
 
