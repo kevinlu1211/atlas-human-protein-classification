@@ -119,13 +119,20 @@ def test_replace_arguments_and_run_output():
 def _setup_graph_two_dependent_nodes():
     pointer_a = lambda: 1
     pointer_b = lambda x: x + 1
-    node_a = Node(name="A", references=[], pointer=pointer_a, partial=False, arguments={}, output_names=["output_1"])
+    node_a = Node(name="A",
+                  references=[],
+                  pointer=pointer_a,
+                  partial=False,
+                  arguments={},
+                  output_names=["output_1"],
+                  should_run=True)
     node_b = Node(name="B",
                   references=[Reference(ref_node_name="A", output_name="output_1")],
                   pointer=pointer_b,
                   partial=False,
                   arguments={"x": Reference(ref_node_name="A", output_name="output_1")},
-                  output_names=["output_1"])
+                  output_names=["output_1"],
+                  should_run=True)
     graph = nx.DiGraph()
     graph.add_node("A", node=node_a)
     graph.add_node("B", node=node_b)
@@ -135,7 +142,7 @@ def _setup_graph_two_dependent_nodes():
 def test_replace_references():
     pointer_a = lambda: (1, 2)
     node_a = Node(name="A", references=[], pointer=pointer_a, partial=False, arguments={},
-                  output_names=["output_1", "output_2"])
+                  output_names=["output_1", "output_2"], should_run=True)
     arguments_with_reference_to_node_a = {
         "arg1": Reference(ref_node_name="A", output_name="output_1"),
         "arg2": Reference(ref_node_name="A", output_name="output_2")
