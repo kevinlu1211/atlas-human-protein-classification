@@ -38,5 +38,3 @@ class BaseLoss:
     @abstractmethod
     def reduced_loss(self):
         pass
-
-

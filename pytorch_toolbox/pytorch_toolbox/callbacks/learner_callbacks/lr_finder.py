@@ -45,4 +45,3 @@ class LRFinder(LearnerCallback):
         self.learn.load_model_with_name('tmp')
         if hasattr(self.learn.model, 'reset'): self.learn.model.reset()
         print('LR Finder is complete, type {learner_name}.recorder.plot() to see the graph.')
-

@@ -21,7 +21,6 @@ class FiveCropTTACallback(Callback):
         self.aggregate_mode = aggregate_mode
         super().__init__()
 
-
     def on_batch_begin(self, phase, last_input, last_target, **kwargs):
         if phase is not Phase.TRAIN:
             self.last_input_shape = last_input.shape

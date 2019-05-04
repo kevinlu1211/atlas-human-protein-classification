@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from pytorch_toolbox.defaults import Collection, Any, Number, List, Floats, Optional
-from pytorch_toolbox.callbacks import Callback, Scheduler, annealing_no
+from pytorch_toolbox.callbacks.core import Callback, Scheduler, annealing_no
 from pytorch_toolbox.utils import if_none
 
 

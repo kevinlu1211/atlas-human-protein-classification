@@ -9,6 +9,7 @@ from .reduce_lr_on_plateau import ReduceLROnPlateauCallback
 from .save_model import SaveModelCallback
 from .hooks import HookCallback, hook_output, hook_outputs
 
+
 learner_callback_lookup = {
     "CSVLogger": CSVLogger,
     "GradientClipping": GradientClipping,

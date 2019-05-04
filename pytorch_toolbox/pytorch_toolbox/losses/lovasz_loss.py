@@ -5,8 +5,6 @@ Maxim Berman 2018 ESAT-PSI KU Leuven (MIT License)
 Referenced from https://github.com/bermanmaxim/LovaszSoftmax
 """
 
-
-
 from __future__ import print_function, division
 
 import torch

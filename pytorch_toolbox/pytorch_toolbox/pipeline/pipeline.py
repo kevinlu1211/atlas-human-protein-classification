@@ -2,9 +2,8 @@ import logging
 import functools
 import networkx as nx
 
-from .yaml_loader import load_config_from_path, Reference
-from .graph_construction import flatten_resources_dict, find_references, load_properties_with_default_values, \
-    replace_arguments, replace_should_run
+from .yaml_loader import load_config_from_path
+from .graph_construction import flatten_resources_dict, find_references, load_properties_with_default_values, replace_arguments
 
 
 class Pipeline:
@@ -45,12 +44,7 @@ class Pipeline:
             node = node_wrapper["node"]
             for reference in node.references:
                 referenced_node_name = reference.ref_node_name
-
                 assert referenced_node_name in graph.nodes, f"The reference: {referenced_node_name} in node: {node.name} does not exist"
-
-                referenced_node = graph.nodes(data=True)[referenced_node_name]["node"]
-                referenced_node.referenced_by.append(node)
-
                 graph.add_edge(referenced_node_name, name)
         return graph
 
@@ -83,64 +77,27 @@ class Pipeline:
             self._run_node(node)
 
     def _run_node(self, node):
-        self._update_node_should_run(node)
-        if node.should_run:
-            self._replace_node_argument_references(node)
-            node.create_output()
-
-    def _update_node_should_run(self, current_node):
-        current_node_should_run = self._get_node_should_run_property(current_node)
-        current_node.should_run = current_node_should_run
-
-        for referenced_node in current_node.referenced_by:
-            if isinstance(referenced_node.should_run, Reference) or referenced_node.should_run is False:
-                continue
-            else:
-                referenced_node.should_run = current_node_should_run
-                self._update_node_should_run(referenced_node)
-
-    def _get_node_should_run_property(self, node):
-        if isinstance(node.should_run, Reference):
-            node_should_run = replace_should_run(self.graph, node)
-        else:
-            node_should_run = node.should_run
-        return node_should_run
-
-    def _replace_node_argument_references(self, node):
         reference_replaced_arguments = replace_arguments(self.graph, self.state_dict, node)
         node.reference_replaced_arguments.update(**reference_replaced_arguments)
-
-
+        node.create_output()
 
 
 class Node:
-    def __init__(self, name, references, pointer, partial, arguments, output_names, should_run):
+    def __init__(self, name, references, pointer, partial, arguments, output_names):
         self.name = name
         self.references = references
-        self.referenced_by = []
         self.pointer = pointer
-        self.partial = partial
         self.arguments = arguments
         self.output_names = output_names
-        self.should_run = should_run
+        self.partial = partial
         self.reference_replaced_arguments = {}
         self.output = None
-
-    def __repr__(self):
-        return f"""
-            Name: {self.name}
-            Pointer: {self.pointer}
-            Arguments: {self.arguments}
-            Should Run: {self.should_run}
-            Referenced By: {self.referenced_by}
-        """
 
     def create_output(self):
         if self.output_names is None:
             logging.warning(f"Node: {self.name} has no output")
         else:
-            assert not isinstance(self.output_names,
-                                  str), f"The output_names for node: {self.name} can't be a string, only a list"
+            assert not isinstance(self.output_names, str), f"The output_names for node: {self.name} can't be a string, only a list"
         if self.partial:
             assert len(
                 self.output_names) == 1, "If the output of node: {self.name} is partial, then there should be one output, {len(self.output_names)} outputs are found"
@@ -150,3 +107,4 @@ class Node:
             iterable_output = [output] if len(self.output_names) == 1 else output
             self.output = {output_name: output_value for output_name, output_value in
                            zip(self.output_names, iterable_output)}
+

@@ -16,7 +16,7 @@ class SoftDiceLoss:
         prediction = out
         target = yb[0]
         loss, individual_losses = dice_loss(prediction, target, self.dice_loss_weights, self.n_classes,
-                                                      return_individual_losses=True)
+                                            return_individual_losses=True)
         self.loss = individual_losses
         return loss
 

@@ -1,4 +1,3 @@
-import logging
 from pathlib import Path
 import yaml
 from copy import deepcopy
@@ -95,12 +94,7 @@ def replace_variables(resources, variables):
 
 
 def replace_variable_with_group(resource, variables):
-    try:
-        return variables[resource.variable_group][resource.variable_name]
-    except KeyError:
-        logging.error(
-            f"Variable in group: {resource.variable_group} with name: {resource.variable_name} does not exist")
-        exit(1)
+    return variables[resource.variable_group][resource.variable_name]
 
 
 def replace_variable_without_group(resources, variables):

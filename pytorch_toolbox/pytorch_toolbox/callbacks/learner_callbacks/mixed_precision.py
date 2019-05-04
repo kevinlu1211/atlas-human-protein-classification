@@ -6,6 +6,7 @@ from pytorch_toolbox.defaults import *
 from pytorch_toolbox.utils.training import split_layers_into_batch_norm_and_non_batch_norm
 
 
+
 def get_master(layer_groups: ModuleList, flat_master: bool = False) -> Tuple[List[List[Tensor]], List[List[Tensor]]]:
     "Return two lists, one for the model parameters in FP16 and one for the master parameters in FP32."
     split_groups = split_layers_into_batch_norm_and_non_batch_norm(layer_groups)
