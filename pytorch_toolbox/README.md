@@ -1,5 +1,4 @@
 # Pytorch Toolbox
 
-The concept of callbacks is based of off FastAI's code so I have borrow some code from there especially in the learning 
-module.
+The `trainer` class and `Callback` functionality is based off of FastAI's code, as a result I have referenced some of their code
 
