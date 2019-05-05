@@ -134,10 +134,10 @@ class Recorder(BaseRecorder):
     def on_batch_end(self, phase, **kwargs):
         super().on_batch_end(**kwargs)
         # self.optimizer_hyperparameters_for_current_batch = self._create_optimizer_hyperparameters_for_current_batch()
-        self.loss_for_current_batch = self._create_loss_values_for_every_sample_in_batch(phase)
+        self.loss_for_current_batch = self._record_loss_values_for_every_sample_in_batch(phase)
         self._update_loss_history(self.loss_for_current_batch)
 
-    def _create_loss_values_for_every_sample_in_batch(self, phase):
+    def _record_loss_values_for_every_sample_in_batch(self, phase):
         per_sample_loss_values_for_current_batch = dict()
         all_losses = []
         for loss in self.learn.loss_func.losses:
@@ -176,11 +176,11 @@ class Recorder(BaseRecorder):
 
     def get_losses_for_epoch_with_phase(self, epoch, phase, with_mean=True):
         losses = {}
-        key = (phase.name, epoch)
-        for name, values in self.loss_history[key].items():
+        phase_and_epoch_key = (phase.name, epoch)
+        for name, values in self.loss_history[phase_and_epoch_key].items():
             if with_mean:
                 values = np.mean(values)
-            losses[f"{phase.name}/{camel2snake(name)}"] = values
+            losses[f"{camel2snake(name)}"] = values
         return losses
 
     def get_metrics_for_epoch(self, epoch, with_mean=True):

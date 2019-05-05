@@ -13,7 +13,7 @@ Variables:
   TrainBatchSize: 16
   ValBatchSize: 8
   TestBatchSize: 8
-  NumDataBunchWorkers: 28
+  NumDataBunchWorkers: 0
   SamplerFunctionName: uniform_weights
 
   # Image & Augmentation
@@ -30,12 +30,12 @@ Variables:
   NormalizeMean: [12.14099732, 10.9779429,   5.46488976, 22.30204426]
   NormalizeStd: [18.48077492, 17.25324061, 13.88083803, 32.78388995]
 
-  #  CreateTrainingScheme:
-  #    TrainingSchemeName: training_scheme_multi_step
-  #    EpochsForStepForHyperparameters: [[0, 25, 30, 35, 40]]
-  #    HyperparameterValues: [[30e-5, 15e-5, 7.5e-5, 3e-5, 1e-5]]
-  #    HyperparameterNames: ["lr"]
-  #    EndEpoch: 60
+  CreateTrainingScheme:
+    TrainingSchemeName: training_scheme_multi_step
+    EpochsForStepForHyperparameters: [[0, 25, 30, 35, 40]]
+    HyperparameterValues: [[30e-5, 15e-5, 7.5e-5, 3e-5, 1e-5]]
+    HyperparameterNames: ["lr"]
+    EndEpoch: 60
 
   TrainSamplesToUse: null
   TestSamplesToUse: null
@@ -43,11 +43,6 @@ Variables:
   Model:
     Name: densenet121_four_channel_input_two_fc
     Pretrained: True
-
-  CreateTrainingScheme:
-    TrainingSchemeName: training_scheme_one_cycle
-    LearningRate: [5e-4]
-    Epochs: 60
 
 #  TrainSamplesToUse: 100
 #  TestSamplesToUse: 50
@@ -254,7 +249,7 @@ Resources:
       CreateDenormalizeFunction:
         properties:
           pointer: denormalize
-          callable_arguments:
+          arguments:
             mean: !Var NormalizeMean
             std: !Var NormalizeStd
           partial: true
@@ -405,7 +400,7 @@ Resources:
       properties:
         pointer: SaveModelCallback
         arguments:
-          monitor: val_focal_loss
+          monitor: "val/focal_loss"
           save_path_creator: !Ref CreateTimeStampedSavePath.SavePathCreator
         partial: true
         output_names:

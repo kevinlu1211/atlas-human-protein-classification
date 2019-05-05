@@ -275,8 +275,10 @@ def validate(model: nn.Module, dl: DataLoader, loss_func: OptionalLossFunction =
             if not is_listy(yb):
                 yb = [yb]
             nums.append(yb[0].shape[0])
-            if cb_handler and cb_handler.on_batch_end(val_losses[-1]): break
-            if n_batch and (len(nums) >= n_batch): break
+            if cb_handler and cb_handler.on_batch_end(val_losses[-1]):
+                break
+            if n_batch and (len(nums) >= n_batch):
+                break
         nums = np.array(nums, dtype=np.float32)
         if average:
             return (to_numpy(torch.stack(val_losses)) * nums).sum() / nums.sum()

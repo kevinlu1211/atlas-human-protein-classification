@@ -79,17 +79,20 @@ class Pipeline:
     def run(self, to_node=None):
         logging.info("Running nodes in graph")
         for node_name in nx.algorithms.dag.topological_sort(self.graph):
+            logging.debug(f"Processing node: {node_name}")
             node = self.graph.nodes(data=True)[node_name]["node"]
-            logging.debug(f"Running node: {node}")
+            logging.debug(f"Updating should_run property for node: {node_name}")
+            self._update_node_should_run(node)
+            if node.should_run:
+                self._run_node(node)
+
             if to_node == node_name:
                 break
-            self._run_node(node)
 
     def _run_node(self, node):
-        self._update_node_should_run(node)
-        if node.should_run:
-            self._replace_node_argument_references(node)
-            node.create_output()
+        self._replace_node_argument_references(node)
+        logging.debug(f"Running node: {node.name}")
+        node.create_output()
 
     def _update_node_should_run(self, current_node):
         current_node_should_run = self._get_node_should_run_property(current_node)
@@ -110,8 +113,11 @@ class Pipeline:
         return node_should_run
 
     def _replace_node_argument_references(self, node):
+        logging.debug(f"Replacing references for node: {node.name}")
+        logging.debug(f"Original arguments: {node.arguments}")
         reference_replaced_arguments = replace_arguments(self.graph, self.state_dict, node)
         node.reference_replaced_arguments.update(**reference_replaced_arguments)
+        logging.debug(f"Replaced arguments: {node.reference_replaced_arguments}")
 
 
 class Node:

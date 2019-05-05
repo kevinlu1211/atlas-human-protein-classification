@@ -19,7 +19,7 @@ from torch.utils.data import WeightedRandomSampler
 from miniutils.progress_bar import parallel_progbar
 import scipy.optimize as opt
 
-from pytorch_toolbox.pipeline import Pipeline, dump_config_to_path
+from pytorch_toolbox.pipeline import Pipeline, dump_config_to_path, load_config_from_path
 from pytorch_toolbox.training import Learner
 from pytorch_toolbox.callbacks import callback_lookup, learner_callback_lookup
 from pytorch_toolbox.utils.vision import denormalize_fn_lookup, normalize_fn_lookup, tensor2img
@@ -43,8 +43,8 @@ from src.callbacks import OutputRecorder, ResultRecorder, OutputHookRecorder
 @click.option('-log-lvl', '--log_level', default="INFO")
 def main(config_file_path, log_level):
     set_logger(log_level)
-    pipeline_graph = Pipeline.create_from_config_path(config_file_path, lookups)
-    pipeline_graph.run()
+    pipeline = Pipeline.create_from_config_path(config_file_path, lookups)
+    pipeline.run()
 
 
 def set_logger(log_level):
@@ -386,8 +386,8 @@ def save_config(learner, save_path_creator, state_dict):
 
 def update_config_for_inference_model_save_path(root_save_path, model_save_path, state_dict):
     relative_model_save_path = find_relative_best_model_save_path(root_save_path, model_save_path)
-    state_dict["raw_config"]["Variables"]["LocalRootSavePath"] = str(root_save_path)
-    state_dict["raw_config"]["Variables"]["RelativeModelSavePath"] = relative_model_save_path
+    state_dict["raw_config"]["Variables"]["Inference"]["LocalRootSavePath"] = str(root_save_path)
+    state_dict["raw_config"]["Variables"]["Inference"]["RelativeModelSavePath"] = relative_model_save_path
 
 
 def find_relative_best_model_save_path(root_save_path, model_save_path):
