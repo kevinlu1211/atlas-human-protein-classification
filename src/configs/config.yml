@@ -13,7 +13,7 @@ Variables:
   TrainBatchSize: 16
   ValBatchSize: 8
   TestBatchSize: 8
-  NumDataBunchWorkers: 0
+  NumDataBunchWorkers: 28
   SamplerFunctionName: uniform_weights
 
   # Image & Augmentation
