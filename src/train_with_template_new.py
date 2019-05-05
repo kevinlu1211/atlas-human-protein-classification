@@ -1,5 +1,8 @@
 # coding: utf-8
 
+import warnings
+warnings.filterwarnings('ignore')
+
 import pickle
 import time
 from functools import partial
@@ -477,7 +480,6 @@ def create_inference_model_save_path(relative_model_save_path, local_root_save_p
     elif docker_save_path.exists():
         return docker_save_path
     else:
-        logging.error(e)
         raise FileNotFoundError
 
 

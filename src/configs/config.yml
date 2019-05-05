@@ -5,13 +5,15 @@ Variables:
     - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined
     - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined_HPAv18
   TrainLabelPaths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_all_no_dupes.csv
-  TrainSamplesToUse: 100
+
   TestImagePaths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/test_combined
-  TestSamplesToUse: 50
-  TrainBatchSize: 32
-  ValBatchSize: 12
-  TestBatchSize: 12
-  NumDataBunchWorkers: 0
+
+  Learner:
+    ToFP16: false
+  TrainBatchSize: 16
+  ValBatchSize: 8
+  TestBatchSize: 8
+  NumDataBunchWorkers: 28
   SamplerFunctionName: uniform_weights
 
   # Image & Augmentation
@@ -28,28 +30,36 @@ Variables:
   NormalizeMean: [12.14099732, 10.9779429,   5.46488976, 22.30204426]
   NormalizeStd: [18.48077492, 17.25324061, 13.88083803, 32.78388995]
 
-  # Training
-#  CreateTrainingScheme:
-#    TrainingSchemeName: training_scheme_multi_step
-#    EpochsForStepForHyperparameters: [[0, 25, 30, 35, 40]]
-#    HyperparameterValues: [[30e-5, 15e-5, 7.5e-5, 3e-5, 1e-5]]
-#    HyperparameterNames: ["lr"]
-#    EndEpoch: 60
+  #  CreateTrainingScheme:
+  #    TrainingSchemeName: training_scheme_multi_step
+  #    EpochsForStepForHyperparameters: [[0, 25, 30, 35, 40]]
+  #    HyperparameterValues: [[30e-5, 15e-5, 7.5e-5, 3e-5, 1e-5]]
+  #    HyperparameterNames: ["lr"]
+  #    EndEpoch: 60
 
-#  CreateTrainingScheme:
-#    EpochsForStepForHyperparameters: [[0]]
-#    HyperparameterValues: [[30e-5]]
-#    HyperparameterNames: ["lr"]
-#    EndEpoch: 2
+  TrainSamplesToUse: null
+  TestSamplesToUse: null
+
+  Model:
+    Name: densenet121_four_channel_input_two_fc
+    Pretrained: True
 
   CreateTrainingScheme:
     TrainingSchemeName: training_scheme_one_cycle
-    LearningRate: [3e-5, 5e-5]
-    Epochs: 1
+    LearningRate: [5e-4]
+    Epochs: 60
 
-  Model:
-    Name: debug_cnn
-    Pretrained: False
+#  TrainSamplesToUse: 100
+#  TestSamplesToUse: 50
+#
+#  Model:
+#    Name: debug_cnn
+#    Pretrained: False
+#
+#  CreateTrainingScheme:
+#    TrainingSchemeName: training_scheme_one_cycle
+#    LearningRate: [20e-5, 10e-5]
+#    Epochs: 1
 
   # Output
   RootSavePathForTimeStampedSavePath: /media/hd/Kaggle/human-protein-image-classification/results
@@ -220,16 +230,16 @@ Resources:
           output_names:
             - FiveCropTTAFunction
     Preprocessing:
-#      CalculateMeanAndStdForDataset:
-#        properties:
-#          pointer: calculate_mean_and_std_for_dataset
-#          arguments:
-#            data_paths:
-#              - !Ref LoadTrainingData.train_X
-#              - !Ref LoadTestingData.test_X
-#          output_names:
-#            - mean
-#            - std
+      #      CalculateMeanAndStdForDataset:
+      #        properties:
+      #          pointer: calculate_mean_and_std_for_dataset
+      #          arguments:
+      #            data_paths:
+      #              - !Ref LoadTrainingData.train_X
+      #              - !Ref LoadTestingData.test_X
+      #          output_names:
+      #            - mean
+      #            - std
 
       CreateNormalizeFunction:
         properties:
@@ -262,17 +272,17 @@ Resources:
           training_scheme: !Ref CreateTrainingScheme.TrainingScheme
           record_results: !Ref RunRecordResults.ResultRecorder
 
-#    CreateTrainingScheme:
-#      properties:
-#        pointer: !Var CreateTrainingScheme.TrainingSchemeName
-#        arguments:
-#          epochs_for_step_for_hyperparameters: !Var CreateTrainingScheme.EpochsForStepForHyperparameters
-#          hyperparameter_values: !Var CreateTrainingScheme.HyperparameterValues
-#          hyperparameter_names: !Var CreateTrainingScheme.HyperparameterNames
-#          end_epoch: !Var CreateTrainingScheme.EndEpoch
-#        partial: true
-#        output_names:
-#          - TrainingScheme
+    #    CreateTrainingScheme:
+    #      properties:
+    #        pointer: !Var CreateTrainingScheme.TrainingSchemeName
+    #        arguments:
+    #          epochs_for_step_for_hyperparameters: !Var CreateTrainingScheme.EpochsForStepForHyperparameters
+    #          hyperparameter_values: !Var CreateTrainingScheme.HyperparameterValues
+    #          hyperparameter_names: !Var CreateTrainingScheme.HyperparameterNames
+    #          end_epoch: !Var CreateTrainingScheme.EndEpoch
+    #        partial: true
+    #        output_names:
+    #          - TrainingScheme
 
     CreateTrainingScheme:
       properties:
@@ -300,7 +310,7 @@ Resources:
             - !Ref CreateFocalLoss.FocalLoss
           callbacks_creator: !Ref CreateCallbacks.CallbacksCreator
           callback_fns_creator: !Ref CreateLearnerCallbacks.LearnerCallbacksCreator
-          to_fp16: true
+          to_fp16: !Var Learner.ToFP16
         output_names:
           - LearnerCreator
 
