@@ -141,11 +141,12 @@ class Recorder(BaseRecorder):
         per_sample_loss_values_for_current_batch = dict()
         all_losses = []
         for loss in self.learn.loss_func.losses:
-            name = loss.__class__.__name__
+            name = f"{phase.name}/{camel2snake(loss.__class__.__name__)}"
             per_sample_loss = to_numpy(loss.per_sample_loss)
-            per_sample_loss_values_for_current_batch[f"{phase.name}/{camel2snake(name)}"] = per_sample_loss
+            per_sample_loss_values_for_current_batch[name] = per_sample_loss
             all_losses.append(per_sample_loss)
-        per_sample_loss_values_for_current_batch[f"{phase.name}/total_loss"] = np.sum(all_losses, axis=0)
+        total_loss_name = f"{phase.name}/total_loss"
+        per_sample_loss_values_for_current_batch[total_loss_name] = np.sum(all_losses, axis=0)
 
         return per_sample_loss_values_for_current_batch
 
@@ -156,10 +157,9 @@ class Recorder(BaseRecorder):
     def on_epoch_end(self, epoch, num_batch, smooth_loss, last_metrics, phase, **kwargs):
         super().on_epoch_end(epoch, num_batch, smooth_loss, last_metrics, **kwargs)
         if phase == Phase.VAL:
-            prev_epoch = epoch - 1
             metric_names = self.names[3:]
-            for name, metric in zip(metric_names, self.metrics[prev_epoch]):
-                self.metric_history[self.key][name].append(metric.item())
+            for name, metric in zip(metric_names, self.metrics[epoch - 1]):
+                self.metric_history[self.key][camel2snake(name)].append(metric.item())
 
     def get_losses_and_metrics_for_epoch(self, epoch, with_mean=True):
         losses_and_metrics = {}
@@ -180,7 +180,7 @@ class Recorder(BaseRecorder):
         for name, values in self.loss_history[phase_and_epoch_key].items():
             if with_mean:
                 values = np.mean(values)
-            losses[f"{camel2snake(name)}"] = values
+            losses[f"{name}"] = values
         return losses
 
     def get_metrics_for_epoch(self, epoch, with_mean=True):
@@ -189,7 +189,7 @@ class Recorder(BaseRecorder):
         for name, values in self.metric_history[val_key].items():
             if with_mean:
                 values = np.mean(values)
-            metrics[f"{camel2snake(name)}"] = values
+            metrics[f"{name}"] = values
         return metrics
 
 

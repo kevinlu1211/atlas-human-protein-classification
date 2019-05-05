@@ -8,7 +8,7 @@ from pytorch_toolbox.callbacks import TrackerCallback
 class SaveModelCallback(TrackerCallback):
     "A `TrackerCallback` that saves the model when monitored quantity is best."
 
-    def __init__(self, learn, save_path_creator: Optional[Callable], monitor: str = "val/total_loss",
+    def __init__(self, learn, save_path_creator: Optional[Callable], monitor: str = "VAL/total_loss",
                  mode: str = "auto", every: str = "improvement", file_name: str = "best_model", ):
         super().__init__(learn, monitor, mode)
         self.every = every
@@ -19,7 +19,7 @@ class SaveModelCallback(TrackerCallback):
         self.save_path = Path(
             self.learn.path if save_path_creator is None else save_path_creator()) / f"{file_name}.pth"
 
-    def on_epoch_end(self, epoch, **kwargs) -> None:
+    def on_epoch_end(self, epoch, phase, **kwargs) -> None:
         if self.every == "epoch":
             self.learn.save(f'{self.save_name}_{epoch}')
         else:  # every="improvement"
@@ -27,10 +27,14 @@ class SaveModelCallback(TrackerCallback):
             if current is not None and self.operator(current, self.best):
                 self.best = current
                 self.learn.save_model_with_path(f'{self.save_path}')
+            else:
+                logging.warning(f"The key to monitor: {self.monitor} is not found in the available keys: {list(self.learn.recorder.loss_history[(phase.name, epoch)].keys())}")
+
 
     def on_train_end(self, epoch, **kwargs):
         current = self.get_monitor_value(epoch)
         if current is None:
+            logging.warning(f"The key to monitor: {self.monitor} is not found in the available keys: {list(self.learn.recorder.loss_history[(phase.name, epoch)].keys())} so the best model will not be loaded")
             return
         if self.every == "improvement":
             try:

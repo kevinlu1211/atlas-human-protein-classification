@@ -83,7 +83,7 @@ class CallbackHandler:
 
     @staticmethod
     def _get_init_state():
-        return {'epoch': 0, 'iteration': 0, 'num_batch': 0}
+        return {'epoch': 1, 'iteration': 0, 'num_batch': 0}
 
     def on_train_begin(self, epochs: int, pbar: PBar, metrics: MetricFuncList) -> None:
         "About to start learning."
@@ -146,12 +146,13 @@ class CallbackHandler:
     def on_epoch_end(self, val_loss: Tensor) -> bool:
         "Epoch is done, process `val_metrics`."
         self.state_dict['last_metrics'] = [val_loss] if val_loss is not None else None
-        self.state_dict['epoch'] += 1
         if not self.state_dict['train']:
             for met in self.metrics:
                 met.on_epoch_end(**self.state_dict)
                 self.state_dict['last_metrics'].append(met.metric)
-        return np.any(self('epoch_end', False))
+        should_end = np.any(self('epoch_end', False))
+        self.state_dict['epoch'] += 1
+        return should_end
 
     def on_train_end(self, exception: Union[bool, Exception]) -> None:
         "Handle end of training, `exception` is an `Exception` or False if no exceptions during training."
@@ -173,7 +174,7 @@ class LearnerCallback(Callback):
 class TrackerCallback(LearnerCallback):
     "A `LearnerCallback` that keeps track of the best value in `monitor`."
 
-    def __init__(self, learn, monitor="val/total_loss", mode="auto"):
+    def __init__(self, learn, monitor="VAL/total_loss", mode="auto"):
         super().__init__(learn)
         self.monitor = monitor
         self.mode = mode
@@ -186,8 +187,7 @@ class TrackerCallback(LearnerCallback):
         self.best = float('inf') if self.operator == np.less else -float('inf')
 
     def get_monitor_value(self, epoch):
-        prev_epoch = epoch - 1
-        return self.learn.recorder.get_losses_and_metrics_for_epoch(prev_epoch).get(self.monitor)
+        return self.learn.recorder.get_losses_and_metrics_for_epoch(epoch).get(self.monitor)
 
 
 class SmoothenValue:

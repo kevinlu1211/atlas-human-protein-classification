@@ -110,20 +110,19 @@ class OutputRecorder(LearnerCallback):
             self.history[self.key].append(sample_to_save)
 
     def on_epoch_end(self, epoch, **kwargs):
-        prev_epoch = epoch - 1
-        history_save_path = self.save_path / 'training_logs' / f"epoch_{prev_epoch}_train.csv"
+        history_save_path = self.save_path / 'training_logs' / f"epoch_{epoch}_train.csv"
         history_save_path.parent.mkdir(exist_ok=True, parents=True)
-        history = self.history[(Phase.TRAIN.name, prev_epoch)]
+        history = self.history[(Phase.TRAIN.name, epoch)]
         df = pd.DataFrame(history)
         df.to_csv(history_save_path, index=False)
 
-        history_save_path = self.save_path / 'training_logs' / f"epoch_{prev_epoch}_val.csv"
+        history_save_path = self.save_path / 'training_logs' / f"epoch_{epoch}_val.csv"
         history_save_path.parent.mkdir(exist_ok=True, parents=True)
-        history = self.history[(Phase.VAL.name, prev_epoch)]
+        history = self.history[(Phase.VAL.name, epoch)]
         df = pd.DataFrame(history)
         df.to_csv(history_save_path, index=False)
 
-        model_save_path = self.save_path / 'model_checkpoints' / f"epoch_{prev_epoch}.pth"
+        model_save_path = self.save_path / 'model_checkpoints' / f"epoch_{epoch}.pth"
         model_save_path.parent.mkdir(exist_ok=True, parents=True)
         self.learn.save_model_with_path(model_save_path)
         self.history = defaultdict(list)
