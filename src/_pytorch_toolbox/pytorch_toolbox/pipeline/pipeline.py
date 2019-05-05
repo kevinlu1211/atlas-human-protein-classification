@@ -31,6 +31,7 @@ class Pipeline:
 
     @staticmethod
     def _add_nodes_to_graph(graph, resources, lookups):
+        logging.info("Adding nodes to graph")
         for name, resource in resources.items():
             references = find_references(resource)
             properties = load_properties_with_default_values(resource["properties"], lookups)
@@ -40,6 +41,7 @@ class Pipeline:
 
     @staticmethod
     def _add_edges_to_graph(graph):
+        logging.info("Adding edges to graph")
         for name, node_wrapper in graph.nodes(data=True):
             node = node_wrapper["node"]
             for reference in node.references:
@@ -75,10 +77,12 @@ class Pipeline:
             return output_lookup[output_lookup_key]
 
     def run(self, to_node=None):
+        logging.info("Running nodes in graph")
         for node_name in nx.algorithms.dag.topological_sort(self.graph):
+            node = self.graph.nodes(data=True)[node_name]["node"]
+            logging.debug(f"Running node: {node}")
             if to_node == node_name:
                 break
-            node = self.graph.nodes(data=True)[node_name]["node"]
             self._run_node(node)
 
     def _run_node(self, node):
