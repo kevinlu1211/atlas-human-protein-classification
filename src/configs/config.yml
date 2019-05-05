@@ -13,7 +13,7 @@ Variables:
   TrainBatchSize: 16
   ValBatchSize: 8
   TestBatchSize: 8
-  NumDataBunchWorkers: 28
+  NumDataBunchWorkers: 0
   SamplerFunctionName: uniform_weights
 
   # Image & Augmentation
@@ -37,29 +37,29 @@ Variables:
   #    HyperparameterNames: ["lr"]
   #    EndEpoch: 60
 
-  TrainSamplesToUse: null
-  TestSamplesToUse: null
-
-  Model:
-    Name: densenet121_four_channel_input_two_fc
-    Pretrained: True
-
-  CreateTrainingScheme:
-    TrainingSchemeName: training_scheme_one_cycle
-    LearningRate: [5e-4]
-    Epochs: 60
-
-#  TrainSamplesToUse: 100
-#  TestSamplesToUse: 50
+#  TrainSamplesToUse: null
+#  TestSamplesToUse: null
 #
 #  Model:
-#    Name: debug_cnn
-#    Pretrained: False
+#    Name: densenet121_four_channel_input_two_fc
+#    Pretrained: True
 #
 #  CreateTrainingScheme:
 #    TrainingSchemeName: training_scheme_one_cycle
-#    LearningRate: [20e-5, 10e-5]
-#    Epochs: 1
+#    LearningRate: [5e-4]
+#    Epochs: 60
+
+  TrainSamplesToUse: 100
+  TestSamplesToUse: 50
+
+  Model:
+    Name: debug_cnn
+    Pretrained: False
+
+  CreateTrainingScheme:
+    TrainingSchemeName: training_scheme_one_cycle
+    LearningRate: [20e-5, 10e-5]
+    Epochs: 1
 
   # Output
   RootSavePathForTimeStampedSavePath: /media/hd/Kaggle/human-protein-image-classification/results
@@ -67,7 +67,7 @@ Variables:
   #Inference
   Inference:
     RelativeModelSavePath: null
-    LocalRootSavePath: null.
+    LocalRootSavePath: null
     DockerRootSavePath: /app/model_artifacts/
 
 Resources:
