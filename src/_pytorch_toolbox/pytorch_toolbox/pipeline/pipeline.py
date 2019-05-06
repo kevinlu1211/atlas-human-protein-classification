@@ -24,15 +24,16 @@ class Pipeline:
         return cls(graph, config, state_dict)
 
     @classmethod
-    def create_from_config_path(cls, config_path, lookup):
+    def create_from_config_path(cls, config_path, lookup, with_variable_replacement=True):
         raw_config = load_config_from_path(config_path)
-        replaced_config = load_config_from_path(config_path, with_variable_replacement=True)
+        replaced_config = load_config_from_path(config_path, with_variable_replacement=with_variable_replacement)
         return cls.create_from_config(replaced_config, lookup, state_dict=dict(raw_config=raw_config))
 
     @staticmethod
     def _add_nodes_to_graph(graph, resources, lookup):
         logging.info("Adding nodes to graph")
         for name, resource in resources.items():
+            assert "properties" in resource, f"The properties key isn't defined for node: {name}"
             references = find_references(resource)
             properties = load_properties_with_default_values(resource["properties"], lookup)
             node = Node(name=name, references=references, **properties)
@@ -156,10 +157,10 @@ class Node:
         else:
             output = self.pointer(**self.reference_replaced_arguments)
             if output is not None:
+                assert len(self.output_names) > 0, f"There are no output_names defined in properties for the node: {self.name}"
                 iterable_output = [output] if len(self.output_names) == 1 else output
                 self.output = {output_name: output_value for output_name, output_value in
                                zip(self.output_names, iterable_output)}
-
 
 
 def load_properties_with_default_values(properties, lookups):
