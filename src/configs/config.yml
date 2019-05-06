@@ -9,11 +9,11 @@ Variables:
   TestImagePaths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/test_combined
 
   Learner:
-    ToFP16: false
-  TrainBatchSize: 16
-  ValBatchSize: 8
-  TestBatchSize: 8
-  NumDataBunchWorkers: 28
+    ToFP16: true
+  TrainBatchSize: 32
+  ValBatchSize: 12
+  TestBatchSize: 12
+  NumDataBunchWorkers: 0
   SamplerFunctionName: uniform_weights
 
   # Image & Augmentation
@@ -50,7 +50,7 @@ Variables:
   Model:
     Name: debug_cnn
     Pretrained: False
-#
+
   CreateTrainingScheme:
     TrainingSchemeName: training_scheme_multi_step
     EpochsForStepForHyperparameters: [[0]]

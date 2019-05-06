@@ -33,10 +33,11 @@ class SaveModelCallback(TrackerCallback):
                 logging.warning(f"The key to monitor: {self.monitor} is not found in the available keys: {list(self.learn.recorder.loss_history[(phase.name, epoch)].keys())}")
 
 
-    def on_train_end(self, epoch, **kwargs):
-        current = self.get_monitor_value(epoch)
+    def on_train_end(self, epoch, phase, **kwargs):
+        last_epoch = epoch - 1
+        current = self.get_monitor_value(last_epoch)
         if current is None:
-            logging.warning(f"The key to monitor: {self.monitor} is not found in the available keys: {list(self.learn.recorder.loss_history[(phase.name, epoch)].keys())} so the best model will not be loaded")
+            logging.warning(f"The key to monitor: {self.monitor} is not found in the available keys: {list(self.learn.recorder.loss_history[(phase.name, last_epoch)].keys())} so the best model will not be loaded")
             return
         if self.every == "improvement":
             try:
