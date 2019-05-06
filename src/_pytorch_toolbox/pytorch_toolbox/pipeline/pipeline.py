@@ -15,26 +15,26 @@ class Pipeline:
         }
 
     @classmethod
-    def create_from_config(cls, config, lookups, state_dict={}):
+    def create_from_config(cls, config, lookup, state_dict={}):
         assert config.get("Resources") is not None, "There is no Resources key in the configuration file"
         graph = nx.DiGraph()
         flattened_resources = flatten_resources_dict(config["Resources"])
-        graph = cls._add_nodes_to_graph(graph, flattened_resources, lookups)
+        graph = cls._add_nodes_to_graph(graph, flattened_resources, lookup)
         graph = cls._add_edges_to_graph(graph)
         return cls(graph, config, state_dict)
 
     @classmethod
-    def create_from_config_path(cls, config_path, lookups):
+    def create_from_config_path(cls, config_path, lookup):
         raw_config = load_config_from_path(config_path)
         replaced_config = load_config_from_path(config_path, with_variable_replacement=True)
-        return cls.create_from_config(replaced_config, lookups, state_dict=dict(raw_config=raw_config))
+        return cls.create_from_config(replaced_config, lookup, state_dict=dict(raw_config=raw_config))
 
     @staticmethod
-    def _add_nodes_to_graph(graph, resources, lookups):
+    def _add_nodes_to_graph(graph, resources, lookup):
         logging.info("Adding nodes to graph")
         for name, resource in resources.items():
             references = find_references(resource)
-            properties = load_properties_with_default_values(resource["properties"], lookups)
+            properties = load_properties_with_default_values(resource["properties"], lookup)
             node = Node(name=name, references=references, **properties)
             graph.add_node(name, node=node)
         return graph
