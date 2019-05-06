@@ -13,7 +13,7 @@ Variables:
   TrainBatchSize: 16
   ValBatchSize: 8
   TestBatchSize: 8
-  NumDataBunchWorkers: 0
+  NumDataBunchWorkers: 28
   SamplerFunctionName: uniform_weights
 
   # Image & Augmentation
@@ -50,16 +50,22 @@ Variables:
   Model:
     Name: debug_cnn
     Pretrained: False
-
+#
   CreateTrainingScheme:
-    TrainingSchemeName: training_scheme_one_cycle
-    LearningRate: [20e-5, 10e-5]
-    Epochs: 1
+    TrainingSchemeName: training_scheme_multi_step
+    EpochsForStepForHyperparameters: [[0]]
+    HyperparameterValues: [[30e-5]]
+    HyperparameterNames: ["lr"]
+    EndEpoch: 1
+
+#  CreateTrainingScheme:
+#    TrainingSchemeName: training_scheme_one_cycle
+#    LearningRate: [20e-5, 10e-5]
+#    Epochs: 1
 
   # Output
   RootSavePathForTimeStampedSavePath: /media/hd/Kaggle/human-protein-image-classification/results
 
-  #Inference
   Inference:
     RelativeModelSavePath: null
     LocalRootSavePath: null
@@ -267,27 +273,27 @@ Resources:
           training_scheme: !Ref CreateTrainingScheme.TrainingScheme
           record_results: !Ref RunRecordResults.ResultRecorder
 
-    #    CreateTrainingScheme:
-    #      properties:
-    #        pointer: !Var CreateTrainingScheme.TrainingSchemeName
-    #        arguments:
-    #          epochs_for_step_for_hyperparameters: !Var CreateTrainingScheme.EpochsForStepForHyperparameters
-    #          hyperparameter_values: !Var CreateTrainingScheme.HyperparameterValues
-    #          hyperparameter_names: !Var CreateTrainingScheme.HyperparameterNames
-    #          end_epoch: !Var CreateTrainingScheme.EndEpoch
-    #        partial: true
-    #        output_names:
-    #          - TrainingScheme
-
     CreateTrainingScheme:
       properties:
         pointer: !Var CreateTrainingScheme.TrainingSchemeName
         arguments:
-          lr: !Var CreateTrainingScheme.LearningRate
-          epochs: !Var CreateTrainingScheme.Epochs
+          epochs_for_step_for_hyperparameters: !Var CreateTrainingScheme.EpochsForStepForHyperparameters
+          hyperparameter_values: !Var CreateTrainingScheme.HyperparameterValues
+          hyperparameter_names: !Var CreateTrainingScheme.HyperparameterNames
+          end_epoch: !Var CreateTrainingScheme.EndEpoch
         partial: true
         output_names:
           - TrainingScheme
+
+#    CreateTrainingScheme:
+#      properties:
+#        pointer: !Var CreateTrainingScheme.TrainingSchemeName
+#        arguments:
+#          lr: !Var CreateTrainingScheme.LearningRate
+#          epochs: !Var CreateTrainingScheme.Epochs
+#        partial: true
+#        output_names:
+#          - TrainingScheme
 
     CreateLearner:
       properties:
@@ -400,7 +406,7 @@ Resources:
       properties:
         pointer: SaveModelCallback
         arguments:
-          monitor: "AL/focal_loss"
+          monitor: "VAL/focal_loss"
           save_path_creator: !Ref CreateTimeStampedSavePath.SavePathCreator
         partial: true
         output_names:

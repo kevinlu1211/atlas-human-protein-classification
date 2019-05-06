@@ -24,9 +24,11 @@ class SaveModelCallback(TrackerCallback):
             self.learn.save(f'{self.save_name}_{epoch}')
         else:  # every="improvement"
             current = self.get_monitor_value(epoch)
-            if current is not None and self.operator(current, self.best):
+            if current is not None:
                 self.best = current
                 self.learn.save_model_with_path(f'{self.save_path}')
+            elif self.operator(current, self.best):
+                logging.info(f"The key to monitor: {self.monitor} has value: {current} but best value is {self.best}")
             else:
                 logging.warning(f"The key to monitor: {self.monitor} is not found in the available keys: {list(self.learn.recorder.loss_history[(phase.name, epoch)].keys())}")
 
