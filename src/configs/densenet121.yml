@@ -1,58 +1,63 @@
 Variables:
 
-  # Data
-  TrainImagePaths:
-    - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined
-    - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined_HPAv18
-  TrainLabelPaths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_all_no_dupes.csv
+  Paths:
+    TrainImagePaths:
+      - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined
+      - /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_combined_HPAv18
+    TrainLabelPaths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_all_no_dupes.csv
 
-  TestImagePaths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/test_combined
+    TestImagePaths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/test_combined
+    RootSavePathForTimeStampedSavePath: /media/hd/Kaggle/human-protein-image-classification/results
 
   Learner:
-    ToFP16: false
-  TrainBatchSize: 16
-  ValBatchSize: 6
-  TestBatchSize: 6
-  NumDataBunchWorkers: 28
-  SamplerFunctionName: uniform_weights
+    ToFP16: true
 
-  # Image & Augmentation
-  TrainResizeHeight: 768
-  TrainResizeWidth: 768
-  TrainCropHeight: 512
-  TrainCropWidth: 512
-  TrainCutoutHeight: 32
-  TrainCutoutWidth: 32
-  TrainBrightnessTransformProb: 0.8
-  TrainElasticTransformProb: 0.8
-  TestResizeHeight: 768
-  TestResizeWidth: 768
-  FiveCropTTACropHeight: 512
-  FiveCropTTACropWidth: 512
-  NormalizeMean: [12.14099732, 10.9779429,   5.46488976, 22.30204426]
-  NormalizeStd: [18.48077492, 17.25324061, 13.88083803, 32.78388995]
+  DataBunch:
+    TrainBatchSize: 32
+    ValBatchSize: 4
+    TestBatchSize: 4
+    NumDataBunchWorkers: 0
+    SamplerFunctionName: uniform_weights
 
-  CreateTrainingScheme:
+  Augmentation:
+    TrainResizeHeight: 768
+    TrainResizeWidth: 768
+    TrainCropHeight: 512
+    TrainCropWidth: 512
+    TrainBrightnessTransformProb: 0.5
+    TrainElasticTransformProb: 0.5
+    TestResizeHeight: 768
+    TestResizeWidth: 768
+    FiveCropTTACropHeight: 512
+    FiveCropTTACropWidth: 512
+
+  Preprocessing:
+    NormalizeMean: [12.14099732, 10.9779429,   5.46488976, 22.30204426]
+    NormalizeStd: [18.48077492, 17.25324061, 13.88083803, 32.78388995]
+
+  Training:
+    TrainSamplesToUse: 100
+    TestSamplesToUse: 100
     TrainingSchemeName: training_scheme_multi_step
     EpochsForStepForHyperparameters: [[0, 25, 30, 35, 40]]
-    HyperparameterValues: [[5e-5, 2.5e-5, 1e-5, 5e-6, 2.5e-6]]
+    HyperparameterValues: [[30e-5, 15e-5, 7.5e-5, 3e-5, 1e-5]]
     HyperparameterNames: ["lr"]
-    EndEpoch: 60
-
-  TrainSamplesToUse: null
-  TestSamplesToUse: null
+    EndEpoch: 1
 
   Model:
     Name: densenet121_four_channel_input_two_fc
     Pretrained: True
-
-  # Output
-  RootSavePathForTimeStampedSavePath: /media/hd/Kaggle/human-protein-image-classification/results
+    fc1_bias: false
+    fc1_dropout: 0.5
+    fc1_out: 512
+    fc2_bias: false
+    fc2_dropout: 0.5
+    fc2_out: 28
 
   Inference:
     RelativeModelSavePath: null
     LocalRootSavePath: null
-    DockerRootSavePath: /app/model_artifacts/
+    DockerRootSavePath: /app/model_artifacts
 
 Resources:
   Data:
@@ -61,8 +66,8 @@ Resources:
         properties:
           pointer: load_testing_data
           arguments:
-            root_image_paths: !Var TestImagePaths
-            use_n_samples: !Var TestSamplesToUse
+            root_image_paths: !Var Paths.TestImagePaths
+            use_n_samples: !Var Training.TestSamplesToUse
           output_names:
             - test_X
 
@@ -70,9 +75,9 @@ Resources:
         properties:
           pointer: load_training_data
           arguments:
-            root_image_paths: !Var TrainImagePaths
-            root_label_paths: !Var TrainLabelPaths
-            use_n_samples: !Var TrainSamplesToUse
+            root_image_paths: !Var Paths.TrainImagePaths
+            root_label_paths: !Var Paths.TrainLabelPaths
+            use_n_samples: !Var Training.TrainSamplesToUse
           output_names:
             - train_X
             - train_y
@@ -122,20 +127,20 @@ Resources:
             train_y_one_hot: !Ref LoadTrainingData.train_y_one_hot
             train_y: !Ref LoadTrainingData.train_y
             test_X: !Ref LoadTestingData.test_X
-            train_bs: !Var TrainBatchSize
-            test_bs: !Var ValBatchSize
-            val_bs: !Var TestBatchSize
+            train_bs: !Var DataBunch.TrainBatchSize
+            test_bs: !Var DataBunch.ValBatchSize
+            val_bs: !Var DataBunch.TestBatchSize
             train_ds: !Ref CreateTrainingDataset.TrainingDataset
             val_ds: !Ref CreateValidationDataset.ValidationDataset
             test_ds: !Ref CreateTestingDataset.TestingDataset
             sampler: !Ref CreateSampler.Sampler
-            num_workers: !Var NumDataBunchWorkers
+            num_workers: !Var DataBunch.NumDataBunchWorkers
           output_names:
             - DataBunch
     Sampling:
       CreateSamplerFunction:
         properties:
-          pointer: !Var SamplerFunctionName
+          pointer: !Var DataBunch.SamplerFunctionName
           partial: true
           output_names:
             - SamplerFunction
@@ -184,34 +189,34 @@ Resources:
         properties:
           pointer: crop_rotate90_flip_brightness_elastic
           arguments:
-            height: !Var TrainResizeHeight
-            width: !Var TrainResizeWidth
-            crop_height: !Var TrainCropHeight
-            crop_width: !Var TrainCropWidth
-            brightness_transform_p: !Var TrainBrightnessTransformProb
-            elastic_transform_p: !Var TrainElasticTransformProb
+            height: !Var Augmentation.TrainResizeHeight
+            width: !Var Augmentation.TrainResizeWidth
+            crop_height: !Var Augmentation.TrainCropHeight
+            crop_width: !Var Augmentation.TrainCropWidth
+            brightness_transform_p: !Var Augmentation.TrainBrightnessTransformProb
+            elastic_transform_p: !Var Augmentation.TrainElasticTransformProb
             with_image_wrapper: true
           output_names:
             - AugmentationFunction
-#      CreateAugmentationFunction:
-#        properties:
-#          pointer: random_crop_flip_shift_scale_rotate_brightness_contrast_cutout
-#          arguments:
-#            height: !Var TrainResizeHeight
-#            width: !Var TrainResizeWidth
-#            crop_height: !Var TrainCropHeight
-#            crop_width: !Var TrainCropWidth
-#            cutout_height: !Var TrainCutoutHeight
-#            cutout_width: !Var TrainCutoutWidth
-#            with_image_wrapper: true
-#          output_names:
-#            - AugmentationFunction
+      #      CreateAugmentationFunction:
+      #        properties:
+      #          pointer: random_crop_flip_shift_scale_rotate_brightness_contrast_cutout
+      #          arguments:
+      #            height: !Var TrainResizeHeight
+      #            width: !Var TrainResizeWidth
+      #            crop_height: !Var TrainCropHeight
+      #            crop_width: !Var TrainCropWidth
+      #            cutout_height: !Var TrainCutoutHeight
+      #            cutout_width: !Var TrainCutoutWidth
+      #            with_image_wrapper: true
+      #          output_names:
+      #            - AugmentationFunction
       CreateTestAugmentationFunction:
         properties:
           pointer: resize_aug
           arguments:
-            height: !Var TestResizeHeight
-            width: !Var TestResizeWidth
+            height: !Var Augmentation.TestResizeHeight
+            width: !Var Augmentation.TestResizeWidth
             with_image_wrapper: true
           output_names:
             - TestAugmentationFunction
@@ -221,8 +226,8 @@ Resources:
           pointer: five_crop_tta_transform
           partial: true
           arguments:
-            crop_height: !Var FiveCropTTACropHeight
-            crop_width: !Var FiveCropTTACropWidth
+            crop_height: !Var Augmentation.FiveCropTTACropHeight
+            crop_width: !Var Augmentation.FiveCropTTACropWidth
           output_names:
             - FiveCropTTAFunction
     Preprocessing:
@@ -241,8 +246,8 @@ Resources:
         properties:
           pointer: normalize
           arguments:
-            mean: !Var NormalizeMean
-            std: !Var NormalizeStd
+            mean: !Var Preprocessing.NormalizeMean
+            std: !Var Preprocessing.NormalizeStd
           partial: true
           output_names:
             - NormalizeFunction
@@ -251,8 +256,8 @@ Resources:
         properties:
           pointer: denormalize
           arguments:
-            mean: !Var NormalizeMean
-            std: !Var NormalizeStd
+            mean: !Var Preprocessing.NormalizeMean
+            std: !Var Preprocessing.NormalizeStd
           partial: true
           output_names:
             - DenormalizeFunction
@@ -270,25 +275,25 @@ Resources:
 
     CreateTrainingScheme:
       properties:
-        pointer: !Var CreateTrainingScheme.TrainingSchemeName
+        pointer: !Var Training.TrainingSchemeName
         arguments:
-          epochs_for_step_for_hyperparameters: !Var CreateTrainingScheme.EpochsForStepForHyperparameters
-          hyperparameter_values: !Var CreateTrainingScheme.HyperparameterValues
-          hyperparameter_names: !Var CreateTrainingScheme.HyperparameterNames
-          end_epoch: !Var CreateTrainingScheme.EndEpoch
+          epochs_for_step_for_hyperparameters: !Var Training.EpochsForStepForHyperparameters
+          hyperparameter_values: !Var Training.HyperparameterValues
+          hyperparameter_names: !Var Training.HyperparameterNames
+          end_epoch: !Var Training.EndEpoch
         partial: true
         output_names:
           - TrainingScheme
 
-#    CreateTrainingScheme:
-#      properties:
-#        pointer: !Var CreateTrainingScheme.TrainingSchemeName
-#        arguments:
-#          lr: !Var CreateTrainingScheme.LearningRate
-#          epochs: !Var CreateTrainingScheme.Epochs
-#        partial: true
-#        output_names:
-#          - TrainingScheme
+    #    CreateTrainingScheme:
+    #      properties:
+    #        pointer: !Var CreateTrainingScheme.TrainingSchemeName
+    #        arguments:
+    #          lr: !Var CreateTrainingScheme.LearningRate
+    #          epochs: !Var CreateTrainingScheme.Epochs
+    #        partial: true
+    #        output_names:
+    #          - TrainingScheme
 
     CreateLearner:
       properties:
@@ -315,6 +320,12 @@ Resources:
         pointer: !Var Model.Name
         arguments:
           pretrained: !Var Model.Pretrained
+          fc1_bias: !Var Model.fc1_bias
+          fc1_dropout: !Var Model.fc1_dropout
+          fc1_out: !Var Model.fc1_out
+          fc2_bias: !Var Model.fc2_bias
+          fc2_dropout: !Var Model.fc2_dropout
+          fc2_out: !Var Model.fc2_out
         partial: true
         output_names:
           - Model
@@ -460,7 +471,7 @@ Resources:
         pointer: create_time_stamped_save_path
         partial: true
         arguments:
-          save_path: !Var RootSavePathForTimeStampedSavePath
+          save_path: !Var Paths.RootSavePathForTimeStampedSavePath
         output_names:
           - SavePathCreator
 

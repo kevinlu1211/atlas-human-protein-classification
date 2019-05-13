@@ -52,7 +52,7 @@ Variables:
   Inference:
     RelativeModelSavePath: null
     LocalRootSavePath: null
-    DockerRootSavePath: /app/model_artifacts/
+    DockerRootSavePath: /app/model_artifacts
 
 Resources:
   Data:

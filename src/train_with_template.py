@@ -1,6 +1,7 @@
 # coding: utf-8
 
 import warnings
+
 warnings.filterwarnings('ignore')
 
 import pickle
@@ -267,9 +268,10 @@ def training_loop(create_learner, data_bunch_creator, config_saver, split_indice
         state_dict["current_fold"] = i
         data = data_bunch_creator(train_idx, val_idx)
         learner = create_learner(data)
+        config_saver(learner, update_config=False)
         training_scheme(learner)
         record_results(learner)
-        config_saver(learner)
+        config_saver(learner, update_config=True)
 
 
 def record_results(learner, result_recorder_callback, save_path_creator):
@@ -371,14 +373,19 @@ def optimize_thresholds_for_class_ratios(pred_probs, target_class_ratio):
     return p
 
 
-def save_config(learner, save_path_creator, state_dict):
+def save_config(learner, save_path_creator, state_dict, update_config=True):
     root_save_path = save_path_creator()
 
-    update_config_for_inference_model_save_path(root_save_path,
-                                                model_save_path=learner.save_model_callback.save_path,
-                                                state_dict=state_dict)
+    if update_config:
+        update_config_for_inference_model_save_path(root_save_path,
+                                                    model_save_path=learner.save_model_callback.save_path,
+                                                    state_dict=state_dict)
+        config_file_name = "config.yml"
+    else:
+        config_file_name = "initial_config.yml"
+
     config = state_dict["raw_config"]
-    config_save_path = root_save_path / "config.yml"
+    config_save_path = root_save_path / config_file_name
     config_save_path.parent.mkdir(parents=True, exist_ok=True)
     logging.info(f"Configuration file is saved at: {config_save_path}")
     dump_config_to_path(config, save_path=config_save_path)
