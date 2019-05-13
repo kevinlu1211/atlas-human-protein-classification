@@ -9,11 +9,11 @@ Variables:
   TestImagePaths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/test_combined
 
   Learner:
-    ToFP16: true
-  TrainBatchSize: 32
-  ValBatchSize: 12
-  TestBatchSize: 12
-  NumDataBunchWorkers: 0
+    ToFP16: false
+  TrainBatchSize: 16
+  ValBatchSize: 6
+  TestBatchSize: 6
+  NumDataBunchWorkers: 28
   SamplerFunctionName: uniform_weights
 
   # Image & Augmentation
@@ -21,6 +21,8 @@ Variables:
   TrainResizeWidth: 768
   TrainCropHeight: 512
   TrainCropWidth: 512
+  TrainCutoutHeight: 32
+  TrainCutoutWidth: 32
   TrainBrightnessTransformProb: 0.8
   TrainElasticTransformProb: 0.8
   TestResizeHeight: 768
@@ -30,38 +32,19 @@ Variables:
   NormalizeMean: [12.14099732, 10.9779429,   5.46488976, 22.30204426]
   NormalizeStd: [18.48077492, 17.25324061, 13.88083803, 32.78388995]
 
-#  CreateTrainingScheme:
-#    TrainingSchemeName: training_scheme_multi_step
-#    EpochsForStepForHyperparameters: [[0, 25, 30, 35, 40]]
-#    HyperparameterValues: [[30e-5, 15e-5, 7.5e-5, 3e-5, 1e-5]]
-#    HyperparameterNames: ["lr"]
-#    EndEpoch: 60
-#
-#  TrainSamplesToUse: null
-#  TestSamplesToUse: null
-#
-#  Model:
-#    Name: densenet121_four_channel_input_two_fc
-#    Pretrained: True
-
-  TrainSamplesToUse: 100
-  TestSamplesToUse: 50
-
-  Model:
-    Name: debug_cnn
-    Pretrained: False
-
   CreateTrainingScheme:
     TrainingSchemeName: training_scheme_multi_step
-    EpochsForStepForHyperparameters: [[0]]
-    HyperparameterValues: [[30e-5]]
+    EpochsForStepForHyperparameters: [[0, 25, 30, 35, 40]]
+    HyperparameterValues: [[5e-5, 2.5e-5, 1e-5, 5e-6, 2.5e-6]]
     HyperparameterNames: ["lr"]
-    EndEpoch: 1
+    EndEpoch: 60
 
-#  CreateTrainingScheme:
-#    TrainingSchemeName: training_scheme_one_cycle
-#    LearningRate: [20e-5, 10e-5]
-#    Epochs: 1
+  TrainSamplesToUse: null
+  TestSamplesToUse: null
+
+  Model:
+    Name: densenet121_four_channel_input_two_fc
+    Pretrained: True
 
   # Output
   RootSavePathForTimeStampedSavePath: /media/hd/Kaggle/human-protein-image-classification/results
@@ -210,7 +193,19 @@ Resources:
             with_image_wrapper: true
           output_names:
             - AugmentationFunction
-
+#      CreateAugmentationFunction:
+#        properties:
+#          pointer: random_crop_flip_shift_scale_rotate_brightness_contrast_cutout
+#          arguments:
+#            height: !Var TrainResizeHeight
+#            width: !Var TrainResizeWidth
+#            crop_height: !Var TrainCropHeight
+#            crop_width: !Var TrainCropWidth
+#            cutout_height: !Var TrainCutoutHeight
+#            cutout_width: !Var TrainCutoutWidth
+#            with_image_wrapper: true
+#          output_names:
+#            - AugmentationFunction
       CreateTestAugmentationFunction:
         properties:
           pointer: resize_aug

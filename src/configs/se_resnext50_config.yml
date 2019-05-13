@@ -10,41 +10,37 @@ Variables:
 
   Learner:
     ToFP16: true
-  TrainBatchSize: 2
-  ValBatchSize: 2
-  TestBatchSize: 2
-  NumDataBunchWorkers: 0
+  TrainBatchSize: 32
+  ValBatchSize: 12
+  TestBatchSize: 12
+  NumDataBunchWorkers: 28
   SamplerFunctionName: uniform_weights
 
   # Image & Augmentation
-  TrainResizeHeight: 128
-  TrainResizeWidth: 128
-  TrainCropHeight: 96
-  TrainCropWidth: 96
+  TrainResizeHeight: 768
+  TrainResizeWidth: 768
+  TrainCropHeight: 512
+  TrainCropWidth: 512
   TrainBrightnessTransformProb: 0.8
   TrainElasticTransformProb: 0.8
-  TestResizeHeight: 128
-  TestResizeWidth: 128
-  FiveCropTTACropHeight: 96
-  FiveCropTTACropWidth: 96
+  TestResizeHeight: 768
+  TestResizeWidth: 768
+  FiveCropTTACropHeight: 512
+  FiveCropTTACropWidth: 512
   NormalizeMean: [12.14099732, 10.9779429,   5.46488976, 22.30204426]
   NormalizeStd: [18.48077492, 17.25324061, 13.88083803, 32.78388995]
 
+  CreateTrainingScheme:
+    TrainingSchemeName: training_scheme_one_cycle
+    LearningRate: [1e-5, 1e-5, 1e-5]
+    Epochs: 60
 
-  TrainSamplesToUse: 100
-  TestSamplesToUse: 50
+  TrainSamplesToUse: null
+  TestSamplesToUse: null
 
   Model:
-    Name: debug_cnn
+    Name: se_resnext50_32x4d_four_channel_input_two_fc
     Pretrained: False
-
-  CreateTrainingScheme:
-    TrainingSchemeName: training_scheme_multi_step
-    EpochsForStepForHyperparameters: [[0]]
-    HyperparameterValues: [[30e-5]]
-    HyperparameterNames: ["lr"]
-    EndEpoch: 1
-
 
   # Output
   RootSavePathForTimeStampedSavePath: /media/hd/Kaggle/human-protein-image-classification/results
@@ -256,27 +252,27 @@ Resources:
           training_scheme: !Ref CreateTrainingScheme.TrainingScheme
           record_results: !Ref RunRecordResults.ResultRecorder
 
-    CreateTrainingScheme:
-      properties:
-        pointer: !Var CreateTrainingScheme.TrainingSchemeName
-        arguments:
-          epochs_for_step_for_hyperparameters: !Var CreateTrainingScheme.EpochsForStepForHyperparameters
-          hyperparameter_values: !Var CreateTrainingScheme.HyperparameterValues
-          hyperparameter_names: !Var CreateTrainingScheme.HyperparameterNames
-          end_epoch: !Var CreateTrainingScheme.EndEpoch
-        partial: true
-        output_names:
-          - TrainingScheme
-
 #    CreateTrainingScheme:
 #      properties:
 #        pointer: !Var CreateTrainingScheme.TrainingSchemeName
 #        arguments:
-#          lr: !Var CreateTrainingScheme.LearningRate
-#          epochs: !Var CreateTrainingScheme.Epochs
+#          epochs_for_step_for_hyperparameters: !Var CreateTrainingScheme.EpochsForStepForHyperparameters
+#          hyperparameter_values: !Var CreateTrainingScheme.HyperparameterValues
+#          hyperparameter_names: !Var CreateTrainingScheme.HyperparameterNames
+#          end_epoch: !Var CreateTrainingScheme.EndEpoch
 #        partial: true
 #        output_names:
 #          - TrainingScheme
+
+    CreateTrainingScheme:
+      properties:
+        pointer: !Var CreateTrainingScheme.TrainingSchemeName
+        arguments:
+          lr: !Var CreateTrainingScheme.LearningRate
+          epochs: !Var CreateTrainingScheme.Epochs
+        partial: true
+        output_names:
+          - TrainingScheme
 
     CreateLearner:
       properties:

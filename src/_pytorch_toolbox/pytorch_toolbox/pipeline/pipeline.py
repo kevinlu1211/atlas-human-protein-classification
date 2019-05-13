@@ -140,7 +140,6 @@ class Node:
             Pointer: {self.pointer}
             Arguments: {self.arguments}
             Should Run: {self.should_run}
-            Referenced By: {self.referenced_by}
         """
 
     def create_output(self):
@@ -152,10 +151,16 @@ class Node:
     def _call_pointer_and_set_output(self):
         if self.partial:
             assert len(
-                self.output_names) == 1, "If the output of node: {self.name} is partial, then there should be one output, {len(self.output_names)} outputs are found"
+                self.output_names) == 1, f"If the output of node: {self.name} is partial, then there should be one output, {len(self.output_names)} outputs are found"
             self.output = {self.output_names[0]: functools.partial(self.pointer, **self.reference_replaced_arguments)}
         else:
-            output = self.pointer(**self.reference_replaced_arguments)
+            try:
+                output = self.pointer(**self.reference_replaced_arguments)
+            except TypeError as e:
+                logging.error(e)
+                logging.error(f"This error was produced when calling node:\n{self}")
+                logging.error(e, exc_info=True)
+                exit(1)
             if output is not None:
                 assert len(self.output_names) > 0, f"There are no output_names defined in properties for the node: {self.name}"
                 iterable_output = [output] if len(self.output_names) == 1 else output

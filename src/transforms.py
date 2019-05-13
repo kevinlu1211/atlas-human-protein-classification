@@ -8,7 +8,7 @@ from albumentations import (
     Transpose, ShiftScaleRotate, Blur, OpticalDistortion, GridDistortion, HueSaturationValue,
     IAAAdditiveGaussianNoise, GaussNoise, MotionBlur, MedianBlur, IAAPiecewiseAffine,
     IAASharpen, IAAEmboss, RandomContrast, RandomBrightness, Flip, OneOf, Compose, ElasticTransform,
-    Resize, Crop, RandomBrightnessContrast, RandomCrop
+    Resize, Crop, RandomBrightnessContrast, RandomCrop, Cutout
 )
 
 
@@ -91,7 +91,8 @@ def crop_rotate90_flip_brightness_elastic(height=None, width=None,
         RandomCrop(crop_height, crop_width),
         RandomRotate90(),
         Flip(),
-        RandomBrightnessContrast(brightness_limit=3, contrast_limit=0.5, p=brightness_transform_p),
+        # RandomBrightnessContrast(brightness_limit=3, contrast_limit=0.5, p=brightness_transform_p),
+        RandomBrightnessContrast(brightness_limit=3, contrast_limit=1, p=brightness_transform_p),
         ElasticTransform(sigma=50, alpha_affine=50, p=elastic_transform_p),
     ]
     if height is None and width is None:
@@ -108,14 +109,13 @@ def crop_rotate90_flip_brightness_elastic(height=None, width=None,
         return augs
 
 
-def crop_shift_scan_rotate_flip_brightness_elastic(height=None, width=None,
+def random_crop_flip_shift_scale_rotate_brightness_contrast(height=None, width=None,
                                                    crop_height=None, crop_width=None, with_image_wrapper=False):
     augs = [
         RandomCrop(crop_height, crop_width),
-        ShiftScaleRotate(shift_limit=0.05, scale_limit=0.2, rotate_limit=90, p=1),
         Flip(),
-        RandomBrightnessContrast(brightness_limit=3, contrast_limit=0.5),
-        ElasticTransform(sigma=50, alpha_affine=50, p=0.5),
+        ShiftScaleRotate(shift_limit=0.0625, scale_limit=0.1, rotate_limit=45, p=1),
+        RandomBrightnessContrast(brightness_limit=0.5, contrast_limit=0.5, p=1),
     ]
     if height is None and width is None:
         augs = Compose(augs, p=1)
@@ -130,6 +130,27 @@ def crop_shift_scan_rotate_flip_brightness_elastic(height=None, width=None,
     else:
         return augs
 
+def random_crop_flip_shift_scale_rotate_brightness_contrast_cutout(crop_height, crop_width, cutout_height, cutout_width,
+                                                                   height=None, width=None, with_image_wrapper=False):
+    augs = [
+        RandomCrop(crop_height, crop_width),
+        Flip(),
+        ShiftScaleRotate(shift_limit=0.0625, scale_limit=0.1, rotate_limit=45, p=1),
+        RandomBrightnessContrast(brightness_limit=3, contrast_limit=0.5, p=1),
+        Cutout(num_holes=8, max_h_size=cutout_height, max_w_size=cutout_width)
+    ]
+    if height is None and width is None:
+        augs = Compose(augs, p=1)
+    else:
+        if height is not None and width is None:
+            width = height
+        if width is not None and height is None:
+            height = width
+        augs = Compose([Resize(height=height, width=width, always_apply=True)] + augs, p=1)
+    if with_image_wrapper:
+        return partial(albumentations_transform_wrapper, augment_fn=augs)
+    else:
+        return augs
 
 def simple_aug(p=1, height=None, width=None):
     augs = [
@@ -208,7 +229,8 @@ augment_fn_lookup = {
     "crop_rotate90_flip": crop_rotate90_flip,
     "very_simple_aug_with_elastic_transform": very_simple_aug_with_elastic_transform,
     "very_simple_aug_with_elastic_transform_and_crop": crop_rotate90_flip_brightness_elastic,
-    "crop_shift_scan_rotate_flip_brightness_elastic": crop_shift_scan_rotate_flip_brightness_elastic,
+    "random_crop_flip_shift_scale_rotate_brightness_contrast": random_crop_flip_shift_scale_rotate_brightness_contrast,
+    "random_crop_flip_shift_scale_rotate_brightness_contrast_cutout": random_crop_flip_shift_scale_rotate_brightness_contrast_cutout,
     "crop_rotate90_flip_brightness_elastic": crop_rotate90_flip_brightness_elastic,
     "simple_aug": simple_aug,
     "simple_aug_lower_prob": simple_aug_lower_prob,
