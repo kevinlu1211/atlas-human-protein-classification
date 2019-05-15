@@ -47,7 +47,7 @@ string_to_label = {
 
 
 class DataPaths:
-    ROOT_DATA_PATH = Path(__file__).parent.parent / 'data'
+    ROOT_DATA_PATH = Path(__file__).parent.parent.parent / 'data'
     TRAIN_IMAGES = Path(ROOT_DATA_PATH, "train")
     TRAIN_IMAGES_HPAv18 = Path(ROOT_DATA_PATH, "train_HPAv18")
     TRAIN_COMBINED_IMAGES = Path(ROOT_DATA_PATH, "train_combined")

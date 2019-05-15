@@ -7,7 +7,8 @@ Variables:
     TrainLabelPaths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/train_all_no_dupes.csv
 
     TestImagePaths: /home/kevin/Documents/Kaggle/human-protein-image-classification/data/test_combined
-    RootSavePathForTimeStampedSavePath: /media/hd/Kaggle/human-protein-image-classification/results
+#    RootSavePathForTimeStampedSavePath: /media/hd/Kaggle/human-protein-image-classification/results
+    RootSavePathForTimeStampedSavePath: /home/kevin/Documents/Kaggle/human-protein-image-classification/model_artifacts
 
   Learner:
     ToFP16: true
@@ -36,13 +37,13 @@ Variables:
     NormalizeStd: [18.48077492, 17.25324061, 13.88083803, 32.78388995]
 
   Training:
-    TrainSamplesToUse: null
-    TestSamplesToUse: null
+    TrainSamplesToUse: 100
+    TestSamplesToUse: 100
     TrainingSchemeName: training_scheme_multi_step
     EpochsForStepForHyperparameters: [[0, 25, 30, 35, 40]]
     HyperparameterValues: [[30e-5, 15e-5, 7.5e-5, 3e-5, 1e-5]]
     HyperparameterNames: ["lr"]
-    EndEpoch: 60
+    EndEpoch: 1
 
   Model:
     Name: densenet121_four_channel_input_two_fc
@@ -168,7 +169,7 @@ Resources:
         properties:
           pointer: MultilabelStratifiedShuffleSplit
           arguments:
-            n_splits: 3
+            n_splits: 1
             test_size: 0.1
             random_state: 6969
           output_names:

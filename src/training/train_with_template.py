@@ -30,13 +30,13 @@ from pytorch_toolbox.losses import LossWrapper, loss_lookup
 from pytorch_toolbox.metrics import metric_lookup
 from pytorch_toolbox.defaults import default_wd
 
-from .data import make_one_hot, dataset_lookup, \
+from src.training.data import make_one_hot, dataset_lookup, \
     sampler_weight_lookup, split_method_lookup, DataPaths, single_class_counter
-from .image import open_numpy, Image
-from .training import training_scheme_lookup
-from .models import model_lookup
-from .transforms import augment_fn_lookup
-from .callbacks import OutputRecorder, ResultRecorder, OutputHookRecorder
+from src.training.image import open_numpy, Image
+from src.training.training_schemes import training_scheme_lookup
+from src.training.models import model_lookup
+from src.training.transforms import augment_fn_lookup
+from src.training.callbacks import OutputRecorder, ResultRecorder, OutputHookRecorder
 
 
 @click.command()

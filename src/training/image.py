@@ -9,7 +9,7 @@ import random
 
 import torch
 
-from .data import DataPaths, label_to_string, string_to_label
+from src.training.data import DataPaths, label_to_string, string_to_label
 
 
 def register_cmap():
