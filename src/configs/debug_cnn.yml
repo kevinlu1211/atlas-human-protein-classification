@@ -46,8 +46,8 @@ Variables:
     EndEpoch: 1
 
 
-  # Output
-  RootSavePathForTimeStampedSavePath: /media/hd/Kaggle/human-protein-image-classification/results
+#  RootSavePathForTimeStampedSavePath: /media/hd/Kaggle/human-protein-image-classification/results
+  RootSavePathForTimeStampedSavePath: /home/kevin/Documents/Kaggle/human-protein-image-classfications/model_artifacts
 
   Inference:
     RelativeModelSavePath: null

@@ -30,13 +30,13 @@ from pytorch_toolbox.losses import LossWrapper, loss_lookup
 from pytorch_toolbox.metrics import metric_lookup
 from pytorch_toolbox.defaults import default_wd
 
-from src.data import make_one_hot, dataset_lookup, \
+from .data import make_one_hot, dataset_lookup, \
     sampler_weight_lookup, split_method_lookup, DataPaths, single_class_counter
-from src.image import open_numpy, Image
-from src.training import training_scheme_lookup
-from src.models import model_lookup
-from src.transforms import augment_fn_lookup
-from src.callbacks import OutputRecorder, ResultRecorder, OutputHookRecorder
+from .image import open_numpy, Image
+from .training import training_scheme_lookup
+from .models import model_lookup
+from .transforms import augment_fn_lookup
+from .callbacks import OutputRecorder, ResultRecorder, OutputHookRecorder
 
 
 @click.command()
@@ -374,18 +374,22 @@ def optimize_thresholds_for_class_ratios(pred_probs, target_class_ratio):
 
 
 def save_config(learner, save_path_creator, state_dict, update_config=True):
-    root_save_path = save_path_creator()
+    time_stamped_save_path = save_path_creator()
 
     if update_config:
-        update_config_for_inference_model_save_path(root_save_path,
+        config_file_name = "config.yml"
+        update_config_for_inference_model_save_path(time_stamped_save_path,
                                                     model_save_path=learner.save_model_callback.save_path,
                                                     state_dict=state_dict)
-        config_file_name = "config.yml"
     else:
+        # First save initial config for debugging
         config_file_name = "initial_config.yml"
+        _save_config(config=state_dict["raw_config"], config_save_path=time_stamped_save_path / config_file_name)
 
-    config = state_dict["raw_config"]
-    config_save_path = root_save_path / config_file_name
+    _save_config(config=state_dict["raw_config"], config_save_path=Path(state_dict["save_path"]) / config_file_name)
+
+
+def _save_config(config, config_save_path):
     config_save_path.parent.mkdir(parents=True, exist_ok=True)
     logging.info(f"Configuration file is saved at: {config_save_path}")
     dump_config_to_path(config, save_path=config_save_path)
@@ -435,14 +439,32 @@ def find_relative_best_model_save_path(root_save_path, model_save_path):
 
 
 def create_time_stamped_save_path(save_path, state_dict):
-    current_time = state_dict.get("start_time")
-    if current_time is None:
+    # root_save_path = state_dict.get("root_save_path")
+    # current_time = state_dict.get("start_time")
+    # if current_time is None:
+    #     current_time = f"{time.strftime('%Y%m%d-%H%M%S')}"
+    #     state_dict["start_time"] = current_time
+    #
+    # current_fold = state_dict.get("current_fold")
+    # path = Path(save_path, current_time)
+    # if current_fold is not None:
+    #     path = path / f"Fold_{current_fold}"
+
+    try:
+        save_path = state_dict["save_path"]
+    except KeyError:
+        state_dict["save_path"] = save_path
+    try:
+        current_time = state_dict["start_time"]
+    except KeyError:
         current_time = f"{time.strftime('%Y%m%d-%H%M%S')}"
         state_dict["start_time"] = current_time
+
     current_fold = state_dict.get("current_fold")
     path = Path(save_path, current_time)
     if current_fold is not None:
         path = path / f"Fold_{current_fold}"
+
     return path
 
 

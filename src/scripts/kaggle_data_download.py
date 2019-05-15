@@ -1,7 +1,7 @@
 import subprocess
 import sys
 print(sys.path)
-from src.data import DataPaths
+from src.training.data import DataPaths
 
 
 DataPaths.ROOT_DATA_PATH.mkdir(parents=True, exist_ok=True)

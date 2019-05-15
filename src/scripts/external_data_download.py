@@ -2,7 +2,7 @@ import requests
 import pandas as pd
 from miniutils.progress_bar import parallel_progbar, progbar
 
-from src.data import DataPaths
+from src.training.data import DataPaths
 
 COLORS = ['red', 'green', 'blue', 'yellow']
 SAVE_PATH = DataPaths.TRAIN_IMAGES_HPAv18

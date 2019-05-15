@@ -76,7 +76,7 @@ class ProteinClassificationDataset(torch.utils.data.Dataset):
     def __init__(self, inputs, open_image_fn=None, image_cached=False, augment_fn=None, normalize_fn=None,
                  labels=None, tta_fn=None):
         # TODO: refactor to get rid of the lazy import
-        from src.image import open_numpy
+        from .image import open_numpy
         self.inputs = inputs
         self.open_image_fn = open_numpy if open_image_fn is None else open_image_fn
         self.image_cached = image_cached
