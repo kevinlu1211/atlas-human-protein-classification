@@ -91,7 +91,6 @@ def crop_rotate90_flip_brightness_elastic(height=None, width=None,
         RandomCrop(crop_height, crop_width),
         RandomRotate90(),
         Flip(),
-        # RandomBrightnessContrast(brightness_limit=3, contrast_limit=0.5, p=brightness_transform_p),
         RandomBrightnessContrast(brightness_limit=3, contrast_limit=1, p=brightness_transform_p),
         ElasticTransform(sigma=50, alpha_affine=50, p=elastic_transform_p),
     ]
